@@ -1,0 +1,41 @@
+.side-nav {
+  width: 9vw;; /* Sidebar width */
+  background-color: #282c34;
+  color: white;
+  padding: 20px;
+  position: fixed; /* Make the sidebar fixed */
+  top: 0; /* Align the sidebar to the top */
+  left: 0; /* Align the sidebar to the left */
+  height: 100vh; /* Make the sidebar span the entire height of the screen */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Ensure the links are at the top */
+  z-index: 1; /* Set z-index for sidebar */
+}
+
+
+.side-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+}
+
+.side-nav ul li {
+  margin: 5vh 0;
+}
+
+.side-nav ul li:first-child {
+  margin-top: 12.5vh; /* Push the first item down by 10% of the viewport height */
+}
+
+.side-nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 0.9vw;
+}
+
+.side-nav ul li a:hover {
+  text-decoration: underline;
+}
+

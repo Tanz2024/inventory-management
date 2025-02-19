@@ -1,0 +1,82 @@
+.archived-items-container {
+  max-width: 100%; /* Full width */
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 600px; /* Set the maximum height */
+  overflow-y: auto; /* Enable vertical scrolling when content overflows */
+}
+
+.archived-items-container h2 {
+  text-align: left;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.archived-items-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.archived-items-container th,
+.archived-items-container td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.archived-items-container th {
+  background-color: #0077a1; /* Updated header color */
+  color: white;
+  font-weight: bold;
+}
+
+.archived-items-container td {
+  background-color: #f9f9f9;
+}
+
+.archived-items-container tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.archived-items-container tr:hover {
+  background-color: #e2e2e2; /* Add hover effect for table rows */
+  cursor: pointer;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 768px) {
+  .archived-items-container {
+    padding: 10px; /* Reduce padding for smaller screens */
+    max-height: none; /* Remove max height on mobile */
+  }
+
+  .archived-items-container table {
+    font-size: 0.7rem; /* Reduce font size for better fit */
+    display: block;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    white-space: nowrap;
+  }
+
+  .archived-items-container th,
+  .archived-items-container td {
+    padding: 10px;
+  }
+
+  .archived-items-container h2 {
+    font-size: 1.5rem; /* Reduce heading size */
+  }
+}

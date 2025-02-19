@@ -1,0 +1,80 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/*.main-content {
+  margin-top: 70px; 
+  padding: 20px;
+  flex-grow: 1;
+}*/
+
+/*.dashboard-content {
+  margin-top: 20px;
+  padding: 20px;
+  flex-grow: 1;
+}*/
+
+/*.login-content {
+  margin-top: 70px;
+  padding: 20px;
+  flex-grow: 1;
+}*/
+
+.app-container {
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  min-height: 100vh;
+  background-color: #ecf0f1;
+}
+
+
+.main-section {
+  display: flex;
+  flex-grow: 1;
+  padding: 0;
+}
+
+
+
+/* Content area to the right of the sidebar */
+.content-area {
+  flex-grow: 1; /* Take up remaining space */
+  margin-left: 12vw; /* Space between sidebar and content */
+
+}
+
+
+.content-area.login-view {
+  margin-top: 10vh; /* Push the content down for login page */
+  margin-left: 0; /* No sidebar, so no margin needed */
+  padding: 20px; /* Add some padding to the content */
+}
+
+.app-container.login-page {
+  background-color: #fff; /* Different background for login page */
+}
