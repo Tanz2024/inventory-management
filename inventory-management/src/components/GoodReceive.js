@@ -1,27 +1,55 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import './GoodReceive.css';
 
 function GoodReceivedForm({ onItemsUpdate }) {
-  // Vendor / Supplier Information
-  const [attnPerson, setAttnPerson] = useState(''); // Contact person (supplier)
-  const [vendorName, setVendorName] = useState('');   // Vendor name
-  const [vendorAddress, setVendorAddress] = useState('');
-  const [vendorTel, setVendorTel] = useState('');
-  const [vendorEmail, setVendorEmail] = useState('');
+  // ---------------------------
+  //  State: Company Information
+  // ---------------------------
+  const [attnPerson, setAttnPerson] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [companyTel, setCompanyTel] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
 
-  // Goods Received Details
+  // ---------------------------
+  //  State: Goods Received
+  // ---------------------------
   const [grNo, setGrNo] = useState('');
-  const [receivedDate, setReceivedDate] = useState(''); // Received Date (date only)
-  const [inspector, setInspector] = useState('');
+  const [receivedDate, setReceivedDate] = useState('');
   const [remarks, setRemarks] = useState('');
 
-  // Items received
+  // ---------------------------
+  //  Items
+  // ---------------------------
   const [items, setItems] = useState([{ itemId: '', qty: 1, unitPrice: 0 }]);
   const [includeUnitPrice, setIncludeUnitPrice] = useState(true);
   const [adminItems, setAdminItems] = useState([]);
 
+  // ---------------------------
+  //  File Upload & History
+  // ---------------------------
+  const [localFiles, setLocalFiles] = useState([]);
+  const [fileHistory, setFileHistory] = useState([]);
+
+  // ---------------------------
+  //  Preview & Edit Modals
+  // ---------------------------
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Fullscreen toggle (no zoom)
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [editedFileName, setEditedFileName] = useState('');
+  const [editedStatus, setEditedStatus] = useState('');
+
+  // ---------------------------
+  //  Effects
+  // ---------------------------
   // Fetch admin items on mount and every 30 seconds
   useEffect(() => {
     const fetchAdminItems = () => {
@@ -38,50 +66,71 @@ function GoodReceivedForm({ onItemsUpdate }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Handlers for items list
+  // Fetch file history on mount
+  useEffect(() => {
+    fetchFileHistory();
+  }, []);
+
+  const fetchFileHistory = () => {
+    fetch('http://localhost:5000/api/fileHistory', {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then((res) => res.json())
+      .then((data) => setFileHistory(data.files || []))
+      .catch((err) => console.error('Error fetching file history:', err));
+  };
+
+  // ---------------------------
+  //  Items Handlers
+  // ---------------------------
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
     setItems(newItems);
   };
 
-  const handleAddItem = () => setItems([...items, { itemId: '', qty: 1, unitPrice: 0 }]);
+  const handleAddItem = () =>
+    setItems([...items, { itemId: '', qty: 1, unitPrice: 0 }]);
+
   const handleRemoveItem = (index) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
     if (onItemsUpdate) onItemsUpdate(newItems);
   };
 
-  // Helper to capitalize a string
-  const capitalize = (str) =>
-    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-
-  // Clear form fields
+  // ---------------------------
+  //  Clear Form
+  // ---------------------------
   const clearForm = () => {
     setAttnPerson('');
-    setVendorName('');
-    setVendorAddress('');
-    setVendorTel('');
-    setVendorEmail('');
+    setCompanyName('');
+    setCompanyAddress('');
+    setCompanyTel('');
+    setCompanyEmail('');
     setGrNo('');
     setReceivedDate('');
-    setInspector('');
     setRemarks('');
     setItems([{ itemId: '', qty: 1, unitPrice: 0 }]);
     setIncludeUnitPrice(true);
+    setLocalFiles([]);
+    setIsMaximized(false);
   };
 
-  // Compute real-time summary
-  const totalQty = useMemo(() => items.reduce((sum, item) => sum + Number(item.qty), 0), [items]);
-  const totalAmount = useMemo(
-    () =>
-      includeUnitPrice
-        ? items.reduce((sum, item) => sum + Number(item.qty) * parseFloat(item.unitPrice || 0), 0)
-        : 0,
-    [items, includeUnitPrice]
-  );
+  // ---------------------------
+  //  Summaries
+  // ---------------------------
+  const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
+  const totalAmount = includeUnitPrice
+    ? items.reduce(
+        (sum, it) => sum + Number(it.qty) * parseFloat(it.unitPrice || 0),
+        0
+      )
+    : 0;
 
-  // Update admin inventory via API
+  // ---------------------------
+  //  Inventory Update
+  // ---------------------------
   const updateAdminInventory = () => {
     const payload = {
       items: items.map((item) => ({
@@ -107,7 +156,124 @@ function GoodReceivedForm({ onItemsUpdate }) {
       .catch((err) => console.error('Error updating inventory:', err));
   };
 
-  // Generate PDF for Goods Received Note.
+  // ---------------------------
+  //  File Upload & Tracking
+  // ---------------------------
+  const handleLocalFileChange = (e) => {
+    const files = Array.from(e.target.files).map((file) => ({
+      file,
+      status: 'Pending',
+    }));
+    setLocalFiles((prev) => [...prev, ...files]);
+  };
+
+  const updateLocalFileStatus = (index, newStatus) => {
+    const updated = [...localFiles];
+    updated[index].status = newStatus;
+    setLocalFiles(updated);
+  };
+
+  const removeLocalFile = (index) => {
+    setLocalFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async () => {
+    if (localFiles.length === 0) {
+      alert('No files selected to upload.');
+      return;
+    }
+    const formData = new FormData();
+    localFiles.forEach(({ file }) => {
+      formData.append('files', file);
+    });
+    try {
+      const response = await fetch('http://localhost:5000/api/uploadFiles', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('File upload failed.');
+      }
+      alert('Files uploaded successfully.');
+      setLocalFiles([]);
+      fetchFileHistory();
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Error uploading files.');
+    }
+  };
+
+  // ---------------------------
+  //  Preview, Delete, Edit
+  // ---------------------------
+  const previewFile = async (fileId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/filePreview/${fileId}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch file preview.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      setPreviewUrl(url);
+      setIsMaximized(false); // reset fullscreen
+      setPreviewModalOpen(true);
+    } catch (err) {
+      console.error('Error previewing file:', err);
+      alert('Error previewing file.');
+    }
+  };
+
+  const deleteFile = async (fileId) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/deleteFile/${fileId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete file.');
+      alert('File deleted successfully.');
+      fetchFileHistory();
+    } catch (err) {
+      console.error('Error deleting file:', err);
+      alert('Error deleting file.');
+    }
+  };
+
+  const openEditModal = (file) => {
+    setCurrentFile(file);
+    setEditedFileName(file.file_name);
+    setEditedStatus(file.status);
+    setEditModalOpen(true);
+  };
+
+  const saveFileEdits = async () => {
+    if (!currentFile) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/updateFile/${currentFile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          file_name: editedFileName,
+          status: editedStatus,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update file.');
+      alert('File updated successfully.');
+      setEditModalOpen(false);
+      fetchFileHistory();
+    } catch (err) {
+      console.error('Error updating file:', err);
+      alert('Error updating file.');
+    }
+  };
+
+  // ---------------------------
+  //  Generate PDF
+  // ---------------------------
   const generateGoodsReceivedPDF = () => {
     if (!receivedDate) {
       alert('Please select a valid Received Date.');
@@ -122,25 +288,27 @@ function GoodReceivedForm({ onItemsUpdate }) {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const leftMargin = 10;
+    const centerX = pageWidth / 2;
+    const leftMargin = 15;
+    let currentY = 20;
+    const lineSpacing = 7;
 
-    // --- Header Section (SQUARECLOUD Details) ---
+    // Header Section
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    let currentY = 15;
+    doc.setFontSize(14);
     doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', leftMargin, currentY);
+    currentY += lineSpacing;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    currentY += 6;
+    doc.setFontSize(11);
     doc.text('D-61-3A, LEVEL 3A, JAYA ONE, 72A,', leftMargin, currentY);
-    currentY += 5;
+    currentY += lineSpacing;
     doc.text('Jln Profesor Diraja Ungku Aziz, Seksyen 13,', leftMargin, currentY);
-    currentY += 5;
+    currentY += lineSpacing;
     doc.text('46200 Petaling Jaya, Selangor', leftMargin, currentY);
-    currentY += 5;
+    currentY += lineSpacing;
     doc.text('Tel: 03-7497 2558', leftMargin, currentY);
 
-    // Company Logo (right)
+    // Company Logo (if available)
     const logoWidth = 40;
     const logoHeight = 40;
     const logoX = pageWidth - logoWidth - 10;
@@ -152,132 +320,147 @@ function GoodReceivedForm({ onItemsUpdate }) {
       console.warn('Logo image error:', e);
     }
 
-    // --- Title Section ---
+    // Title: "GOOD RECEIVE" (centered)
+    currentY += 10;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    const titleY = currentY + 10;
-    doc.text('GOOD RECEIVED NOTE', leftMargin, titleY);
+    doc.setFontSize(16);
+    doc.text('GOOD RECEIVE', centerX, currentY, { align: 'center' });
+    currentY += lineSpacing * 2;
 
-    // --- Vendor / Supplier Details (Recipient) ---
-    const infoY = titleY + 15;
+    // Attn on the left
     doc.setFont('helvetica', 'normal');
-    doc.text(`Attn: ${attnPerson}`, leftMargin, infoY);
+    doc.setFontSize(11);
+    doc.text(`Attn: ${attnPerson}`, leftMargin, currentY);
+
+    // GR No on the right
+    doc.text(`GR No: ${grNo}`, pageWidth - 15, currentY, { align: 'right' });
+    currentY += lineSpacing * 2;
+
+    // "Receive From" in bold, then company details
     doc.setFont('helvetica', 'bold');
-    doc.text(`To: ${vendorName}`, leftMargin, infoY + 8);
+    doc.text('RECEIVE FROM:', leftMargin, currentY);
     doc.setFont('helvetica', 'normal');
-    doc.text(vendorAddress, leftMargin, infoY + 16);
-    doc.text(`Tel: ${vendorTel}`, leftMargin, infoY + 24);
-    doc.text(`Email: ${vendorEmail}`, leftMargin, infoY + 32);
+    currentY += lineSpacing;
+    doc.text(`${companyName}`, leftMargin + 10, currentY);
+    currentY += lineSpacing;
+    doc.text(`${companyAddress}`, leftMargin + 10, currentY);
+    currentY += lineSpacing;
+    doc.text(`Tel: ${companyTel}`, leftMargin + 10, currentY);
+    currentY += lineSpacing;
+    doc.text(`Email: ${companyEmail}`, leftMargin + 10, currentY);
+    currentY += lineSpacing * 2;
 
-    // --- Goods Received Details (Right Column) ---
-    doc.text(`GR No: ${grNo}`, pageWidth - 10, infoY, { align: 'right' });
-    doc.text(`Received Date: ${formattedDate}`, pageWidth - 10, infoY + 8, { align: 'right' });
-    doc.text(`Inspector: ${inspector}`, pageWidth - 10, infoY + 16, { align: 'right' });
-
-    // --- Additional Received Info ---
-    const receivedInfoY = infoY + 28;
-    doc.text(`Remarks: ${remarks}`, leftMargin, receivedInfoY);
-
-    // --- Introduction Paragraph ---
-    const introY = infoY + 40;
-    doc.text('Goods Received by:', leftMargin, introY);
-    doc.text('Please find below the details of the received goods.', leftMargin, introY + 8);
-
-    // --- Items Table Section ---
-    let tableColumns, tableRows;
-    if (includeUnitPrice) {
-      doc.setFont('times', 'bold');
-      tableColumns = [
-        { header: capitalize('item no'), dataKey: 'itemNo' },
-        { header: capitalize('description'), dataKey: 'description' },
-        { header: capitalize('qty'), dataKey: 'qty' },
-        { header: 'Unit Price (RM)', dataKey: 'unitPrice' },
-        { header: 'Amount (RM)', dataKey: 'amount' },
-      ];
+    // Remarks
+    if (remarks.trim()) {
+      doc.setFont('helvetica', 'italic');
+      doc.text('Remarks:', leftMargin, currentY);
+      currentY += lineSpacing;
       doc.setFont('helvetica', 'normal');
-      tableRows = items.map((item, index) => {
-        const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
-        const description = adminItem ? adminItem.item_name : '';
-        const unitPrice = parseFloat(item.unitPrice);
-        const qty = Number(item.qty);
-        const amount = qty * unitPrice;
-        return {
-          itemNo: index + 1,
-          description,
-          qty,
-          unitPrice: unitPrice.toFixed(2),
-          amount: amount.toFixed(2),
-        };
-      });
-      const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
-      const totalAmount = items.reduce((sum, item) => sum + Number(item.qty) * parseFloat(item.unitPrice), 0);
+      doc.text(remarks, leftMargin + 10, currentY);
+      currentY += lineSpacing * 2;
+    }
+
+    // Items Table
+    const tableColumns = includeUnitPrice
+      ? [
+          { header: 'Item No', dataKey: 'itemNo' },
+          { header: 'Description', dataKey: 'description' },
+          { header: 'Qty', dataKey: 'qty' },
+          { header: 'Unit Price (RM)', dataKey: 'unitPrice' },
+          { header: 'Amount (RM)', dataKey: 'amount' },
+        ]
+      : [
+          { header: 'Item No', dataKey: 'itemNo' },
+          { header: 'Description', dataKey: 'description' },
+          { header: 'Qty', dataKey: 'qty' },
+        ];
+
+    const tableRows = items.map((item, index) => {
+      const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
+      const description = adminItem ? adminItem.item_name : '';
+      const unitPrice = parseFloat(item.unitPrice || 0);
+      const qty = Number(item.qty);
+      const amount = qty * unitPrice;
+      return {
+        itemNo: index + 1,
+        description,
+        qty,
+        unitPrice: includeUnitPrice ? unitPrice.toFixed(2) : undefined,
+        amount: includeUnitPrice ? amount.toFixed(2) : undefined,
+      };
+    });
+
+    const totalQtyValue = items.reduce((sum, it) => sum + Number(it.qty), 0);
+    if (includeUnitPrice) {
+      const totalAmountValue = items.reduce(
+        (s, it) => s + Number(it.qty) * parseFloat(it.unitPrice),
+        0
+      );
       tableRows.push({
         itemNo: '',
-        description: 'Total quantity',
-        qty: totalQty,
+        description: 'Total Quantity',
+        qty: totalQtyValue,
         unitPrice: '',
         amount: '',
       });
       tableRows.push({
         itemNo: '',
-        description: 'Total amount',
+        description: 'Total Amount',
         qty: '',
         unitPrice: '',
-        amount: totalAmount.toFixed(2),
+        amount: totalAmountValue.toFixed(2),
       });
     } else {
-      doc.setFont('times', 'bold');
-      tableColumns = [
-        { header: capitalize('item no'), dataKey: 'itemNo' },
-        { header: capitalize('description'), dataKey: 'description' },
-        { header: capitalize('qty'), dataKey: 'qty' },
-      ];
-      doc.setFont('helvetica', 'normal');
-      tableRows = items.map((item, index) => {
-        const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
-        const description = adminItem ? adminItem.item_name : '';
-        return {
-          itemNo: index + 1,
-          description,
-          qty: item.qty,
-        };
-      });
-      const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
       tableRows.push({
         itemNo: '',
-        description: 'Total quantity',
-        qty: totalQty,
+        description: 'Total Quantity',
+        qty: totalQtyValue,
       });
     }
 
     doc.autoTable({
-      startY: introY + 12,
+      startY: currentY,
       head: [tableColumns.map((col) => col.header)],
-      body: tableRows.map((row) => tableColumns.map((col) => row[col.dataKey])),
+      body: tableRows.map((row) =>
+        tableColumns.map((col) => row[col.dataKey] || '')
+      ),
       theme: 'grid',
-      styles: { halign: 'center', cellPadding: 3, lineWidth: 0.5, lineColor: 0 },
-      headStyles: { fillColor: 255, textColor: 0, fontStyle: 'bold' },
-      margin: { left: 20, right: 20, bottom: 5 },
+      styles: { halign: 'center', cellPadding: 4 },
+      headStyles: { fillColor: 240, textColor: 20, fontStyle: 'bold' },
+      margin: { left: 15, right: 15 },
+    });
+    currentY = doc.lastAutoTable.finalY + lineSpacing * 2;
+
+    // Signature Section
+    doc.setFontSize(11);
+    doc.text('Goods received by:', leftMargin, currentY);
+    currentY += lineSpacing;
+    doc.text('Receiver Signature: ______________________', leftMargin, currentY);
+    doc.text('Approved by: ______________________', pageWidth - 15, currentY, {
+      align: 'right',
     });
 
-    // --- Signature Section ---
-    const finalY = doc.lastAutoTable.finalY + 20;
-    doc.setFontSize(10);
-    doc.text('Goods received by:', leftMargin, finalY);
-    doc.text('Receiver Signature: ______________________', leftMargin, finalY + 8);
-    doc.text('Approved by: ______________________', pageWidth - 10, finalY + 8, { align: 'right' });
+    // Received Date below signature
+    currentY += lineSpacing * 2;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Received Date:', leftMargin, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${formattedDate}`, leftMargin + 30, currentY);
 
-    doc.save('Goods_Received_Note.pdf');
+    doc.save('Goods_Received.pdf');
     updateAdminInventory();
   };
 
+  // ---------------------------
+  //  Render
+  // ---------------------------
   return (
     <div className="form-container">
       <h1 className="form-title">Goods Received Form</h1>
 
-      {/* Vendor Information Section */}
+      {/* Company Information */}
       <section className="section">
-        <h2>Vendor Information</h2>
+        <h2>Company Information</h2>
         <div className="grid-container">
           <div className="form-item">
             <label>Attn (Person Name):</label>
@@ -289,46 +472,46 @@ function GoodReceivedForm({ onItemsUpdate }) {
             />
           </div>
           <div className="form-item">
-            <label>Vendor Name:</label>
+            <label>Company Name:</label>
             <input
               type="text"
-              value={vendorName}
-              onChange={(e) => setVendorName(e.target.value)}
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
               required
               style={{ fontWeight: 'bold' }}
             />
           </div>
           <div className="form-item">
-            <label>Vendor Address:</label>
+            <label>Company Address:</label>
             <input
               type="text"
-              value={vendorAddress}
-              onChange={(e) => setVendorAddress(e.target.value)}
+              value={companyAddress}
+              onChange={(e) => setCompanyAddress(e.target.value)}
               required
             />
           </div>
           <div className="form-item">
-            <label>Vendor Phone:</label>
+            <label>Company Phone:</label>
             <input
               type="text"
-              value={vendorTel}
-              onChange={(e) => setVendorTel(e.target.value)}
+              value={companyTel}
+              onChange={(e) => setCompanyTel(e.target.value)}
               required
             />
           </div>
           <div className="form-item">
-            <label>Vendor Email:</label>
+            <label>Company Email:</label>
             <input
               type="email"
-              value={vendorEmail}
-              onChange={(e) => setVendorEmail(e.target.value)}
+              value={companyEmail}
+              onChange={(e) => setCompanyEmail(e.target.value)}
               required
             />
           </div>
         </div>
       </section>
 
-      {/* Goods Received Details Section */}
+      {/* Goods Received Details */}
       <section className="section">
         <h2>Goods Received Details</h2>
         <div className="grid-container">
@@ -348,15 +531,6 @@ function GoodReceivedForm({ onItemsUpdate }) {
               value={receivedDate}
               onChange={(e) => setReceivedDate(e.target.value)}
               required
-            />
-          </div>
-          <div className="form-item">
-            <label>Inspector:</label>
-            <input
-              type="text"
-              value={inspector}
-              onChange={(e) => setInspector(e.target.value)}
-              placeholder="Enter inspector name"
             />
           </div>
           <div className="form-item">
@@ -424,7 +598,11 @@ function GoodReceivedForm({ onItemsUpdate }) {
               </div>
             )}
             {items.length > 1 && (
-              <button type="button" className="remove-btn" onClick={() => handleRemoveItem(index)}>
+              <button
+                type="button"
+                className="remove-btn"
+                onClick={() => handleRemoveItem(index)}
+              >
                 Remove Item
               </button>
             )}
@@ -436,7 +614,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         </button>
       </section>
 
-      {/* Goods Received Summary Section */}
+      {/* Summary Section */}
       <section className="section">
         <h2>Goods Received Summary</h2>
         <div className="summary">
@@ -446,6 +624,164 @@ function GoodReceivedForm({ onItemsUpdate }) {
           )}
         </div>
       </section>
+
+      {/* File Upload & Tracking Section */}
+      <section className="section">
+        <h2>Upload & Track Files</h2>
+        <div className="form-item">
+          <label>Select Files to Upload:</label>
+          <input type="file" name="files" onChange={handleLocalFileChange} multiple />
+        </div>
+        {localFiles.length > 0 && (
+          <div className="files-list">
+            <h3>Files Selected (Not yet uploaded)</h3>
+            <ul>
+              {localFiles.map((fileObj, index) => (
+                <li key={index}>
+                  <span>{fileObj.file.name}</span> —
+                  <select
+                    value={fileObj.status}
+                    onChange={(e) => updateLocalFileStatus(index, e.target.value)}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Reviewed">Reviewed</option>
+                    <option value="Approved">Approved</option>
+                  </select>
+                  <button onClick={() => removeLocalFile(index)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={uploadFiles}>
+              Upload Files to Server
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* File History Section (not in PDF) */}
+      <section className="section">
+        <h2>Uploaded Files History</h2>
+        {fileHistory.length > 0 ? (
+          <table className="file-history-table">
+            <thead>
+              <tr>
+                <th>File Name</th>
+                <th>File Type</th>
+                <th>Status</th>
+                <th>Uploaded At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fileHistory.map((file) => (
+                <tr key={file.id}>
+                  <td>{file.file_name}</td>
+                  <td>{file.file_type}</td>
+                  <td>{file.status}</td>
+                  <td>{new Date(file.uploaded_at).toLocaleString()}</td>
+                  <td>
+                    <button onClick={() => previewFile(file.id)}>Preview</button>
+                    <button
+                      onClick={() => openEditModal(file)}
+                      style={{ marginLeft: '5px' }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteFile(file.id)}
+                      style={{ marginLeft: '5px' }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>No files uploaded yet.</p>
+        )}
+      </section>
+
+      {/* Responsive Preview Modal (No Zoom Buttons) */}
+      {previewModalOpen && (
+        <div className="modal-overlay" onClick={() => setPreviewModalOpen(false)}>
+          <div
+            className={`modal-content responsive-preview ${
+              isMaximized ? 'fullscreen' : ''
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="preview-header">
+              <h3>File Preview</h3>
+              <div>
+                {/* Fullscreen toggle */}
+                <button
+                  onClick={() => setIsMaximized((prev) => !prev)}
+                  style={{ marginLeft: '15px' }}
+                >
+                  {isMaximized ? 'Restore' : 'Fullscreen'}
+                </button>
+                <button
+                  onClick={() => setPreviewModalOpen(false)}
+                  style={{ marginLeft: '15px' }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="preview-body">
+              {previewUrl ? (
+                <iframe
+                  title="File Preview"
+                  src={previewUrl}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+              ) : (
+                <p>Loading preview...</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="modal-overlay" onClick={() => setEditModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit File Details</h3>
+            <div className="form-item">
+              <label>File Name:</label>
+              <input
+                type="text"
+                value={editedFileName}
+                onChange={(e) => setEditedFileName(e.target.value)}
+              />
+            </div>
+            <div className="form-item">
+              <label>Status:</label>
+              <select
+                value={editedStatus}
+                onChange={(e) => setEditedStatus(e.target.value)}
+              >
+                <option value="Pending">Pending</option>
+                <option value="Reviewed">Reviewed</option>
+                <option value="Approved">Approved</option>
+              </select>
+            </div>
+            <button onClick={saveFileEdits}>Save Changes</button>
+            <button
+              onClick={() => setEditModalOpen(false)}
+              style={{ marginLeft: '5px' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="button-group">

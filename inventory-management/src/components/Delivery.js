@@ -21,7 +21,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
   // Fetch admin items on mount and every 30 seconds
   useEffect(() => {
     const fetchAdminItems = () => {
-      fetch('https://bc4a-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include'
       })
@@ -86,7 +86,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
       }))
     };
 
-    fetch('https://bc4a-211-25-11-204.ngrok-free.app/delivery/update-inventory', {
+    fetch('http://localhost:5000/delivery/update-inventory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -184,7 +184,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     const introY = infoY + 40;
     doc.setFont('helvetica', 'normal');
     doc.text("Dear Sir/Madam,", 10, introY);
-    doc.text("Please find below our delivery order details.", 10, introY + 8);
+    doc.text("We are pleased to append here with our quotation for your reference as below:", 10, introY + 8);
 
     // --- Item Table Section ---
     let tableColumns, tableRows;

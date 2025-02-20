@@ -10,49 +10,48 @@ const PendingTransactions = () => {
   }, []);
 
   const fetchPendingTransactions = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/pending-transactions', {
-      method: 'GET',
-      credentials: 'include', // Same as `withCredentials` in Axios
-    });
+    try {
+      const response = await fetch('http://localhost:5000/pending-transactions', {
+        method: 'GET',
+        credentials: 'include', // Pass cookies for authentication
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setPendingTransactions(data.pendingTransactions);
+    } catch (error) {
+      console.error('Error fetching pending transactions:', error);
     }
+  };
 
-    const data = await response.json();
-    setPendingTransactions(data.pendingTransactions);
-  } catch (error) {
-    console.error('Error fetching pending transactions:', error);
-  }
-};
+  const handleApprove = async (transactionId) => {
+    const confirmed = window.confirm('Are you sure you want to approve this transaction?');
+    if (!confirmed) return;
 
-const handleApprove = async (transactionId) => {
-  const confirmed = window.confirm('Are you sure you want to approve this transaction?');
-  if (!confirmed) return;
+    try {
+      const response = await fetch(`http://localhost:5000/approve-transaction/${transactionId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
 
-  try {
-    const response = await fetch(`http://localhost:5000/approve-transaction/${transactionId}`, {
-      method: 'PATCH',
-      credentials: 'include',
-    });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      alert('Transaction approved successfully.');
+      fetchPendingTransactions(); // Refresh the list after approval
+    } catch (error) {
+      console.error('Error approving transaction:', error);
+      alert('Failed to approve transaction.');
     }
+  };
 
-    alert('Transaction approved successfully.');
-    fetchPendingTransactions(); // Refresh the list
-  } catch (error) {
-    console.error('Error approving transaction:', error);
-    alert('Failed to approve transaction.');
-  }
-};
-
-return (
+  return (
     <div className="pending-transactions-container">
       <h1 className="pending-transactions-title">Pending Transactions</h1>
-
       <table className="transactions-table">
         <thead>
           <tr>
@@ -69,11 +68,10 @@ return (
             <th>Action</th>
           </tr>
         </thead>
-        
         <tbody>
-        {pendingTransactions.length === 0 ? (
+          {pendingTransactions.length === 0 ? (
             <tr>
-              <td colSpan="8" className="no-transactions-message">
+              <td colSpan="11" className="no-transactions-message">
                 No pending transactions
               </td>
             </tr>
@@ -91,7 +89,10 @@ return (
                 <td>{transaction.remarks}</td>
                 <td>{transaction.status}</td>
                 <td>
-                  <button className="approve-button" onClick={() => handleApprove(transaction.transaction_id)}>
+                  <button
+                    className="approve-button"
+                    onClick={() => handleApprove(transaction.transaction_id)}
+                  >
                     Approve
                   </button>
                 </td>

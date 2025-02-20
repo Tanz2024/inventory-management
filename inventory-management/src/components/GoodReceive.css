@@ -1,193 +1,299 @@
 /* CSS Variables for Consistent Theme */
 :root {
-    --primary-color: #005f80;
-    --primary-dark: #004d66;
-    --success-color: #28a745;
-    --success-dark: #218838;
-    --danger-color: #dc3545;
-    --danger-dark: #c82333;
-    --secondary-color: #6c757d;
-    --secondary-dark: #5a6268;
-    --light-gray: #f7f7f7;
-    --medium-gray: #ccc;
-    --dark-gray: #444;
-    --border-color: #e0e0e0;
-    --bg-color: #ffffff;
-    --font-base: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  }
-  
-  /* Global box-sizing reset */
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-  
-  /* Container styling */
-  .form-container {
-    max-width: 800px;
-    width: 100%;
-    padding: 30px;
-    margin: 20px auto;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background-color: var(--bg-color);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    font-family: var(--font-base);
-  }
-  
-  /* Title styling */
-  .form-title {
-    text-align: center;
-    font-size: 32px;
-    margin-bottom: 25px;
-    font-weight: 700;
-    color: var(--dark-gray);
-  }
-  
-  /* Section styling */
-  .section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
-  }
-  .section h2 {
-    font-size: 24px;
-    margin-bottom: 15px;
-    color: var(--primary-color);
-  }
-  
-  /* Form layout */
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  /* Grid layout for form items */
+  --primary-color: #005f80;
+  --primary-dark: #004d66;
+  --success-color: #28a745;
+  --success-dark: #218838;
+  --danger-color: #dc3545;
+  --danger-dark: #c82333;
+  --secondary-color: #6c757d;
+  --secondary-dark: #5a6268;
+  --light-gray: #f7f7f7;
+  --medium-gray: #ccc;
+  --dark-gray: #444;
+  --border-color: #e0e0e0;
+  --bg-color: #ffffff;
+  --font-base: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Global box-sizing reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Container styling */
+.form-container {
+  max-width: 1200px; /* Maximum width for large screens */
+  width: 100%;
+  padding: 30px;
+  margin: 20px auto;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background-color: var(--bg-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  font-family: var(--font-base);
+}
+
+/* Title styling */
+.form-title {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 25px;
+  font-weight: 700;
+  color: var(--dark-gray);
+}
+
+/* Section styling */
+.section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+.section h2 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: var(--primary-color);
+}
+
+/* Form layout */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Grid layout for form items */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+/* Responsive grid for smaller screens */
+@media (max-width: 768px) {
   .grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 25px;
+    grid-template-columns: 1fr;
   }
-  
-  /* Responsive grid for smaller screens */
-  @media (max-width: 768px) {
-    .grid-container {
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  /* Form item container */
-  .form-item {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Label styling */
-  label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--dark-gray);
-  }
-  
-  /* Input, select, and textarea styling */
-  input,
-  select,
-  textarea {
-    padding: 12px;
-    border: 1px solid var(--medium-gray);
-    border-radius: 4px;
-    font-size: 15px;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    font-family: var(--font-base);
-  }
-  input:focus,
-  select:focus,
-  textarea:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 5px rgba(0, 95, 128, 0.3);
-    outline: none;
-  }
-  
-  /* Disable resizing on the additional comments textarea */
-  textarea {
-    resize: none;
-    min-height: 80px;
-  }
-  
-  /* Button styling */
-  button {
-    padding: 14px;
-    font-size: 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    font-family: var(--font-base);
-  }
-  
-  /* Specific button styles */
-  button.add-btn {
-    background-color: var(--success-color);
-    color: #fff;
-  }
-  button.add-btn:hover {
-    background-color: var(--success-dark);
-    box-shadow: 0 2px 5px rgba(40, 167, 69, 0.4);
-  }
-  
-  button.remove-btn {
-    background-color: var(--danger-color);
-    color: #fff;
-  }
-  button.remove-btn:hover {
-    background-color: var(--danger-dark);
-    box-shadow: 0 2px 5px rgba(220, 53, 69, 0.4);
-  }
-  
-  button.generate-btn {
-    background-color: var(--primary-color);
-    color: #fff;
-  }
-  button.generate-btn:hover {
-    background-color: var(--primary-dark);
-    box-shadow: 0 2px 5px rgba(0, 95, 128, 0.4);
-  }
-  
-  button.refresh-btn {
-    background-color: var(--secondary-color);
-    color: #fff;
-  }
-  button.refresh-btn:hover {
-    background-color: var(--secondary-dark);
-    box-shadow: 0 2px 5px rgba(108, 117, 125, 0.4);
-  }
-  
-  /* Button group styling */
-  .button-group {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
-  }
-  
-  /* Item form block styling */
-  .item-form {
-    padding: 20px;
-    margin-bottom: 20px;
-    background-color: var(--light-gray);
-    border: 1px dashed var(--medium-gray);
-    border-radius: 6px;
-  }
-  
-  /* Order Summary styling */
-  .summary {
-    font-size: 16px;
-    line-height: 1.6;
-  }
-  .summary p {
-    margin: 5px 0;
-    color: var(--dark-gray);
-  }
-  
+}
+
+/* Form item container */
+.form-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label styling */
+label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--dark-gray);
+}
+
+/* Input, select, and textarea styling */
+input,
+select,
+textarea {
+  padding: 12px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  font-size: 15px;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  font-family: var(--font-base);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(0, 95, 128, 0.3);
+  outline: none;
+}
+
+/* Disable resizing on the additional comments textarea */
+textarea {
+  resize: none;
+  min-height: 80px;
+}
+
+/* Button styling */
+button {
+  padding: 14px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  font-family: var(--font-base);
+}
+
+/* Specific button styles */
+button.add-btn {
+  background-color: var(--success-color);
+  color: #fff;
+}
+button.add-btn:hover {
+  background-color: var(--success-dark);
+  box-shadow: 0 2px 5px rgba(40, 167, 69, 0.4);
+}
+
+button.remove-btn {
+  background-color: var(--danger-color);
+  color: #fff;
+}
+button.remove-btn:hover {
+  background-color: var(--danger-dark);
+  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.4);
+}
+
+button.generate-btn {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+button.generate-btn:hover {
+  background-color: var(--primary-dark);
+  box-shadow: 0 2px 5px rgba(0, 95, 128, 0.4);
+}
+
+button.refresh-btn {
+  background-color: var(--secondary-color);
+  color: #fff;
+}
+button.refresh-btn:hover {
+  background-color: var(--secondary-dark);
+  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.4);
+}
+
+/* Button group styling */
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Item form block styling */
+.item-form {
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: var(--light-gray);
+  border: 1px dashed var(--medium-gray);
+  border-radius: 6px;
+}
+
+/* Order Summary styling */
+.summary {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.summary p {
+  margin: 5px 0;
+  color: var(--dark-gray);
+}
+
+/* Professional File History Table */
+.file-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+}
+.file-history-table th,
+.file-history-table td {
+  border: 1px solid var(--medium-gray);
+  padding: 10px;
+  text-align: left;
+}
+.file-history-table th {
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+}
+
+/* Modal Overlay (for Preview & Edit) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5); /* semi-transparent dark background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Content */
+.modal-content {
+  background: var(--bg-color);
+  padding: 20px;
+  border-radius: 4px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  position: relative; /* for close button or additional controls if needed */
+}
+
+/* Responsive Preview (Rectangular) */
+.responsive-preview {
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  max-width: 800px;
+  height: 80vh;
+  max-height: 600px;
+  overflow: hidden;
+}
+
+/* Header bar at top of the preview modal */
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f2f2f2;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* Title in preview header */
+.preview-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Buttons in the preview header (close, etc.) */
+.preview-header button {
+  background: var(--primary-color);
+  color: #fff;
+  margin-left: 5px;
+  border-radius: 4px;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+}
+.preview-header button:hover {
+  background: var(--primary-dark);
+}
+
+/* Body of the preview for iframe or image */
+.preview-body {
+  flex: 1; /* fill remaining space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  overflow: auto; /* allow scrolling if content is large */
+}
+
+/* Fullscreen override for the modal (maximize) */
+.fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0;
+  border-radius: 0;
+  position: fixed; /* fill entire screen */
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
