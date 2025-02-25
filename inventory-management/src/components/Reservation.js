@@ -88,7 +88,7 @@ const Reservation = ({ onLogout,userId,username }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/reserve`, {
+      const response = await fetch(`http://localhost:5000admin-dashboard/items/${itemId}/reserve`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const Reservation = ({ onLogout,userId,username }) => {
       });
   
       // Make POST request to backend
-      const response = await fetch('http://localhost:5000/upload', {
+      const response = await fetch('http://localhost:5000upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',

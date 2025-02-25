@@ -1,0 +1,157 @@
+.reserve-container {
+  max-width: 1400px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 600px;  /* Set the maximum height of the table */
+  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
+}
+
+.reserve-container .header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.reserve-container .header-container .add-item-button,
+.reserve-container .header-container .delete-item-button {
+  padding: 10px 15px;
+  font-size: 20px;
+  background-color: #0077A1;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100px;
+  margin-right: 10px;
+}
+
+.reserve-container .header-container .add-item-button:hover,
+.reserve-container .header-container .delete-item-button:hover {
+  background-color: #45a049;
+}
+
+.reserve-container .header-container .header-admin-dashboard {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  text-align: left;
+  color: #333;
+}
+
+.reserve-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reserve-container table th,
+.reserve-container table td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.reserve-container table th {
+  background-color: #4CAF50;
+  color: white;
+  font-weight: bold;
+}
+
+.reserve-container table td {
+  background-color: #f9f9f9;
+}
+
+.reserve-container table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.reserve-container table tbody tr:hover {
+  background-color: #e2e2e2;
+  cursor: pointer;
+}
+
+.reserve-container table .quantity-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reserve-container table .quantity-input {
+  width: 50px;
+  height: 30px;
+  text-align: center;
+  padding: 5px;
+  margin: 0 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-top: 5px;
+}
+
+.reserve-container table td button {
+  padding: 5px 10px;
+  margin: 0 5px;
+  margin-top: 5px;
+  background-color: #008CBA;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.reserve-container table td button:hover {
+  background-color: #0077A1;
+}
+
+.reserve-container table .confirmButton {
+  width: 100%;
+}
+
+.reserve-container table .dashboard-C,
+.reserve-container table .dashboard-D {
+  font-size:0.8rem;
+}
+
+.reserve-container table .remarks-input {
+  width: 100px;
+  height: 30px;
+  text-align: center;
+  padding: 5px;
+  margin: 0 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-top: 5px;
+}
+
+.reserve-container .error-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.ocr-container{
+margin-bottom: 3vh;
+}
+
+.ocr-submit-btn {
+padding: 10px 20px;
+font-size: 1rem;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+transition: background-color 0.3s;
+width: 20%;
+margin-top: 1vh;
+}
+
+.ocr-submit-btn:hover {
+background-color: #45a049;
+}
+

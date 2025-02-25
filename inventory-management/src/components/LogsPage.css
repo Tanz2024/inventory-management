@@ -1,109 +1,128 @@
-.logs-page-container {
-  max-width: 100%; /* Full width */
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 600px;  /* Set the maximum height */
-  overflow-y: auto;   /* Enable vertical scrolling when content overflows */
-  display: block;     /* Make the table scrollable */
-}
-
-.logs-page-container h2 {
-  text-align: left;
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.logs-page-container table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 0.8rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.logs-page-container th,
-.logs-page-container td {
-  padding: 12px 15px;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-.logs-page-container th {
-  background-color: #0077a1; /* Header color */
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.logs-page-container td {
-  background-color: #f9f9f9;
-}
-
-.logs-page-container tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.logs-page-container tr:hover {
-  background-color: #e2e2e2;
-  cursor: pointer;
-}
-
-.logs-page-container .logs-header:hover {
-  background-color: #005f80; /* Darker header on hover */
-}
-
-/* Highlight entire row if it's the latest change for the item */
-/* Highlight entire row for latest changes */
-.latest-price {
-  background-color: #d0e7ff !important; /* Light blue */
-  font-weight: bold;
-  border: 2px solid #0077a1;
-}
-
-.latest-quantity {
-  background-color: #d4edda !important; /* Light green */
-  font-weight: bold;
-  border: 2px solid #28a745;
-}
-
-/* New style for combined updates */
-.latest-combined {
-  background: linear-gradient(to right, #d4edda, #d0e7ff) !important;
-  font-weight: bold;
-  border: 2px solid #6c757d;
-}
-
-.error-message {
-  color: red;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 20px;
-}
-
-/* Mobile Responsive */
-@media screen and (max-width: 768px) {
-  .logs-page-container {
-    padding: 10px;
-    max-height: none;
+/* ==========================================================================
+   Logs Page Container (No fixed max-height for full scrolling)
+   ========================================================================== */
+   .logs-page-container {
+    width: 100%;          /* Full width container */
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+    /* Removed max-height so it won't get stuck at 100% zoom */
+    /* max-height: 600px; */
+    /* overflow-y: auto; */
+  
+    display: block;       /* Make the table (or container) scrollable if needed */
   }
-
+  
+  /* Page Title */
+  .logs-page-container h2 {
+    text-align: left;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  /* ==========================================================================
+     Table Styles
+     ========================================================================== */
   .logs-page-container table {
-    font-size: 0.7rem;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
-
+  
   .logs-page-container th,
   .logs-page-container td {
-    padding: 10px;
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #ddd;
   }
-
-  .logs-page-container h2 {
-    font-size: 1.5rem;
+  
+  .logs-page-container th {
+    background-color: #0077a1; /* Header color */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
   }
-}
+  
+  .logs-page-container td {
+    background-color: #f9f9f9;
+  }
+  
+  /* Row Striping & Hover */
+  .logs-page-container tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  
+  .logs-page-container tr:hover {
+    background-color: #e2e2e2;
+    cursor: pointer;
+  }
+  
+  /* Hover effect for a special logs header cell */
+  .logs-page-container .logs-header:hover {
+    background-color: #005f80; /* Darker header on hover */
+  }
+  
+  /* ==========================================================================
+     Highlighted Rows for Specific Updates
+     ========================================================================== */
+  /* Light blue for latest price changes */
+  .latest-price {
+    background-color: #d0e7ff !important;
+    font-weight: bold;
+    border: 2px solid #0077a1;
+  }
+  
+  /* Light green for latest quantity changes */
+  .latest-quantity {
+    background-color: #d4edda !important;
+    font-weight: bold;
+    border: 2px solid #28a745;
+  }
+  
+  /* Combined gradient for updates */
+  .latest-combined {
+    background: linear-gradient(to right, #d4edda, #d0e7ff) !important;
+    font-weight: bold;
+    border: 2px solid #6c757d;
+  }
+  
+  /* Error Message Styling */
+  .error-message {
+    color: red;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  /* ==========================================================================
+     Mobile Responsive
+     ========================================================================== */
+  @media screen and (max-width: 768px) {
+    .logs-page-container {
+      padding: 10px;
+      /* Let container grow naturally; no fixed height */
+    }
+  
+    .logs-page-container table {
+      font-size: 0.7rem;
+      display: block;
+      overflow-x: auto;  /* Horizontal scroll for narrower screens */
+      white-space: nowrap;
+    }
+  
+    .logs-page-container th,
+    .logs-page-container td {
+      padding: 10px;
+    }
+  
+    .logs-page-container h2 {
+      font-size: 1.5rem;
+    }
+  }
+  

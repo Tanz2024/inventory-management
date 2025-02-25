@@ -26,31 +26,42 @@ function App() {
       try {
         const response = await fetch('http://localhost:5000/authenticate', {
           method: 'GET',
-          credentials: 'include',  // Ensure cookies are sent along with the request
+          credentials: 'include', // Ensures cookies (e.g., session tokens) are included
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-        if (response.ok) {
-          const data = await response.json();
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        if (data && data.username && data.role_id !== undefined && data.user_id !== undefined) {
           setIsLoggedIn(true);
-          setUsername(data.username);  // Assuming the backend sends the username
-          setRoleId(data.role_id);     // Assuming the backend sends the role_id
-          setUserId(data.user_id);     // Assuming the backend sends the user_id
+          setUsername(data.username);
+          setRoleId(data.role_id);
+          setUserId(data.user_id);
         } else {
+          // If the response is missing required fields, log out user
+          console.warn("Incomplete user data received:", data);
           setIsLoggedIn(false);
           setUsername('');
           setRoleId(null);
           setUserId(null);
         }
       } catch (error) {
-        console.error('Error authenticating:', error);
+        console.error('Error fetching user authentication:', error);
         setIsLoggedIn(false);
         setUsername('');
         setRoleId(null);
         setUserId(null);
       }
     };
-
+  
     fetchUser();
   }, []);
+  
 
   const handleLogin = (username, roleId, userId) => {
     setIsLoggedIn(true);
@@ -69,7 +80,7 @@ function App() {
   return (
     <Router>
       <div className={`app-container ${isLoggedIn ? '' : 'login-page'}`}>
-        <Header isLoggedIn={isLoggedIn} username={username} onLogout={handleLogout} />
+        <Header className='app-header' isLoggedIn={isLoggedIn} username={username} onLogout={handleLogout} />
         <div className="main-section">
           {/* Sidebar */}
           {isLoggedIn && <SideNav userId={userId} />}

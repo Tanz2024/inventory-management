@@ -26,7 +26,6 @@ const AddItems = ({ onClose, onAddItem }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const selectedCategory = useCustomCategory ? customCategory : category;
 
     // Validate form fields
@@ -90,24 +89,32 @@ const AddItems = ({ onClose, onAddItem }) => {
         <form onSubmit={handleSubmit}>
           <label>
             Item Name:
-            <input type="text" value={itemName} onChange={(e) => setItemName(e.target.value)} required />
+            <input
+              type="text"
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              required
+            />
           </label>
 
           <label>
             Category:
             <div>
-              <select 
-                value={category} 
+              <select
+                value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
                   setUseCustomCategory(false);
-                }} 
+                }}
                 required={!useCustomCategory}
                 disabled={useCustomCategory}
+                className="category-select"
               >
                 <option value="">Select a Category</option>
                 {categories.map((cat, index) => (
-                  <option key={index} value={cat}>{cat}</option>
+                  <option key={index} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
 
@@ -127,32 +134,58 @@ const AddItems = ({ onClose, onAddItem }) => {
 
           <label>
             Model:
-            <input type="text" value={model} onChange={(e) => setModel(e.target.value)} required />
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              required
+            />
           </label>
 
           <label>
             Unique ID:
-            <input type="text" value={unique} onChange={(e) => setUnique(e.target.value)} required />
+            <input
+              type="text"
+              value={unique}
+              onChange={(e) => setUnique(e.target.value)}
+              required
+            />
           </label>
 
           <label>
             Quantity:
-            <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+            <input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              required
+            />
           </label>
 
           <label>
             Location:
-            <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              required
+            />
           </label>
 
           <label>
             Price (RM):
-            <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+            <input
+              type="number"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
           </label>
 
           <div className="buttons">
-            <button type="submit">Add Item</button>
-            <button type="button" onClick={onClose}>Cancel</button>
+            <button type="submit" className="primary">Add Item</button>
+            <button type="button" className="secondary" onClick={onClose}>Cancel</button>
           </div>
         </form>
       </div>

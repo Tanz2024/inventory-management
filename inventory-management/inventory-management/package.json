@@ -1,0 +1,95 @@
+{
+  "name": "inventory",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.4",
+    "@mui/material": "^6.4.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.5",
+    "@shadcn/ui": "^0.0.4",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "chart.js": "^4.4.7",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "csurf": "^1.10.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "inventory": "file:",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.2",
+    "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-currency-input-field": "^3.9.0",
+    "react-datepicker": "^7.6.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.3.0",
+    "react-loading-skeleton": "^3.5.0",
+    "react-modal": "^3.16.3",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.28.0",
+    "react-scripts": "5.0.1",
+    "react-select": "^5.10.0",
+    "react-table": "^7.8.0",
+    "react-toastify": "^11.0.3",
+    "socket.io-client": "^4.8.1",
+    "tesseract.js": "^5.1.1",
+    "web-vitals": "^2.1.4",
+    "winston": "^3.17.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.8",
+    "@babel/preset-env": "^7.26.8",
+    "@babel/preset-react": "^7.26.3",
+    "assert": "^2.1.0",
+    "babel-loader": "^9.2.1",
+    "browserify-zlib": "^0.2.0",
+    "css-loader": "^7.1.2",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "html-webpack-plugin": "^5.6.3",
+    "https-browserify": "^1.0.0",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "style-loader": "^4.0.0",
+    "url": "^0.11.4",
+    "util": "^0.12.5",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
+  }
+}

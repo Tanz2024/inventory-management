@@ -1,0 +1,146 @@
+/* AddItem.css */
+
+.add-item-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.dialog-content {
+  background: linear-gradient(135deg, #455883, #43abc1);
+  padding: 30px;
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  color: #fff;
+}
+
+.dialog-content h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.dialog-content form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-content label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: block;
+  color: #fff;
+}
+
+.dialog-content input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.dialog-content input::placeholder {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dialog-content input:focus {
+  border-color: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  outline: none;
+}
+
+/* Smaller category select box with larger option text */
+.category-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: rgba(69, 88, 131, 0.2); /* #455883 with transparency */
+  border: 2px solid rgba(67, 171, 193, 0.5);  /* #43abc1 with transparency */
+  padding: 8px 10px;        /* Reduced padding for a smaller box */
+  font-size: 1rem;          /* Base font size */
+  border-radius: 4px;       /* Slightly less rounded corners */
+  color: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20viewBox%3D'0%200%204%205'%3E%3Cpath%20fill%3D'%23fff'%20d%3D'M2%200L0%202h4L2%200zM2%205l2-2H0l2%202z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+  margin-top: 1vh;
+}
+
+.category-select:focus {
+  border-color: #43abc1;
+  box-shadow: 0 0 8px rgba(67, 171, 193, 0.8);
+  outline: none;
+}
+
+/* Increase font size of options inside the select */
+.category-select option {
+  font-size: 1.3rem; /* Larger text inside the dropdown */
+  color: #455883;
+}
+
+.dialog-content .buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.dialog-content button {
+  flex: 1;
+  padding: 12px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dialog-content button:not(:last-child) {
+  margin-right: 10px;
+}
+
+/* Primary button now uses a blue gradient */
+.dialog-content button.primary {
+  background: linear-gradient(135deg, #43abc1, #455883);
+  color: #fff;
+  font-weight: bold;
+}
+
+.dialog-content button.primary:hover {
+  background: linear-gradient(135deg, #455883, #43abc1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary button can remain vibrant red for cancellation */
+.dialog-content button.secondary {
+  background: linear-gradient(135deg, #f44336, #e91e63);
+  color: #fff;
+  font-weight: bold;
+}
+
+.dialog-content button.secondary:hover {
+  background: linear-gradient(135deg, #e91e63, #f44336);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}

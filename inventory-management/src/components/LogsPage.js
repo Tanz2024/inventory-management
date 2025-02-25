@@ -6,33 +6,42 @@ const LogsPage = () => {
   const [error, setError] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
 
-  // Fetch logs from the API
+  // -----------------------------------------------------------------------
+  // 1) Fetch logs from API on mount
+  // -----------------------------------------------------------------------
   const fetchLogs = async () => {
     try {
       const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         credentials: 'include',
       });
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs);
-      } else {
+      if (!response.ok) {
         setError('Failed to fetch logs.');
+        return;
       }
+      const data = await response.json();
+      setLogs(data.logs || []);
+      setError('');
     } catch (err) {
       console.error('Error fetching logs:', err);
       setError('An error occurred while fetching the logs.');
     }
   };
 
-  // Fetch logs on mount and every 5 seconds
   useEffect(() => {
     fetchLogs();
-    const intervalId = setInterval(fetchLogs, 5000);
+    // Uncomment the following for periodic refresh:
+    /*
+    const intervalId = setInterval(() => {
+      fetchLogs();
+    }, 30000);
     return () => clearInterval(intervalId);
+    */
   }, []);
 
-  // Compute the latest log per item (by timestamp)
+  // -----------------------------------------------------------------------
+  // 2) Compute the latest log per item (by timestamp) for highlighting
+  // -----------------------------------------------------------------------
   const latestLogs = useMemo(() => {
     const latest = {};
     logs.forEach((log) => {
@@ -44,61 +53,90 @@ const LogsPage = () => {
     return latest;
   }, [logs]);
 
-  // Handle sorting by column
+  // -----------------------------------------------------------------------
+  // 3) Sorting Logic (improved for timestamps)
+  // -----------------------------------------------------------------------
   const handleSort = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
     }
     setSortConfig({ key, direction });
+
     const sortedLogs = [...logs].sort((a, b) => {
-      if (a[key] < b[key]) return direction === 'ascending' ? -1 : 1;
-      if (a[key] > b[key]) return direction === 'ascending' ? 1 : -1;
+      let aVal = a[key];
+      let bVal = b[key];
+
+      // For timestamp, compare as Date objects
+      if (key === 'timestamp') {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+
+      if (aVal < bVal) return direction === 'ascending' ? -1 : 1;
+      if (aVal > bVal) return direction === 'ascending' ? 1 : -1;
       return 0;
     });
     setLogs(sortedLogs);
   };
 
+  // -----------------------------------------------------------------------
+  // 4) Row Highlighting
+  // -----------------------------------------------------------------------
   const getRowClass = (log) => {
     const latestLog = latestLogs[log.item_id];
-    
-    // Only highlight the most recent price update
-    if (latestLog && latestLog.transaction_id === log.transaction_id) {
-      // If this is the most recent price update
-      if (log.transaction_type === 'Price Update') {
-        return 'latest-price';
-      } else if (log.transaction_type === 'Add' || log.transaction_type === 'Subtract') {
-        return 'latest-quantity';
-      } else if (log.transaction_type === 'Combined Update') {
-        return 'latest-combined';
+    if (!latestLog) return '';
+
+    // If this row is the latest log for the item, apply a class based on transaction type
+    if (latestLog.transaction_id === log.transaction_id) {
+      switch (log.transaction_type) {
+        case 'Price Update':
+          return 'latest-price';
+        case 'Add':
+        case 'Subtract':
+          return 'latest-quantity';
+        case 'Combined Update':
+          return 'latest-combined';
+        default:
+          return '';
       }
     }
-    return ''; // No highlight for non-latest rows
+    return '';
   };
-  
+
+  // -----------------------------------------------------------------------
+  // 5) Column Definitions
+  // -----------------------------------------------------------------------
+  const columns = [
+    { key: 'transaction_id', label: 'ID' },
+    { key: 'item_id', label: 'Item ID' },
+    { key: 'category', label: 'Category' },
+    { key: 'item_name', label: 'Item Name' },
+    { key: 'model', label: 'Model' },
+    { key: 'item_unique_id', label: 'Unique ID' },
+    { key: 'site_name', label: 'Site Name' },
+    { key: 'updated_by', label: 'Updated By' },
+    { key: 'transaction_type', label: 'Transaction Type' },
+    { key: 'quantity_change', label: 'Quantity Change' },
+    { key: 'price_update', label: 'Price Update' },
+    { key: 'timestamp', label: 'Timestamp' },
+    { key: 'remarks', label: 'Remarks' },
+    { key: 'status', label: 'Status' },
+    { key: 'change_summary', label: 'Change Summary' },
+  ];
+
   return (
     <div className="logs-page-container">
       <h2>Transaction Logs</h2>
+
+      {/* Error message (if any) */}
       {error && <p className="error-message">{error}</p>}
-      <table>
+
+      {/* Logs Table */}
+      <table className="logs-table">
         <thead>
           <tr>
-            {[
-              { key: 'transaction_id', label: 'ID' },
-              { key: 'item_id', label: 'Item ID' },
-              { key: 'category', label: 'Category' },
-              { key: 'item_name', label: 'Item Name' },
-              { key: 'model', label: 'Model' },
-              { key: 'item_unique_id', label: 'Unique ID' },
-              { key: 'updated_by', label: 'Updated By' },
-              { key: 'transaction_type', label: 'Transaction Type' },
-              { key: 'quantity_change', label: 'Quantity Change' },
-              { key: 'price_update', label: 'Price Update' },
-              { key: 'timestamp', label: 'Timestamp' },
-              { key: 'remarks', label: 'Remarks' },
-              { key: 'status', label: 'Status' },
-              { key: 'change_summary', label: 'Change Summary' },
-            ].map((col) => (
+            {columns.map((col) => (
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
@@ -111,6 +149,7 @@ const LogsPage = () => {
             ))}
           </tr>
         </thead>
+
         <tbody>
           {logs.map((log) => (
             <tr key={log.transaction_id} className={getRowClass(log)}>
@@ -120,6 +159,7 @@ const LogsPage = () => {
               <td>{log.item_name}</td>
               <td>{log.model}</td>
               <td>{log.item_unique_id}</td>
+              <td>{log.site_name || 'N/A'}</td>
               <td>{log.updated_by || 'N/A'}</td>
               <td>{log.transaction_type}</td>
               <td>
@@ -135,10 +175,14 @@ const LogsPage = () => {
                   ? `RM ${log.price_update}`
                   : 'N/A'}
               </td>
-              <td>{new Date(log.timestamp).toLocaleString()}</td>
-              <td>{log.remarks}</td>
-              <td>{log.status}</td>
-              <td>{log.change_summary}</td>
+              <td>
+                {log.timestamp
+                  ? new Date(log.timestamp).toLocaleString()
+                  : 'N/A'}
+              </td>
+              <td>{log.remarks || 'N/A'}</td>
+              <td>{log.status || 'N/A'}</td>
+              <td>{log.change_summary || 'N/A'}</td>
             </tr>
           ))}
         </tbody>

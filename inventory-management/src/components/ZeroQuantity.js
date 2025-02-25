@@ -15,7 +15,7 @@ const ZeroQuantityPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items', { 
+      const response = await fetch('http://localhost:5000admin-dashboard/items', { 
         method: 'GET',
         headers: {
         'Content-Type': 'application/json',

@@ -19,6 +19,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   const [grNo, setGrNo] = useState('');
   const [receivedDate, setReceivedDate] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [validityPeriod, setValidityPeriod] = useState('60');
 
   // ---------------------------
   //  Items
@@ -32,16 +33,14 @@ function GoodReceivedForm({ onItemsUpdate }) {
   // ---------------------------
   const [localFiles, setLocalFiles] = useState([]);
   const [fileHistory, setFileHistory] = useState([]);
+  const [siteName, setSiteName] = useState('');
 
   // ---------------------------
   //  Preview & Edit Modals
   // ---------------------------
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
-
-  // Fullscreen toggle (no zoom)
   const [isMaximized, setIsMaximized] = useState(false);
-
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentFile, setCurrentFile] = useState(null);
   const [editedFileName, setEditedFileName] = useState('');
@@ -50,7 +49,6 @@ function GoodReceivedForm({ onItemsUpdate }) {
   // ---------------------------
   //  Effects
   // ---------------------------
-  // Fetch admin items on mount and every 30 seconds
   useEffect(() => {
     const fetchAdminItems = () => {
       fetch('http://localhost:5000/admin-dashboard/items', {
@@ -66,7 +64,6 @@ function GoodReceivedForm({ onItemsUpdate }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch file history on mount
   useEffect(() => {
     fetchFileHistory();
   }, []);
@@ -111,9 +108,11 @@ function GoodReceivedForm({ onItemsUpdate }) {
     setGrNo('');
     setReceivedDate('');
     setRemarks('');
+    setValidityPeriod('60');
     setItems([{ itemId: '', qty: 1, unitPrice: 0 }]);
     setIncludeUnitPrice(true);
     setLocalFiles([]);
+    setSiteName('');
     setIsMaximized(false);
   };
 
@@ -122,10 +121,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   // ---------------------------
   const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
   const totalAmount = includeUnitPrice
-    ? items.reduce(
-        (sum, it) => sum + Number(it.qty) * parseFloat(it.unitPrice || 0),
-        0
-      )
+    ? items.reduce((sum, it) => sum + Number(it.qty) * parseFloat(it.unitPrice || 0), 0)
     : 0;
 
   // ---------------------------
@@ -186,6 +182,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
     localFiles.forEach(({ file }) => {
       formData.append('files', file);
     });
+    formData.append('siteName', siteName);
     try {
       const response = await fetch('http://localhost:5000/api/uploadFiles', {
         method: 'POST',
@@ -216,9 +213,8 @@ function GoodReceivedForm({ onItemsUpdate }) {
       if (!res.ok) throw new Error('Failed to fetch file preview.');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-
       setPreviewUrl(url);
-      setIsMaximized(false); // reset fullscreen
+      setIsMaximized(false);
       setPreviewModalOpen(true);
     } catch (err) {
       console.error('Error previewing file:', err);
@@ -272,9 +268,10 @@ function GoodReceivedForm({ onItemsUpdate }) {
   };
 
   // ---------------------------
-  //  Generate PDF
+  //  Generate "Good Receive" PDF
   // ---------------------------
-  const generateGoodsReceivedPDF = () => {
+  const generateGoodReceivePDF = () => {
+    // Validate the received date
     if (!receivedDate) {
       alert('Please select a valid Received Date.');
       return;
@@ -285,171 +282,204 @@ function GoodReceivedForm({ onItemsUpdate }) {
       return;
     }
     const formattedDate = rDate.toLocaleDateString();
-
+  
+    // Create PDF instance
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const centerX = pageWidth / 2;
-    const leftMargin = 15;
-    let currentY = 20;
-    const lineSpacing = 7;
-
-    // Header Section
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', leftMargin, currentY);
-    currentY += lineSpacing;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text('D-61-3A, LEVEL 3A, JAYA ONE, 72A,', leftMargin, currentY);
-    currentY += lineSpacing;
-    doc.text('Jln Profesor Diraja Ungku Aziz, Seksyen 13,', leftMargin, currentY);
-    currentY += lineSpacing;
-    doc.text('46200 Petaling Jaya, Selangor', leftMargin, currentY);
-    currentY += lineSpacing;
-    doc.text('Tel: 03-7497 2558', leftMargin, currentY);
-
-    // Company Logo (if available)
-    const logoWidth = 40;
-    const logoHeight = 40;
-    const logoX = pageWidth - logoWidth - 10;
-    const logoY = 10;
-    const logoPath = '/Squarecloud_Logo1.png';
-    try {
-      doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight);
-    } catch (e) {
-      console.warn('Logo image error:', e);
-    }
-
-    // Title: "GOOD RECEIVE" (centered)
-    currentY += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('GOOD RECEIVE', centerX, currentY, { align: 'center' });
-    currentY += lineSpacing * 2;
-
-    // Attn on the left
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Attn: ${attnPerson}`, leftMargin, currentY);
-
-    // GR No on the right
-    doc.text(`GR No: ${grNo}`, pageWidth - 15, currentY, { align: 'right' });
-    currentY += lineSpacing * 2;
-
-    // "Receive From" in bold, then company details
-    doc.setFont('helvetica', 'bold');
-    doc.text('RECEIVE FROM:', leftMargin, currentY);
-    doc.setFont('helvetica', 'normal');
-    currentY += lineSpacing;
-    doc.text(`${companyName}`, leftMargin + 10, currentY);
-    currentY += lineSpacing;
-    doc.text(`${companyAddress}`, leftMargin + 10, currentY);
-    currentY += lineSpacing;
-    doc.text(`Tel: ${companyTel}`, leftMargin + 10, currentY);
-    currentY += lineSpacing;
-    doc.text(`Email: ${companyEmail}`, leftMargin + 10, currentY);
-    currentY += lineSpacing * 2;
-
-    // Remarks
-    if (remarks.trim()) {
-      doc.setFont('helvetica', 'italic');
-      doc.text('Remarks:', leftMargin, currentY);
-      currentY += lineSpacing;
+  
+    // Constants for layout
+    const MARGIN = 10;
+    const HEADER_FONT_SIZE = 12;
+    const NORMAL_FONT_SIZE = 10;
+    const TITLE_FONT_SIZE = 18;
+    const LOGO_DIMENSIONS = { width: 40, height: 40 };
+  
+    // ---------- Helper Functions ----------
+  
+    const drawHeader = () => {
+      let currentY = 15;
+  
+      // Company Information
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(HEADER_FONT_SIZE);
+      doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', MARGIN, currentY);
+  
       doc.setFont('helvetica', 'normal');
-      doc.text(remarks, leftMargin + 10, currentY);
-      currentY += lineSpacing * 2;
-    }
-
-    // Items Table
-    const tableColumns = includeUnitPrice
-      ? [
+      doc.setFontSize(NORMAL_FONT_SIZE);
+      currentY += 6;
+      doc.text('D-61-3A, LEVEL 3A, JAYA ONE, 72A,', MARGIN, currentY);
+      currentY += 5;
+      doc.text('Jln Profesor Diraja Ungku Aziz, Seksyen 13,', MARGIN, currentY);
+      currentY += 5;
+      doc.text('46200 Petaling Jaya, Selangor', MARGIN, currentY);
+      currentY += 5;
+      doc.text('Tel: 03-7497 2558', MARGIN, currentY);
+  
+      // Company Logo (right)
+      const logoX = pageWidth - LOGO_DIMENSIONS.width - MARGIN;
+      const logoY = 10;
+      try {
+        doc.addImage('/Squarecloud_Logo1.png', 'PNG', logoX, logoY, LOGO_DIMENSIONS.width, LOGO_DIMENSIONS.height);
+      } catch (e) {
+        console.warn('Logo image error:', e);
+      }
+  
+      // Title (centered)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(TITLE_FONT_SIZE);
+      doc.text('GOOD RECEIVE', pageWidth / 2, 50, { align: 'center' });
+    };
+  
+    const drawRecipientDetails = () => {
+      const infoY = 60;
+      doc.setFontSize(NORMAL_FONT_SIZE);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Attn: ${attnPerson}`, MARGIN, infoY);
+  
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Received From: ${companyName}`, MARGIN, infoY + 8);
+  
+      doc.setFont('helvetica', 'normal');
+      doc.text(companyAddress, MARGIN, infoY + 16);
+      doc.text(`Tel: ${companyTel}`, MARGIN, infoY + 24);
+      doc.text(`Email: ${companyEmail}`, MARGIN, infoY + 32);
+  
+      // Right Column details
+      doc.text(`Document ID: ${grNo}`, pageWidth - MARGIN, infoY, { align: 'right' });
+      doc.text(`Received Date: ${formattedDate}`, pageWidth - MARGIN, infoY + 8, { align: 'right' });
+      doc.text(`Validity: ${validityPeriod} Days`, pageWidth - MARGIN, infoY + 16, { align: 'right' });
+    };
+  
+    const drawTableSection = () => {
+      const tableStartY = 60 + 50; // infoY + 50
+      let tableColumns = [];
+      let tableRows = [];
+  
+      if (includeUnitPrice) {
+        tableColumns = [
           { header: 'Item No', dataKey: 'itemNo' },
           { header: 'Description', dataKey: 'description' },
           { header: 'Qty', dataKey: 'qty' },
           { header: 'Unit Price (RM)', dataKey: 'unitPrice' },
           { header: 'Amount (RM)', dataKey: 'amount' },
-        ]
-      : [
+        ];
+  
+        tableRows = items.map((item, index) => {
+          const adminItem = adminItems.find(ai => ai.item_id.toString() === item.itemId);
+          const description = adminItem ? adminItem.item_name : '';
+          const unitPrice = parseFloat(item.unitPrice || 0);
+          const qty = Number(item.qty);
+          const amount = qty * unitPrice;
+          return {
+            itemNo: index + 1,
+            description,
+            qty,
+            unitPrice: unitPrice.toFixed(2),
+            amount: amount.toFixed(2),
+          };
+        });
+  
+        // Totals
+        const totalQtyValue = items.reduce((sum, i) => sum + Number(i.qty), 0);
+        const totalAmountValue = items.reduce(
+          (sum, i) => sum + Number(i.qty) * parseFloat(i.unitPrice || 0),
+          0
+        );
+        tableRows.push({
+          itemNo: '',
+          description: 'Total Quantity',
+          qty: totalQtyValue,
+          unitPrice: '',
+          amount: '',
+        });
+        tableRows.push({
+          itemNo: '',
+          description: 'Total Amount',
+          qty: '',
+          unitPrice: '',
+          amount: totalAmountValue.toFixed(2),
+        });
+      } else {
+        tableColumns = [
           { header: 'Item No', dataKey: 'itemNo' },
           { header: 'Description', dataKey: 'description' },
           { header: 'Qty', dataKey: 'qty' },
         ];
-
-    const tableRows = items.map((item, index) => {
-      const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
-      const description = adminItem ? adminItem.item_name : '';
-      const unitPrice = parseFloat(item.unitPrice || 0);
-      const qty = Number(item.qty);
-      const amount = qty * unitPrice;
-      return {
-        itemNo: index + 1,
-        description,
-        qty,
-        unitPrice: includeUnitPrice ? unitPrice.toFixed(2) : undefined,
-        amount: includeUnitPrice ? amount.toFixed(2) : undefined,
-      };
-    });
-
-    const totalQtyValue = items.reduce((sum, it) => sum + Number(it.qty), 0);
-    if (includeUnitPrice) {
-      const totalAmountValue = items.reduce(
-        (s, it) => s + Number(it.qty) * parseFloat(it.unitPrice),
-        0
-      );
-      tableRows.push({
-        itemNo: '',
-        description: 'Total Quantity',
-        qty: totalQtyValue,
-        unitPrice: '',
-        amount: '',
+  
+        tableRows = items.map((item, index) => {
+          const adminItem = adminItems.find(ai => ai.item_id.toString() === item.itemId);
+          const description = adminItem ? adminItem.item_name : '';
+          return {
+            itemNo: index + 1,
+            description,
+            qty: item.qty,
+          };
+        });
+  
+        const totalQtyValue = items.reduce((sum, i) => sum + Number(i.qty), 0);
+        tableRows.push({
+          itemNo: '',
+          description: 'Total Quantity',
+          qty: totalQtyValue,
+        });
+      }
+  
+      // Center table horizontally
+      const tableWidth = pageWidth - 2 * MARGIN; // Using a 20px margin overall
+      const marginLeft = (pageWidth - tableWidth) / 2;
+  
+      doc.autoTable({
+        startY: tableStartY,
+        head: [tableColumns.map(col => col.header)],
+        body: tableRows.map(row => tableColumns.map(col => row[col.dataKey] || '')),
+        theme: 'grid',
+        styles: {
+          halign: 'center',
+          cellPadding: 3,
+          lineWidth: 0.5,
+          lineColor: 0,
+        },
+        headStyles: { fillColor: 255, textColor: 0, fontStyle: 'bold' },
+        margin: { left: marginLeft, right: marginLeft, bottom: 5 },
       });
-      tableRows.push({
-        itemNo: '',
-        description: 'Total Amount',
-        qty: '',
-        unitPrice: '',
-        amount: totalAmountValue.toFixed(2),
-      });
-    } else {
-      tableRows.push({
-        itemNo: '',
-        description: 'Total Quantity',
-        qty: totalQtyValue,
-      });
-    }
-
-    doc.autoTable({
-      startY: currentY,
-      head: [tableColumns.map((col) => col.header)],
-      body: tableRows.map((row) =>
-        tableColumns.map((col) => row[col.dataKey] || '')
-      ),
-      theme: 'grid',
-      styles: { halign: 'center', cellPadding: 4 },
-      headStyles: { fillColor: 240, textColor: 20, fontStyle: 'bold' },
-      margin: { left: 15, right: 15 },
-    });
-    currentY = doc.lastAutoTable.finalY + lineSpacing * 2;
-
-    // Signature Section
-    doc.setFontSize(11);
-    doc.text('Goods received by:', leftMargin, currentY);
-    currentY += lineSpacing;
-    doc.text('Receiver Signature: ______________________', leftMargin, currentY);
-    doc.text('Approved by: ______________________', pageWidth - 15, currentY, {
-      align: 'right',
-    });
-
-    // Received Date below signature
-    currentY += lineSpacing * 2;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Received Date:', leftMargin, currentY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${formattedDate}`, leftMargin + 30, currentY);
-
-    doc.save('Goods_Received.pdf');
+    };
+  
+    const drawRemarksSection = () => {
+      const finalTableY = doc.lastAutoTable.finalY;
+      if (remarks.trim()) {
+        const remarksY = finalTableY + 10;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Remarks:', MARGIN, remarksY);
+        doc.setFont('helvetica', 'normal');
+        const splitRemarks = doc.splitTextToSize(remarks, pageWidth - 2 * MARGIN);
+        doc.text(splitRemarks, MARGIN, remarksY + 6);
+      }
+    };
+  
+    const drawSignatureSection = () => {
+      const signatureStartY = doc.lastAutoTable.finalY + 80;
+      doc.setFontSize(NORMAL_FONT_SIZE);
+      doc.text('Receiver Signature:', MARGIN, signatureStartY + 16);
+      doc.text('______________________', MARGIN, signatureStartY + 22);
+      doc.text('Approved and confirmed by:', pageWidth - MARGIN, signatureStartY + 16, { align: 'right' });
+      doc.text('______________________', pageWidth - MARGIN, signatureStartY + 22, { align: 'right' });
+    };
+  
+    // ---------- Execute PDF Generation ----------
+  
+    drawHeader();
+    drawRecipientDetails();
+    drawTableSection();
+    drawRemarksSection();
+    drawSignatureSection();
+  
+    // Save the PDF
+    doc.save('Good_Receive.pdf');
+  
+    // Update inventory after generating the PDF
     updateAdminInventory();
   };
+  
 
   // ---------------------------
   //  Render
@@ -516,7 +546,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         <h2>Goods Received Details</h2>
         <div className="grid-container">
           <div className="form-item">
-            <label>GR No:</label>
+            <label>Document ID:</label>
             <input
               type="text"
               value={grNo}
@@ -532,6 +562,18 @@ function GoodReceivedForm({ onItemsUpdate }) {
               onChange={(e) => setReceivedDate(e.target.value)}
               required
             />
+          </div>
+          <div className="form-item">
+            <label>Validity Period (days):</label>
+            <select
+              value={validityPeriod}
+              onChange={(e) => setValidityPeriod(e.target.value)}
+            >
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="60">60</option>
+              <option value="90">90</option>
+            </select>
           </div>
           <div className="form-item">
             <label>Remarks:</label>
@@ -618,9 +660,13 @@ function GoodReceivedForm({ onItemsUpdate }) {
       <section className="section">
         <h2>Goods Received Summary</h2>
         <div className="summary">
-          <p>Total Quantity: <strong>{totalQty}</strong></p>
+          <p>
+            Total Quantity: <strong>{totalQty}</strong>
+          </p>
           {includeUnitPrice && (
-            <p>Total Amount: <strong>RM {totalAmount.toFixed(2)}</strong></p>
+            <p>
+              Total Amount: <strong>RM {totalAmount.toFixed(2)}</strong>
+            </p>
           )}
         </div>
       </section>
@@ -628,9 +674,20 @@ function GoodReceivedForm({ onItemsUpdate }) {
       {/* File Upload & Tracking Section */}
       <section className="section">
         <h2>Upload & Track Files</h2>
-        <div className="form-item">
-          <label>Select Files to Upload:</label>
-          <input type="file" name="files" onChange={handleLocalFileChange} multiple />
+        <div className="grid-container">
+          <div className="form-item">
+            <label>Site Name:</label>
+            <input
+              type="text"
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+              placeholder="Enter site name"
+            />
+          </div>
+          <div className="form-item">
+            <label>Select Files to Upload:</label>
+            <input type="file" name="files" onChange={handleLocalFileChange} multiple />
+          </div>
         </div>
         {localFiles.length > 0 && (
           <div className="files-list">
@@ -638,7 +695,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
             <ul>
               {localFiles.map((fileObj, index) => (
                 <li key={index}>
-                  <span>{fileObj.file.name}</span> —
+                  <span>{fileObj.file.name}</span> —{' '}
                   <select
                     value={fileObj.status}
                     onChange={(e) => updateLocalFileStatus(index, e.target.value)}
@@ -658,7 +715,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         )}
       </section>
 
-      {/* File History Section (not in PDF) */}
+      {/* File History Section */}
       <section className="section">
         <h2>Uploaded Files History</h2>
         {fileHistory.length > 0 ? (
@@ -668,6 +725,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
                 <th>File Name</th>
                 <th>File Type</th>
                 <th>Status</th>
+                <th>Site Name</th>
                 <th>Uploaded At</th>
                 <th>Actions</th>
               </tr>
@@ -678,19 +736,14 @@ function GoodReceivedForm({ onItemsUpdate }) {
                   <td>{file.file_name}</td>
                   <td>{file.file_type}</td>
                   <td>{file.status}</td>
+                  <td>{file.siteName || ''}</td>
                   <td>{new Date(file.uploaded_at).toLocaleString()}</td>
                   <td>
                     <button onClick={() => previewFile(file.id)}>Preview</button>
-                    <button
-                      onClick={() => openEditModal(file)}
-                      style={{ marginLeft: '5px' }}
-                    >
+                    <button onClick={() => openEditModal(file)} style={{ marginLeft: '5px' }}>
                       Edit
                     </button>
-                    <button
-                      onClick={() => deleteFile(file.id)}
-                      style={{ marginLeft: '5px' }}
-                    >
+                    <button onClick={() => deleteFile(file.id)} style={{ marginLeft: '5px' }}>
                       Delete
                     </button>
                   </td>
@@ -703,19 +756,16 @@ function GoodReceivedForm({ onItemsUpdate }) {
         )}
       </section>
 
-      {/* Responsive Preview Modal (No Zoom Buttons) */}
+      {/* Responsive Preview Modal */}
       {previewModalOpen && (
         <div className="modal-overlay" onClick={() => setPreviewModalOpen(false)}>
           <div
-            className={`modal-content responsive-preview ${
-              isMaximized ? 'fullscreen' : ''
-            }`}
+            className={`modal-content responsive-preview ${isMaximized ? 'fullscreen' : ''}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="preview-header">
               <h3>File Preview</h3>
               <div>
-                {/* Fullscreen toggle */}
                 <button
                   onClick={() => setIsMaximized((prev) => !prev)}
                   style={{ marginLeft: '15px' }}
@@ -735,10 +785,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
                 <iframe
                   title="File Preview"
                   src={previewUrl}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                  }}
+                  style={{ width: '100%', height: '100%' }}
                 />
               ) : (
                 <p>Loading preview...</p>
@@ -763,10 +810,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
             </div>
             <div className="form-item">
               <label>Status:</label>
-              <select
-                value={editedStatus}
-                onChange={(e) => setEditedStatus(e.target.value)}
-              >
+              <select value={editedStatus} onChange={(e) => setEditedStatus(e.target.value)}>
                 <option value="Pending">Pending</option>
                 <option value="Reviewed">Reviewed</option>
                 <option value="Approved">Approved</option>
@@ -785,8 +829,9 @@ function GoodReceivedForm({ onItemsUpdate }) {
 
       {/* Action Buttons */}
       <div className="button-group">
-        <button type="button" onClick={generateGoodsReceivedPDF} className="generate-btn">
-          Generate PDF
+        {/* Instead of "Generate PDF", we call our function generateGoodReceivePDF */}
+        <button type="button" onClick={generateGoodReceivePDF} className="generate-btn">
+          Generate Good Receive
         </button>
         <button type="button" className="refresh-btn" onClick={clearForm}>
           Refresh Form

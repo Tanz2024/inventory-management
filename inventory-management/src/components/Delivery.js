@@ -4,26 +4,30 @@ import 'jspdf-autotable';
 import './Delivery.css';
 
 function DeliveryOrderForm({ onItemsUpdate }) {
-  // Form state
-  const [attnPerson, setAttnPerson] = useState(''); // Contact person name
-  const [attnName, setAttnName] = useState('');       // Company name
+  // ---------------------------
+  // Form State
+  // ---------------------------
+  const [attnPerson, setAttnPerson] = useState('');
+  const [attnName, setAttnName] = useState('');
   const [address, setAddress] = useState('');
   const [tel, setTel] = useState('');
   const [email, setEmail] = useState('');
   const [poNo, setPoNo] = useState('');
-  const [date, setDate] = useState('');               // Order date (date only)
-  const [validityPeriod, setValidityPeriod] = useState('30'); // "30" or "60" days
-  const [comments, setComments] = useState('');         // Additional comments
+  const [date, setDate] = useState('');
+  const [validityPeriod, setValidityPeriod] = useState('30'); // 15, 30, 60, 90
+  const [comments, setComments] = useState('');
   const [items, setItems] = useState([{ itemId: '', qty: 1, unitPrice: 0 }]);
   const [includeUnitPrice, setIncludeUnitPrice] = useState(true);
   const [adminItems, setAdminItems] = useState([]);
 
-  // Fetch admin items on mount and every 30 seconds
+  // ---------------------------
+  // Fetch admin items
+  // ---------------------------
   useEffect(() => {
     const fetchAdminItems = () => {
       fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       })
         .then((res) => res.json())
         .then((data) => setAdminItems(data.items || []))
@@ -34,25 +38,28 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Handlers for items list
+  // ---------------------------
+  // Items Handlers
+  // ---------------------------
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
     setItems(newItems);
   };
 
-  const handleAddItem = () => setItems([...items, { itemId: '', qty: 1, unitPrice: 0 }]);
+  const handleAddItem = () => {
+    setItems([...items, { itemId: '', qty: 1, unitPrice: 0 }]);
+  };
+
   const handleRemoveItem = (index) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
     if (onItemsUpdate) onItemsUpdate(newItems);
   };
 
-  // Helper to capitalize a string
-  const capitalize = (str) =>
-    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-
-  // Clear form fields
+  // ---------------------------
+  // Clear Form
+  // ---------------------------
   const clearForm = () => {
     setAttnPerson('');
     setAttnName('');
@@ -67,68 +74,81 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     setIncludeUnitPrice(true);
   };
 
-  // Compute real-time order summary
-  const totalQty = useMemo(() => items.reduce((sum, item) => sum + Number(item.qty), 0), [items]);
-  const totalAmount = useMemo(
-    () =>
-      includeUnitPrice
-        ? items.reduce((sum, item) => sum + Number(item.qty) * parseFloat(item.unitPrice || 0), 0)
-        : 0,
-    [items, includeUnitPrice]
+  // ---------------------------
+  // Summaries
+  // ---------------------------
+  const totalQty = useMemo(
+    () => items.reduce((sum, item) => sum + Number(item.qty), 0),
+    [items]
   );
 
-  // Update admin inventory via API
+  const totalAmount = useMemo(() => {
+    if (!includeUnitPrice) return 0;
+    return items.reduce(
+      (sum, item) => sum + Number(item.qty) * parseFloat(item.unitPrice || 0),
+      0
+    );
+  }, [items, includeUnitPrice]);
+
+  // ---------------------------
+  // Update Inventory
+  // ---------------------------
   const updateAdminInventory = () => {
     const payload = {
-      items: items.map(item => ({
+      items: items.map((item) => ({
         itemId: item.itemId,
-        qty: Number(item.qty)
-      }))
+        qty: Number(item.qty),
+      })),
     };
 
     fetch('http://localhost:5000/delivery/update-inventory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     })
-      .then(response => {
+      .then((response) => {
         if (!response.ok) throw new Error('Failed to update inventory.');
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         console.log('Inventory updated:', data);
         window.dispatchEvent(new Event('inventoryUpdated'));
       })
-      .catch(err => console.error('Error updating inventory:', err));
+      .catch((err) => console.error('Error updating inventory:', err));
   };
 
-  // Generate PDF with updated recipient layout:
-  // Row 1: "Attn: {contact person}" at x = 10.
-  // Rows 2–5: "To:" block with company name (in bold), address, Tel, and Email, all printed starting at x = 10.
-  // Order details are printed in the right column.
+  // ---------------------------
+  // Helper function to capitalize
+  // ---------------------------
+  const capitalize = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+  // ---------------------------
+  // Generate Delivery Order PDF
+  // ---------------------------
   const generateDeliveryOrder = () => {
     if (!date) {
-      alert("Please select a valid Order Date.");
+      alert('Please select a valid Order Date.');
       return;
     }
     const orderDate = new Date(date);
     if (isNaN(orderDate.getTime())) {
-      alert("Invalid Order Date.");
+      alert('Invalid Order Date.');
       return;
     }
-    // Format date as locale date string (date only)
     const formattedDate = orderDate.toLocaleDateString();
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // --- Header Section ---
+    // Header Section
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     const addressX = 10;
     let currentY = 15;
     doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', addressX, currentY);
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     currentY += 6;
@@ -145,7 +165,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     const logoHeight = 40;
     const logoX = pageWidth - logoWidth - 10;
     const logoY = 10;
-    const logoPath = '/Squarecloud_Logo1.png';
+    const logoPath = '/Squarecloud_Logo1.png'; // Adjust if needed
     try {
       doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight);
     } catch (e) {
@@ -157,51 +177,56 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     doc.setFontSize(18);
     doc.text('Delivery Order', pageWidth / 2, 50, { align: 'center' });
 
-    // --- Recipient Details ---
+    // Recipient Details
     const infoY = 60;
     doc.setFontSize(10);
-    // Row 1: Attn: (contact person) at x = 10
     doc.setFont('helvetica', 'normal');
     doc.text(`Attn: ${attnPerson}`, 10, infoY);
-    // Row 2: "To:" with company name at x = 10 (set company name in bold)
+
     doc.setFont('helvetica', 'bold');
     doc.text(`To: ${attnName}`, 10, infoY + 8);
-    // Reset font to normal
+
     doc.setFont('helvetica', 'normal');
-    // Row 3: Delivery address at x = 10
     doc.text(address, 10, infoY + 16);
-    // Row 4: Tel at x = 10
     doc.text(`Tel: ${tel}`, 10, infoY + 24);
-    // Row 5: Email at x = 10
     doc.text(`Email: ${email}`, 10, infoY + 32);
 
-    // Right column: Order details remain unchanged
+    // Right column: Order details
     doc.text(`PO No: ${poNo}`, pageWidth - 10, infoY, { align: 'right' });
     doc.text(`Order Date: ${formattedDate}`, pageWidth - 10, infoY + 8, { align: 'right' });
     doc.text(`Validity: ${validityPeriod} Days`, pageWidth - 10, infoY + 16, { align: 'right' });
 
-    // --- Introduction Paragraph ---
+    // Intro Paragraph
     const introY = infoY + 40;
     doc.setFont('helvetica', 'normal');
-    doc.text("Dear Sir/Madam,", 10, introY);
-    doc.text("We are pleased to append here with our quotation for your reference as below:", 10, introY + 8);
+    doc.text('Dear Sir/Madam,', 10, introY);
+    doc.text(
+      'We are pleased to append here with our quotation for your reference as below:',
+      10,
+      introY + 8
+    );
 
-    // --- Item Table Section ---
-    let tableColumns, tableRows;
+    // Add some space above the table for a professional look
+    let tableStartY = introY + 20;
+
+    // Item Table Section
+    let tableColumns;
+    let tableRows;
+
     if (includeUnitPrice) {
       doc.setFont('times', 'bold');
       tableColumns = [
-        { header: capitalize("item no"), dataKey: 'itemNo' },
-        { header: capitalize("description"), dataKey: 'description' },
-        { header: capitalize("qty"), dataKey: 'qty' },
-        { header: "Unit Price (RM)", dataKey: 'unitPrice' },
-        { header: "Amount (RM)", dataKey: 'amount' }
+        { header: capitalize('item no'), dataKey: 'itemNo' },
+        { header: capitalize('description'), dataKey: 'description' },
+        { header: capitalize('qty'), dataKey: 'qty' },
+        { header: 'Unit Price (RM)', dataKey: 'unitPrice' },
+        { header: 'Amount (RM)', dataKey: 'amount' },
       ];
       doc.setFont('helvetica', 'normal');
       tableRows = items.map((item, index) => {
-        const adminItem = adminItems.find(ai => ai.item_id.toString() === item.itemId);
+        const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
         const description = adminItem ? adminItem.item_name : '';
-        const unitPrice = parseFloat(item.unitPrice);
+        const unitPrice = parseFloat(item.unitPrice || 0);
         const qty = Number(item.qty);
         const amount = qty * unitPrice;
         return {
@@ -209,84 +234,119 @@ function DeliveryOrderForm({ onItemsUpdate }) {
           description,
           qty,
           unitPrice: unitPrice.toFixed(2),
-          amount: amount.toFixed(2)
+          amount: amount.toFixed(2),
         };
       });
-      const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
-      const totalAmount = items.reduce((sum, item) => sum + (Number(item.qty) * parseFloat(item.unitPrice)), 0);
+
+      const totalQtyValue = items.reduce((sum, i) => sum + Number(i.qty), 0);
+      const totalAmountValue = items.reduce(
+        (sum, i) => sum + Number(i.qty) * parseFloat(i.unitPrice || 0),
+        0
+      );
+
+      // Additional rows for totals
       tableRows.push({
-        itemNo: "",
-        description: "Total quantity",
-        qty: totalQty,
-        unitPrice: "",
-        amount: ""
+        itemNo: '',
+        description: 'Total quantity',
+        qty: totalQtyValue,
+        unitPrice: '',
+        amount: '',
       });
       tableRows.push({
-        itemNo: "",
-        description: "Total amount",
-        qty: "",
-        unitPrice: "",
-        amount: totalAmount.toFixed(2)
+        itemNo: '',
+        description: 'Total amount',
+        qty: '',
+        unitPrice: '',
+        amount: totalAmountValue.toFixed(2),
       });
     } else {
       doc.setFont('times', 'bold');
       tableColumns = [
-        { header: capitalize("item no"), dataKey: 'itemNo' },
-        { header: capitalize("description"), dataKey: 'description' },
-        { header: capitalize("qty"), dataKey: 'qty' }
+        { header: capitalize('item no'), dataKey: 'itemNo' },
+        { header: capitalize('description'), dataKey: 'description' },
+        { header: capitalize('qty'), dataKey: 'qty' },
       ];
       doc.setFont('helvetica', 'normal');
       tableRows = items.map((item, index) => {
-        const adminItem = adminItems.find(ai => ai.item_id.toString() === item.itemId);
+        const adminItem = adminItems.find((ai) => ai.item_id.toString() === item.itemId);
         const description = adminItem ? adminItem.item_name : '';
         return {
           itemNo: index + 1,
           description,
-          qty: item.qty
+          qty: item.qty,
         };
       });
-      const totalQty = items.reduce((sum, item) => sum + Number(item.qty), 0);
+
+      const totalQtyValue = items.reduce((sum, i) => sum + Number(i.qty), 0);
       tableRows.push({
-        itemNo: "",
-        description: "Total quantity",
-        qty: totalQty
+        itemNo: '',
+        description: 'Total quantity',
+        qty: totalQtyValue,
       });
     }
 
+    // Center table horizontally
+    const tableWidth = pageWidth - 40; // 20px margin each side
+    const marginLeft = (pageWidth - tableWidth) / 2;
+
     doc.autoTable({
-      startY: introY + 12,
-      head: [tableColumns.map(col => col.header)],
-      body: tableRows.map(row => tableColumns.map(col => row[col.dataKey])),
+      startY: tableStartY,
+      head: [tableColumns.map((col) => col.header)],
+      body: tableRows.map((row) => tableColumns.map((col) => row[col.dataKey] || '')),
       theme: 'grid',
-      styles: { halign: 'center', cellPadding: 3, lineWidth: 0.5, lineColor: 0 },
+      styles: {
+        halign: 'center',
+        cellPadding: 3,
+        lineWidth: 0.5,
+        lineColor: 0,
+      },
       headStyles: { fillColor: 255, textColor: 0, fontStyle: 'bold' },
-      margin: { left: 20, right: 20, bottom: 5 }
+      margin: { left: marginLeft, right: marginLeft, bottom: 5 },
     });
 
-    // --- Additional Comments Section ---
+    // Additional Comments Section
     const commentsY = doc.lastAutoTable.finalY + 10;
     if (comments.trim()) {
       doc.setFont('helvetica', 'bold');
-      doc.text("Additional Comments:", 10, commentsY);
+      doc.text('Additional Comments:', 10, commentsY);
       doc.setFont('helvetica', 'normal');
       const splitComments = doc.splitTextToSize(comments, pageWidth - 20);
       doc.text(splitComments, 10, commentsY + 6);
     }
 
-    // --- Notes & Signature Section ---
-    const finalY = doc.lastAutoTable.finalY + 20;
+    // Notes & Signature Section
+    // Increase space for signature
+    const signatureStart = doc.lastAutoTable.finalY + 100; // more space for signatures
     doc.setFontSize(10);
-    doc.text("Delivery & Installation will be completed as scheduled.", 10, finalY);
-    doc.text("Payment shall be made upon invoice (30 days term).", 10, finalY + 6);
-    doc.text("Yours faithfully,", 10, finalY + 16);
-    doc.text("______________________", 10, finalY + 22);
-    doc.text("Approved and confirmed by:", pageWidth - 10, finalY + 16, { align: 'right' });
-    doc.text("______________________", pageWidth - 10, finalY + 22, { align: 'right' });
 
+    // Adjust these Y offsets to create more vertical spacing
+    doc.text('1) Delivery & Installation will be completed as scheduled.', 10, signatureStart);
+    doc.text('2) Payment shall be made upon invoice (30 days term).', 10, signatureStart + 6);
+
+ 
+    doc.text('Thank you.', 10, signatureStart + 16);
+    doc.text('Yours faithfully,', 10, signatureStart + 26);
+
+    doc.text('______________________', 10, signatureStart + 32);
+
+    // Right side signature
+    doc.text('Approved and confirmed by:', pageWidth - 10, signatureStart + 26, {
+      align: 'right',
+    });
+    doc.text('______________________', pageWidth - 10, signatureStart + 32, {
+      align: 'right',
+    });
+
+    // Save the PDF
     doc.save('Delivery_Order.pdf');
+
+    // Update Inventory
     updateAdminInventory();
   };
 
+  // ---------------------------
+  // Render
+  // ---------------------------
   return (
     <div className="form-container">
       <h1 className="form-title">Delivery Order Form</h1>
@@ -366,31 +426,21 @@ function DeliveryOrderForm({ onItemsUpdate }) {
               required
             />
           </div>
+
+          {/* Validity as a <select> with 15, 30, 60, 90 */}
           <div className="form-item">
-            <label>Validity:</label>
-            <div className="radio-group">
-              <label>
-                <input
-                  type="radio"
-                  name="validity"
-                  value="30"
-                  checked={validityPeriod === '30'}
-                  onChange={(e) => setValidityPeriod(e.target.value)}
-                />
-                30 Days
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="validity"
-                  value="60"
-                  checked={validityPeriod === '60'}
-                  onChange={(e) => setValidityPeriod(e.target.value)}
-                />
-                60 Days
-              </label>
-            </div>
+            <label>Validity (Days):</label>
+            <select
+              value={validityPeriod}
+              onChange={(e) => setValidityPeriod(e.target.value)}
+            >
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="60">60</option>
+              <option value="90">90</option>
+            </select>
           </div>
+
           <div className="form-item">
             <label>
               <input
@@ -456,7 +506,11 @@ function DeliveryOrderForm({ onItemsUpdate }) {
               </div>
             )}
             {items.length > 1 && (
-              <button type="button" className="remove-btn" onClick={() => handleRemoveItem(index)}>
+              <button
+                type="button"
+                className="remove-btn"
+                onClick={() => handleRemoveItem(index)}
+              >
                 Remove Item
               </button>
             )}
@@ -472,9 +526,13 @@ function DeliveryOrderForm({ onItemsUpdate }) {
       <section className="section">
         <h2>Order Summary</h2>
         <div className="summary">
-          <p>Total Quantity: <strong>{totalQty}</strong></p>
+          <p>
+            Total Quantity: <strong>{totalQty}</strong>
+          </p>
           {includeUnitPrice && (
-            <p>Total Amount: <strong>RM {totalAmount.toFixed(2)}</strong></p>
+            <p>
+              Total Amount: <strong>RM {totalAmount.toFixed(2)}</strong>
+            </p>
           )}
         </div>
       </section>

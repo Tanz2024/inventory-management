@@ -5,7 +5,6 @@
   background-color: #282c34!important;
   color: white!important;
   z-index: 2!important; /* Make sure header stays on top of sidebar */
-  
 }
 
 .header-desktop {
