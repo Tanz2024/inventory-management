@@ -19,7 +19,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // For item editing (quantity, remarks, price, etc.)
+  // For item editing (quantity, remarks, price, site name, unit)
   const [inputValue, setInputValue] = useState({});
   const [remarks, setRemarks] = useState({});
   const [prices, setPrices] = useState({});
@@ -27,7 +27,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [units, setUnits] = useState({});
   const [confirmed, setConfirmed] = useState({});
 
-  // Track edit mode (remarks, price, siteName, unit) for each item
+  // Track edit mode for each field of an item
   const [editMode, setEditMode] = useState({});
 
   // Sorting
@@ -38,7 +38,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // -----------------------------------------------------------------------
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -54,7 +54,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       const fetchedItems = data.items || [];
       setItems(fetchedItems);
 
-      // Initialize local states for each item if needed
+      // Initialize local states for each item
       initializeStates(fetchedItems);
     } catch (err) {
       console.error('Error fetching items:', err);
@@ -64,7 +64,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   useEffect(() => {
     fetchItems();
-    // Optionally re-fetch items on an interval or onLogout changes
+    // Optionally re-fetch items on onLogout changes
   }, [onLogout]);
 
   // Debounce the search query
@@ -74,7 +74,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   }, [searchQuery]);
 
   // -----------------------------------------------------------------------
-  // Initialize Local States (quantity, remarks, prices, etc.)
+  // Initialize Local States (quantity, remarks, prices, site name, unit)
   // -----------------------------------------------------------------------
   const initializeStates = (fetchedItems) => {
     setInputValues(fetchedItems);
@@ -94,7 +94,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   const setRemarksValues = (fetchedItems) => {
     const initial = fetchedItems.reduce((acc, item) => {
-      // Admin default remarks = 'admin', otherwise use existing remarks
+      // For admin, default remarks = 'admin', otherwise use existing remarks
       acc[item.item_id] = userId === 2 ? 'admin' : item.remarks || '';
       return acc;
     }, {});
@@ -142,7 +142,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUnits(initial);
   };
 
-  // Confirmed (local store)
+  // Persist confirmed updates locally
   const persistConfirmed = (confirmedObj) => {
     localStorage.setItem('confirmedPrices', JSON.stringify(confirmedObj));
   };
@@ -172,7 +172,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // Sorting
   // -----------------------------------------------------------------------
   const handleSort = (key) => {
-    // Skip sorting certain columns if needed
+    // Skip sorting for certain columns if needed
     if (['remarks', 'quantity changed', 'confirmation'].includes(key)) return;
 
     let direction = 'ascending';
@@ -210,7 +210,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   const handlePriceChange = (itemId, newPrice) => {
-    if (userId !== 2) return; // only admin
+    if (userId !== 2) return; // Only admin can edit price
     if (isNaN(newPrice)) return;
     setPrices((prev) => {
       const updated = { ...prev, [itemId]: newPrice };
@@ -224,7 +224,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   const handleUnitChange = (itemId, newUnit) => {
-    if (userId !== 2) return; // only admin
+    if (userId !== 2) return; // Only admin can edit unit
     setUnits((prev) => ({ ...prev, [itemId]: newUnit }));
   };
 
@@ -240,36 +240,122 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     });
   };
 
-  // Single confirm
-  const handleConfirm = async (itemId) => {
-    const quantityChangeRaw = inputValue[itemId] || 0;
-    const quantityChange = parseInt(quantityChangeRaw, 10);
-    if (isNaN(quantityChange)) {
-      alert('Quantity change must be an integer.');
-      return;
-    }
-    const updatedRemarks = remarks[itemId] || '';
-    if (!updatedRemarks) {
-      alert('No remarks provided. Update skipped.');
+ // -----------------------------------------------------------------------
+// Confirm Single Update
+// -----------------------------------------------------------------------
+const handleConfirm = async (itemId) => {
+  const quantityChangeRaw = inputValue[itemId] || 0;
+  const quantityChange = parseInt(quantityChangeRaw, 10);
+  if (isNaN(quantityChange)) {
+    alert('Quantity change must be an integer.');
+    return;
+  }
+
+  const updatedRemarks = remarks[itemId] || '';
+  if (!updatedRemarks) {
+    alert('No remarks provided. Update skipped.');
+    return;
+  }
+
+  const submittedPrice = prices[itemId] ? parseFloat(prices[itemId]) : null;
+  const updatedSiteName = siteNames[itemId] || '';
+  // Ensure unit is sent even if it's empty string; you can adjust this logic if you want a default value.
+  const updatedUnit = units[itemId] !== undefined ? units[itemId] : '';
+
+  const payload = {
+    remarks: updatedRemarks,
+    quantityChange,
+    site_name: updatedSiteName,
+    unit: updatedUnit,
+  };
+
+  if (userId === 2 && submittedPrice !== null) {
+    payload.price = submittedPrice;
+  }
+
+  try {
+    const response = await fetch(
+      `https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
+      {
+        method: 'PATCH',
+        headers: {
+          'ngrok-skip-browser-warning': '1',
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert(`Failed to update item: ${errorData.message}`);
       return;
     }
 
+    const result = await response.json();
+
+    // Update local state for the item, ensuring unit is updated as well.
+    setItems((prev) =>
+      prev.map((it) => (it.item_id === itemId ? result.item : it))
+    );
+
+    // Reset quantity input and mark as confirmed
+    setInputValue((prev) => ({ ...prev, [itemId]: 0 }));
+    setConfirmed((prev) => {
+      const newConfirmed = { ...prev, [itemId]: true };
+      persistConfirmed(newConfirmed);
+      return newConfirmed;
+    });
+
+    alert(`Item ${itemId} updated successfully.`);
+  } catch (err) {
+    console.error('Error updating item:', err);
+    alert('An error occurred while updating the item.');
+  }
+};
+
+// -----------------------------------------------------------------------
+// Confirm All Updates
+// -----------------------------------------------------------------------
+const handleConfirmAll = async () => {
+  const updates = items.map(async (item) => {
+    const itemId = item.item_id;
+    const quantityChangeRaw = inputValue[itemId] || 0;
+    const quantityChange = parseInt(quantityChangeRaw, 10);
+
+    const updatedRemarks = remarks[itemId] || '';
     const submittedPrice = prices[itemId] ? parseFloat(prices[itemId]) : null;
-    const payload = { remarks: updatedRemarks, quantityChange };
+    const updatedSiteName = siteNames[itemId] || '';
+    // Ensure unit is included; if no update provided, it becomes an empty string.
+    const updatedUnit = units[itemId] !== undefined ? units[itemId] : '';
+
+    // Only update if at least one field is modified or quantity change exists.
+    // Note: If only the unit is modified (and it's not an empty string), then proceed.
+    if (
+      quantityChange === 0 &&
+      !updatedRemarks &&
+      !updatedSiteName &&
+      (updatedUnit === '' || updatedUnit === item.unit) &&
+      submittedPrice === null
+    ) {
+      return null;
+    }
+
+    const payload = {
+      remarks: updatedRemarks,
+      quantityChange,
+      site_name: updatedSiteName,
+      unit: updatedUnit,
+    };
 
     if (userId === 2 && submittedPrice !== null) {
       payload.price = submittedPrice;
     }
-    if (siteNames[itemId] !== undefined) {
-      payload.site_name = siteNames[itemId];
-    }
-    if (units[itemId] !== undefined) {
-      payload.unit = units[itemId];
-    }
 
     try {
       const response = await fetch(
-        `http://localhost:5000/admin-dashboard/items/${itemId}/update`,
+        `https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
         {
           method: 'PATCH',
           headers: {
@@ -280,98 +366,38 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
           body: JSON.stringify(payload),
         }
       );
-
       if (!response.ok) {
         const errorData = await response.json();
-        alert(`Failed to update item: ${errorData.message}`);
-        return;
+        return { itemId, error: errorData.message };
       }
       const result = await response.json();
-      // Update local state
       setItems((prev) =>
         prev.map((it) => (it.item_id === itemId ? result.item : it))
       );
       setInputValue((prev) => ({ ...prev, [itemId]: 0 }));
       setConfirmed((prev) => {
         const newConfirmed = { ...prev, [itemId]: true };
-        localStorage.setItem('confirmedPrices', JSON.stringify(newConfirmed));
+        persistConfirmed(newConfirmed);
         return newConfirmed;
       });
-      alert(`Item ${itemId} updated successfully.`);
+      return { itemId, success: true };
     } catch (err) {
-      console.error('Error updating item:', err);
-      alert('An error occurred while updating the item.');
+      return { itemId, error: err.message };
     }
-  };
+  });
 
-  // Confirm All
-  const handleConfirmAll = async () => {
-    const updates = items.map(async (item) => {
-      const itemId = item.item_id;
-      const quantityChangeRaw = inputValue[itemId] || 0;
-      const quantityChange = parseInt(quantityChangeRaw, 10);
-      if (quantityChange === 0) return null; // skip if no change
+  const results = await Promise.all(updates);
+  const errors = results.filter((res) => res && res.error);
+  if (errors.length > 0) {
+    alert(
+      'Some items failed to update: ' +
+        errors.map((e) => `Item ${e.itemId}: ${e.error}`).join('; ')
+    );
+  } else {
+    alert('All applicable items updated successfully.');
+  }
+};
 
-      const updatedRemarks = remarks[itemId] || '';
-      if (!updatedRemarks) return { itemId, error: 'No remarks provided' };
-
-      const submittedPrice = prices[itemId] ? parseFloat(prices[item.item_id]) : null;
-      const payload = { remarks: updatedRemarks, quantityChange };
-
-      if (userId === 2 && submittedPrice !== null) {
-        payload.price = submittedPrice;
-      }
-      if (siteNames[itemId] !== undefined) {
-        payload.site_name = siteNames[itemId];
-      }
-      if (units[itemId] !== undefined) {
-        payload.unit = units[itemId];
-      }
-
-      try {
-        const response = await fetch(
-          `http://localhost:5000/admin-dashboard/items/${itemId}/update`,
-          {
-            method: 'PATCH',
-            headers: {
-              'ngrok-skip-browser-warning': '1',
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(payload),
-          }
-        );
-        if (!response.ok) {
-          const errorData = await response.json();
-          return { itemId, error: errorData.message };
-        }
-        const result = await response.json();
-        setItems((prev) =>
-          prev.map((it) => (it.item_id === itemId ? result.item : it))
-        );
-        setInputValue((prev) => ({ ...prev, [itemId]: 0 }));
-        setConfirmed((prev) => {
-          const newConfirmed = { ...prev, [itemId]: true };
-          localStorage.setItem('confirmedPrices', JSON.stringify(newConfirmed));
-          return newConfirmed;
-        });
-        return { itemId, success: true };
-      } catch (err) {
-        return { itemId, error: err.message };
-      }
-    });
-
-    const results = await Promise.all(updates);
-    const errors = results.filter((res) => res && res.error);
-    if (errors.length > 0) {
-      alert(
-        'Some items failed to update: ' +
-          errors.map((e) => `Item ${e.itemId}: ${e.error}`).join('; ')
-      );
-    } else {
-      alert('All applicable items updated successfully.');
-    }
-  };
 
   // -----------------------------------------------------------------------
   // Highlight Matching Search Text
@@ -405,7 +431,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   const handleAddItem = (newItem) => {
     setItems((prev) => [...prev, newItem]);
-    // Also initialize remarks, etc. if needed
+    // Also initialize remarks, etc.
     setRemarks((prev) => ({
       ...prev,
       [newItem.item_id]: userId === 2 ? 'admin' : newItem.remarks || '',
@@ -420,15 +446,18 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     const numericIds = selectedItemIds.map((id) => Number(id));
 
     try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
-        method: 'PATCH',
-        headers: {
-          'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ itemIds: numericIds }),
-      });
+      const response = await fetch(
+        'https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/archive',
+        {
+          method: 'PATCH',
+          headers: {
+            'ngrok-skip-browser-warning': '1',
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ itemIds: numericIds }),
+        }
+      );
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to archive items:', errorText);
@@ -548,7 +577,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                       <input
                         type="text"
                         value={siteNames[item.item_id] || ''}
-                        onChange={(e) => handleSiteNameChange(item.item_id, e.target.value)}
+                        onChange={(e) =>
+                          handleSiteNameChange(item.item_id, e.target.value)
+                        }
                         placeholder="Site Name"
                         className="site-name-input"
                       />
@@ -579,7 +610,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                         <input
                           type="text"
                           value={units[item.item_id] || ''}
-                          onChange={(e) => handleUnitChange(item.item_id, e.target.value)}
+                          onChange={(e) =>
+                            handleUnitChange(item.item_id, e.target.value)
+                          }
                           placeholder="Unit"
                           className="unit-input"
                         />
@@ -613,12 +646,15 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                         <input
                           type="text"
                           value={
-                            prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''
+                            prices[item.item_id] !== undefined
+                              ? `RM ${prices[item.item_id]}`
+                              : ''
                           }
                           onChange={(e) => {
-                            let val = e.target.value.toUpperCase().startsWith('RM ')
-                              ? e.target.value.slice(3)
-                              : e.target.value;
+                            let val = e.target.value;
+                            if (val.toUpperCase().startsWith('RM ')) {
+                              val = val.slice(3);
+                            }
                             const newPrice = parseFloat(val) || 0;
                             handlePriceChange(item.item_id, newPrice);
                           }}
@@ -634,7 +670,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     ) : (
                       <>
                         <span>
-                          {prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                          {prices[item.item_id] !== undefined
+                            ? `RM ${prices[item.item_id]}`
+                            : ''}
                         </span>
                         <button
                           onClick={() => toggleEditMode(item.item_id, 'price')}
@@ -646,7 +684,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     )
                   ) : (
                     <span>
-                      {prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                      {prices[item.item_id] !== undefined
+                        ? `RM ${prices[item.item_id]}`
+                        : ''}
                     </span>
                   )}
                 </td>
@@ -657,7 +697,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                       <input
                         type="text"
                         value={remarks[item.item_id] || ''}
-                        onChange={(e) => handleRemarksChange(item.item_id, e.target.value)}
+                        onChange={(e) =>
+                          handleRemarksChange(item.item_id, e.target.value)
+                        }
                         placeholder="Remarks"
                         className="remarks-input"
                       />
@@ -695,7 +737,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                       className="stepper-input"
                       value={inputValue[item.item_id] || 0}
                       onChange={(e) =>
-                        handleInputChange(item.item_id, parseInt(e.target.value) || 0)
+                        handleInputChange(
+                          item.item_id,
+                          parseInt(e.target.value) || 0
+                        )
                       }
                     />
                     <button
@@ -709,7 +754,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                 </td>
                 {/* Confirmation */}
                 <td>
-                  <button className="confirmButton" onClick={() => handleConfirm(item.item_id)}>
+                  <button
+                    className="confirmButton"
+                    onClick={() => handleConfirm(item.item_id)}
+                  >
                     Confirm
                   </button>
                 </td>

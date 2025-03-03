@@ -11,7 +11,7 @@ const PendingTransactions = () => {
 
   const fetchPendingTransactions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/pending-transactions', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/pending-transactions', {
         method: 'GET',
         credentials: 'include', // Pass cookies for authentication
         headers: {
@@ -36,7 +36,7 @@ const PendingTransactions = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/approve-transaction/${transactionId}`, {
+      const response = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/approve-transaction/${transactionId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {
@@ -54,6 +54,32 @@ const PendingTransactions = () => {
     } catch (error) {
       console.error('Error approving transaction:', error);
       alert('Failed to approve transaction.');
+    }
+  };
+
+  const handleCancel = async (transactionId) => {
+    const confirmed = window.confirm('Are you sure you want to cancel this transaction?');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/cancel-transaction/${transactionId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      alert('Transaction canceled successfully.');
+      fetchPendingTransactions(); // Refresh the list after cancellation
+    } catch (error) {
+      console.error('Error canceling transaction:', error);
+      alert('Failed to cancel transaction.');
     }
   };
 
@@ -102,6 +128,12 @@ const PendingTransactions = () => {
                     onClick={() => handleApprove(transaction.transaction_id)}
                   >
                     Approve
+                  </button>
+                  <button
+                    className="cancel-button"
+                    onClick={() => handleCancel(transaction.transaction_id)}
+                  >
+                    Cancel
                   </button>
                 </td>
               </tr>

@@ -1,16 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import './Reservation_status.css'; // Add styles for the dialog
+import './Reservation_status.css'; // Import styles
 
-const Reservation_status = ({ onClose,fetchItems }) => {
+const Reservation_status = ({ onClose, fetchItems }) => {
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
-  const [by, setBy] = useState({}); // Store remarks for each item
+  const [by, setBy] = useState({}); // Stores "by" remarks
 
-  // Fetch reservation data
+  // Function to fetch reservations from backend
   const fetchItemsFromServer = async () => {
     try {
-      const response = await fetch('http://localhost:5000//admin-dashboard/items/reservations', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/reservations', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -19,105 +18,83 @@ const Reservation_status = ({ onClose,fetchItems }) => {
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setItems(data.items); // Set the fetched reservation items
-      } else {
-        setError('Failed to load reservations');
-      }
+      if (!response.ok) throw new Error('Failed to load reservations');
+
+      const data = await response.json();
+      // Sort reservations with the most recent first (based on reserved_at)
+      const sortedItems = data.items.sort((a, b) => new Date(b.reserved_at) - new Date(a.reserved_at));
+      setItems(sortedItems);
     } catch (error) {
       console.error('Error fetching items:', error);
       setError('An error occurred while fetching the reservations.');
     }
   };
 
-  // Fetch items when the component is mounted
+  // Fetch items when component mounts
   useEffect(() => {
     fetchItemsFromServer();
   }, []);
 
+  // Helper function to format timestamps
+  const formatDateTime = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      timeZone: 'Asia/Kuala_Lumpur', // Change to your preferred timezone
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
 
-  const handleByChange = (reservation_id, newBy) => {
+  // Update "by" remarks
+  const handleByChange = (reservationId, newBy) => {
     setBy((prevBy) => ({
       ...prevBy,
-      [reservation_id]: newBy, // Update remarks for the specific item
+      [reservationId]: newBy,
     }));
   };
 
-  // Handle complete reservation action
-  const handleComplete = async (reservationId) => {
-    const updatedBy = by[reservationId]; // Get the updated remarks
-
-    if (!updatedBy) {  // Check if remarks is empty or null
-        alert('No by provided.');
-        return;
+  // Generic function for completing or canceling a reservation
+  const handleReservationUpdate = async (reservationId, action) => {
+    const updatedBy = by[reservationId];
+    if (!updatedBy) {
+      alert('Please provide remarks before updating.');
+      return;
     }
 
+    const endpoint = `https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/${reservationId}/${action}`;
     try {
-      const response = await fetch(`http://localhost:5000//admin-dashboard/items/${reservationId}/complete`, {
+      const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
+          'ngrok-skip-browser-warning': '1',
         },
         credentials: 'include',
-        body: JSON.stringify({ by: updatedBy}),
+        body: JSON.stringify({ by: updatedBy }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        fetchItemsFromServer(); // Refresh the list of reservations
-        fetchItems();
-        alert('Reservation completed successfully');
-        setItems((prevItems) =>
-          prevItems.map((item) =>
-            item.reservation_id === reservationId ? { ...item, reservation_status: 'Completed' } : item
-          )
-        );
-      } else {
-        alert('Failed to complete reservation');
-      }
+      if (!response.ok) throw new Error(`Failed to ${action} reservation`);
+
+      await response.json();
+      fetchItemsFromServer(); // Refresh reservations
+      fetchItems(); // Refresh main items list
+
+      alert(`Reservation ${action}d successfully`);
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.reservation_id === reservationId
+            ? { ...item, reservation_status: action === 'complete' ? 'Completed' : 'Canceled' }
+            : item
+        )
+      );
     } catch (error) {
-      console.error('Error completing reservation:', error);
-      alert('An error occurred while completing the reservation.');
-    }
-  };
-
-  // Handle cancel reservation action
-  const handleCancel = async (reservationId) => {
-    const updatedBy = by[reservationId]; // Get the updated remarks
-
-    if (!updatedBy) {  // Check if remarks is empty or null
-        alert('No by provided.');
-        return;
-    }
-    try {
-      const response = await fetch(`http://localhost:5000//admin-dashboard/items/${reservationId}/cancel`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ by: updatedBy}),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        fetchItemsFromServer(); // Refresh the list of reservations
-        fetchItems();
-        alert('Reservation cancelled successfully');
-        setItems((prevItems) =>
-          prevItems.map((item) =>
-            item.reservation_id === reservationId ? { ...item, reservation_status: 'Cancelled' } : item
-          )
-        );
-      } else {
-        alert('Failed to cancel reservation');
-      }
-    } catch (error) {
-      console.error('Error canceling reservation:', error);
-      alert('An error occurred while canceling the reservation.');
+      console.error(`Error ${action}ing reservation:`, error);
+      alert(`An error occurred while ${action}ing the reservation.`);
     }
   };
 
@@ -126,7 +103,7 @@ const Reservation_status = ({ onClose,fetchItems }) => {
       <div className="reserve-dialog-content">
         <h2>Reservation Table</h2>
         {error && <p className="reserve-error-message">{error}</p>}
-        
+
         <table className="reservation-table">
           <thead>
             <tr>
@@ -155,20 +132,24 @@ const Reservation_status = ({ onClose,fetchItems }) => {
                 <td>{item.model}</td>
                 <td>{item.item_unique_id}</td>
                 <td>{item.reserved_quantity}</td>
-                <td>{item.reserved_at}</td>
+                <td>{formatDateTime(item.reserved_at)}</td>
                 <td>{item.reservation_status}</td>
-                <td className="dashboard-D">
+                <td>
                   <input
                     type="text"
-                    value={by[item.reservation_id] || ''} // Use `by` state for the specific reservation_id
-                    onChange={(e) => handleByChange(item.reservation_id, e.target.value)} // Update the "By" field
+                    value={by[item.reservation_id] || ''}
+                    onChange={(e) => handleByChange(item.reservation_id, e.target.value)}
                     placeholder="By"
                     className="by-input"
                   />
                 </td>
                 <td>
-                  <button onClick={() => handleComplete(item.reservation_id)} className="complete-button">Complete</button>
-                  <button onClick={() => handleCancel(item.reservation_id)} className="cancel-button">Cancel</button>
+                  <button onClick={() => handleReservationUpdate(item.reservation_id, 'complete')} className="complete-button">
+                    Complete
+                  </button>
+                  <button onClick={() => handleReservationUpdate(item.reservation_id, 'cancel')} className="cancel-button">
+                    Cancel
+                  </button>
                 </td>
               </tr>
             ))}
@@ -176,7 +157,9 @@ const Reservation_status = ({ onClose,fetchItems }) => {
         </table>
 
         <div className="close-button-container">
-            <button className="close-buttons" type="button" onClick={onClose}>Close</button>
+          <button className="close-buttons" type="button" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>

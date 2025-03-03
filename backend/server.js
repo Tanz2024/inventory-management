@@ -27,7 +27,8 @@ app.use(express.json());
 // 2) CORS Setup
 // ---------------------------------------------------------------------
 const corsOptions = {
-  origin: 'http://localhost:3000', // your frontend origin
+  // origin: 'http://localhost:3000', 
+  origin: 'https://inventory-e9c9f.web.app', // your frontend origin
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -729,7 +730,7 @@ app.patch(
   authenticateJWT,
   asyncHandler(async (req, res) => {
     const { itemId } = req.params;
-    const { price, remarks, quantityChange, site_name } = req.body;
+    const { price, remarks, quantityChange, site_name, unit } = req.body;
 
     // Only admins can update the price
     if (price !== undefined && req.user.role_id !== 1) {
@@ -752,11 +753,13 @@ app.patch(
     let newQuantity = currentItem.quantity;
     let newPrice = currentItem.price;
     const newSiteName = site_name !== undefined ? site_name : currentItem.site_name;
+    const newUnit = unit !== undefined ? unit : currentItem.unit;
 
     let isQuantityUpdated = false;
     let isPriceUpdated = false;
     let isSiteUpdated = false;
     let isRemarksUpdated = false;
+    let isUnitUpdated = false;
 
     if (quantityChange !== undefined) {
       const parsedQty = parseInt(quantityChange, 10);
@@ -791,11 +794,16 @@ app.patch(
       isRemarksUpdated = true;
     }
 
+    if (unit !== undefined && unit !== currentItem.unit) {
+      isUnitUpdated = true;
+    }
+
     if (
       !isQuantityUpdated &&
       !isPriceUpdated &&
       !isSiteUpdated &&
-      !isRemarksUpdated
+      !isRemarksUpdated &&
+      !isUnitUpdated
     ) {
       return res.json({
         message: 'No changes detected.',
@@ -810,8 +818,9 @@ app.patch(
         quantity = $2,
         price = $3,
         site_name = $4,
+        unit = $5,
         updated_at = NOW()
-      WHERE item_id = $5
+      WHERE item_id = $6
       RETURNING *;
     `;
     const { rows: updatedRows } = await pool.query(updateQuery, [
@@ -819,10 +828,12 @@ app.patch(
       newQuantity,
       newPrice,
       newSiteName,
+      newUnit,
       itemId
     ]);
     const updatedItem = updatedRows[0];
 
+    // Build a change summary
     let changeSummary = '';
     if (isQuantityUpdated) {
       const parsedQty = parseInt(quantityChange, 10);
@@ -839,14 +850,12 @@ app.patch(
       const oldRemarks = currentItem.remarks || 'N/A';
       changeSummary += `Remarks updated from "${oldRemarks}" to "${remarks}". `;
     }
+    if (isUnitUpdated) {
+      changeSummary += `Unit changed from "${currentItem.unit}" to "${newUnit}". `;
+    }
     changeSummary = changeSummary.trim();
 
-    const changesCount = [
-      isQuantityUpdated,
-      isPriceUpdated,
-      isSiteUpdated,
-      isRemarksUpdated
-    ].filter(Boolean).length;
+    const changesCount = [isQuantityUpdated, isPriceUpdated, isSiteUpdated, isRemarksUpdated, isUnitUpdated].filter(Boolean).length;
 
     let transactionType;
     if (changesCount > 1) {
@@ -860,6 +869,8 @@ app.patch(
       transactionType = 'Site Update';
     } else if (isRemarksUpdated) {
       transactionType = 'Remarks Update';
+    } else if (isUnitUpdated) {
+      transactionType = 'Unit Update';
     } else {
       transactionType = 'Inventory Update';
     }
@@ -867,9 +878,9 @@ app.patch(
     await pool.query(
       `
         INSERT INTO inventory_transactions
-          (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, change_summary)
+          (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, unit, change_summary)
         VALUES
-          ($1, $2, $3, $4, NOW(), $5, 'Approved', $6, $7, $8)
+          ($1, $2, $3, $4, NOW(), $5, 'Approved', $6, $7, $8, $9)
       `,
       [
         itemId,
@@ -879,6 +890,7 @@ app.patch(
         remarks || '',
         isPriceUpdated ? newPrice : null,
         newSiteName,
+        newUnit,
         changeSummary
       ]
     );
@@ -891,17 +903,147 @@ app.patch(
   })
 );
 
-// ---------------------------------------------------------------------
-// 9) Reservation & Transaction Logs
-// ---------------------------------------------------------------------
+// Reserve an item: update stock, log transaction, and create a reservation record
+app.patch(
+  '/admin-dashboard/items/:itemId/reserve',
+  authenticateJWT,
+  asyncHandler(async (req, res) => {
+    const { itemId } = req.params;
+    const { quantityToReserve, remarks } = req.body; // quantityToReserve can now be positive or negative
+    const userId = req.user.user_id;
+    const status = userId === 2 ? "Approved" : "Pending";
+
+    // Validate that quantityToReserve is an integer (allowing negative numbers)
+    if (!Number.isInteger(quantityToReserve)) {
+      return res
+        .status(400)
+        .json({ message: 'Quantity to reserve must be an integer.' });
+    }
+
+    try {
+      // Begin transaction
+      await pool.query('BEGIN');
+
+      // Lock and fetch the current item data
+      const itemResult = await pool.query(
+        'SELECT * FROM items WHERE item_id = $1 FOR UPDATE',
+        [itemId]
+      );
+      if (itemResult.rowCount === 0) {
+        await pool.query('ROLLBACK');
+        return res.status(404).json({ message: 'Item not found.' });
+      }
+      const currentItem = itemResult.rows[0];
+
+      // If quantityToReserve is positive, ensure there is enough stock.
+      // If negative, ensure there is enough reserved stock to reduce.
+      if (quantityToReserve > 0 && currentItem.quantity < quantityToReserve) {
+        await pool.query('ROLLBACK');
+        return res
+          .status(400)
+          .json({ message: 'Not enough stock available to reserve.' });
+      }
+      if (quantityToReserve < 0 && currentItem.reserved_quantity < Math.abs(quantityToReserve)) {
+        await pool.query('ROLLBACK');
+        return res
+          .status(400)
+          .json({ message: 'Not enough reserved stock available to release.' });
+      }
+
+      // Calculate new quantities:
+      // For a positive quantity, available stock decreases and reserved increases.
+      // For a negative quantity, available stock increases and reserved decreases.
+      const newQuantity = currentItem.quantity - quantityToReserve;
+      const newReservedQuantity = currentItem.reserved_quantity + quantityToReserve;
+
+      // Update the item in the database
+      const updateResult = await pool.query(
+        'UPDATE items SET quantity = $1, reserved_quantity = $2, updated_at = NOW() WHERE item_id = $3 RETURNING *',
+        [newQuantity, newReservedQuantity, itemId]
+      );
+      const updatedItem = updateResult.rows[0];
+
+      // Determine transaction type based on quantity sign
+      const transactionType = quantityToReserve >= 0 ? 'Reserve' : 'Reserve Reduction';
+
+      // Log the transaction for the reserve operation
+      const logResult = await pool.query(
+        `INSERT INTO inventory_transactions 
+           (item_id, category, user_id, item_name, model, item_unique_id, transaction_type, quantity_change, remarks, status, timestamp)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+         RETURNING *`,
+        [
+          itemId,
+          currentItem.category,
+          userId,
+          currentItem.item_name,
+          currentItem.model,
+          currentItem.item_unique_id,
+          transactionType,
+          quantityToReserve,
+          remarks,
+          status,
+        ]
+      );
+      const logEntry = logResult.rows[0];
+
+      // Create a reservation record.
+      // For positive adjustments, this creates a new reservation.
+      // For negative adjustments, it records the reduction.
+      const reservationResult = await pool.query(
+        `INSERT INTO reservations 
+           (item_id, item_name, model, item_unique_id, category, reserved_quantity, status, reservation_status, reserved_at, remarks)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'In Progress', NOW(), $8)
+         RETURNING *`,
+        [
+          itemId,
+          currentItem.item_name,
+          currentItem.model,
+          currentItem.item_unique_id,
+          currentItem.category,
+          quantityToReserve,
+          status,
+          remarks || '',
+        ]
+      );
+      const reservationEntry = reservationResult.rows[0];
+
+      // Commit the transaction
+      await pool.query('COMMIT');
+
+      res.json({
+        message: 'Reservation operation completed successfully.',
+        item: updatedItem,
+        reservation: reservationEntry,
+        log: logEntry,
+      });
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      console.error('Error during item reservation operation:', error);
+      res
+        .status(500)
+        .json({ message: 'An error occurred while processing the reservation operation.' });
+    }
+  })
+);
+
+
+// Get all reservations with status "In Progress"
 app.get(
   '/admin-dashboard/items/reservations',
   authenticateJWT,
   asyncHandler(async (req, res) => {
-    const result = await pool.query(
-      "SELECT * FROM reservations WHERE reservation_status = 'In Progress'"
-    );
-    res.json({ items: result.rows });
+    try {
+      const result = await pool.query(
+        "SELECT * FROM reservations WHERE reservation_status = 'In Progress'"
+      );
+      res.json({ items: result.rows });
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
+      res.status(500).json({
+        message: 'An error occurred while fetching the reservations.',
+      });
+    }
   })
 );
 
@@ -912,63 +1054,118 @@ app.patch(
     const { reservationId } = req.params;
     const { by } = req.body;
     const userId = req.user.user_id;
+    const status = userId === 2 ? "Approved" : "Pending";
 
-    const updateResult = await pool.query(
-      'UPDATE reservations SET reservation_status = $1 WHERE reservation_id = $2 RETURNING *',
-      ['Completed', reservationId]
-    );
-    if (updateResult.rowCount === 0) {
-      return res.status(404).json({ message: 'Reservation not found' });
-    }
-    const updatedReservation = updateResult.rows[0];
+    try {
+      console.log(`🔍 Processing reservation completion for ID: ${reservationId}`);
 
-    const itemResult = await pool.query(
-      'SELECT item_name, category, model, reserved_quantity, item_unique_id FROM items WHERE item_id = $1',
-      [updatedReservation.item_id]
-    );
-    if (itemResult.rowCount === 0) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-    const itemDetails = itemResult.rows[0];
-    const newReservedQuantity =
-      itemDetails.reserved_quantity - updatedReservation.reserved_quantity;
+      await pool.query('BEGIN');
 
-    // Log a transaction
-    const transactionResult = await pool.query(
-      `INSERT INTO inventory_transactions
-        (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name)
-       VALUES ($1, $2, 'Reserve Complete', $3, NOW(), $4, 'Approved', NULL, NULL)
-       RETURNING *`,
-      [
-        updatedReservation.item_id,
-        userId,
-        updatedReservation.reserved_quantity,
-        by || 'Reservation completed',
-      ]
-    );
-    const transactionEntry = transactionResult.rows[0];
+      // Update reservation status
+      const resUpdate = await pool.query(
+        `UPDATE reservations 
+         SET reservation_status = $1, updated_at = NOW()
+         WHERE reservation_id = $2
+         RETURNING *`,
+        ['Completed', reservationId]
+      );
 
-    // Update item to reduce reserved quantity
-    const updateItemResult = await pool.query(
-      'UPDATE items SET reserved_quantity = $1, updated_at = NOW() WHERE item_id = $2 RETURNING *',
-      [newReservedQuantity, updatedReservation.item_id]
-    );
-    if (updateItemResult.rowCount === 0) {
-      return res.status(404).json({
-        message: 'Failed to update item reserved quantity',
+      if (resUpdate.rowCount === 0) {
+        console.error(`❌ ERROR: Reservation ID ${reservationId} not found.`);
+        await pool.query('ROLLBACK');
+        return res.status(404).json({ message: 'Reservation not found' });
+      }
+
+      const updatedReservation = resUpdate.rows[0];
+      console.log(`✅ Reservation ${reservationId} marked as Completed.`);
+
+      if (!updatedReservation.item_id) {
+        console.error(`❌ ERROR: Reservation ${reservationId} has no valid item_id.`);
+        await pool.query('ROLLBACK');
+        return res.status(500).json({ message: 'Invalid reservation data - missing item_id' });
+      }
+
+      // Fetch item details
+      const itemRes = await pool.query(
+        `SELECT item_id, item_name, category, model, reserved_quantity, item_unique_id 
+         FROM items 
+         WHERE item_id = $1 FOR UPDATE`,
+        [updatedReservation.item_id]
+      );
+
+      if (itemRes.rowCount === 0) {
+        console.error(`❌ ERROR: Item ID ${updatedReservation.item_id} not found.`);
+        await pool.query('ROLLBACK');
+        return res.status(404).json({ message: 'Item not found' });
+      }
+
+      const itemDetails = itemRes.rows[0];
+
+      // Ensure reserved_quantity is valid
+      const currentReserved = itemDetails.reserved_quantity || 0;
+      const reservationReserved = updatedReservation.reserved_quantity || 0;
+      const newReservedQuantity = currentReserved - reservationReserved;
+
+      console.log(`📊 Adjusting reserved quantity: ${currentReserved} - ${reservationReserved} = ${newReservedQuantity}`);
+
+      // Log transaction
+      const transResult = await pool.query(
+        `INSERT INTO inventory_transactions 
+           (item_id, user_id, transaction_type, quantity_change, remarks, status, timestamp, model, item_name, category, item_unique_id)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)
+         RETURNING *`,
+        [
+          updatedReservation.item_id,
+          userId,
+          'Reserve Complete',
+          reservationReserved,
+          by || 'Reservation completed',
+          status,
+          itemDetails.model,
+          itemDetails.item_name,
+          itemDetails.category,
+          itemDetails.item_unique_id,
+        ]
+      );
+
+      console.log(`✅ Transaction logged for Item ID ${updatedReservation.item_id}`);
+
+      // Update item's reserved quantity
+      const itemUpdate = await pool.query(
+        `UPDATE items 
+         SET reserved_quantity = $1, updated_at = NOW()
+         WHERE item_id = $2
+         RETURNING *`,
+        [newReservedQuantity, updatedReservation.item_id]
+      );
+
+      if (itemUpdate.rowCount === 0) {
+        console.error(`❌ ERROR: Failed to update reserved quantity for Item ID ${updatedReservation.item_id}`);
+        await pool.query('ROLLBACK');
+        return res.status(404).json({ message: 'Failed to update item reserved quantity' });
+      }
+
+      await pool.query('COMMIT');
+
+      res.json({
+        message: 'Reservation completed successfully and transaction logged.',
+        reservation: updatedReservation,
+        transaction: transResult.rows[0],
+        updatedItem: itemUpdate.rows[0],
       });
-    }
-    const updatedItem = updateItemResult.rows[0];
 
-    res.json({
-      message: 'Reservation completed successfully.',
-      reservation: updatedReservation,
-      transaction: transactionEntry,
-      updatedItem,
-    });
+      console.log(`✅ Reservation ${reservationId} successfully completed.`);
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      console.error('🚨 ERROR Completing Reservation:', error);
+      res.status(500).json({ message: 'An error occurred while completing the reservation.' });
+    }
   })
 );
 
+
+
+// Cancel a reservation: update reservation status to Canceled, restore item quantity, and log a cancellation transaction
 app.patch(
   '/admin-dashboard/items/:reservationId/cancel',
   authenticateJWT,
@@ -976,62 +1173,102 @@ app.patch(
     const { reservationId } = req.params;
     const { by } = req.body;
     const userId = req.user.user_id;
+    const status = userId === 2 ? "Approved" : "Pending";
+
     try {
       await pool.query('BEGIN');
+
+      // Lock and fetch the reservation record
       const reservationResult = await pool.query(
         'SELECT item_id, reserved_quantity FROM reservations WHERE reservation_id = $1 FOR UPDATE',
         [reservationId]
       );
       if (reservationResult.rowCount === 0) {
-        await pool.query('COMMIT');
+        await pool.query('ROLLBACK');
         return res.status(404).json({ message: 'Reservation not found' });
       }
       const { item_id, reserved_quantity } = reservationResult.rows[0];
+
+      // Lock and fetch the associated item record
       const itemResult = await pool.query(
         'SELECT quantity, reserved_quantity, item_name, category, model, item_unique_id FROM items WHERE item_id = $1 FOR UPDATE',
         [item_id]
       );
       if (itemResult.rowCount === 0) {
-        await pool.query('COMMIT');
+        await pool.query('ROLLBACK');
         return res.status(404).json({ message: 'Item not found' });
       }
       const {
         quantity,
         reserved_quantity: currentReservedQuantity,
+        item_name,
+        category,
+        model,
+        item_unique_id,
       } = itemResult.rows[0];
+
+      // Calculate updated stock values
       const updatedReservedQuantity = currentReservedQuantity - reserved_quantity;
       const updatedQuantity = quantity + reserved_quantity;
 
-      // Update item to restore quantity
+      // Update the item record
       const updateItem = await pool.query(
         'UPDATE items SET reserved_quantity = $1, quantity = $2, updated_at = NOW() WHERE item_id = $3 RETURNING *',
         [updatedReservedQuantity, updatedQuantity, item_id]
       );
-      // Log transaction
+      if (updateItem.rowCount === 0) {
+        await pool.query('ROLLBACK');
+        return res.status(404).json({ message: 'Failed to update item stock' });
+      }
+      const updatedItem = updateItem.rows[0];
+
+      // Log the "Reserve Cancel" transaction
       const transactionResult = await pool.query(
-        `INSERT INTO inventory_transactions
-          (item_id, user_id, transaction_type, quantity_change, remarks, status, timestamp)
-         VALUES ($1, $2, 'Reserve Cancel', $3, $4, 'Pending', NOW())
+        `INSERT INTO inventory_transactions 
+           (item_id, user_id, transaction_type, quantity_change, remarks, status, timestamp, model, item_name, category, item_unique_id)
+         VALUES ($1, $2, 'Reserve Cancel', $3, $4, $5, NOW(), $6, $7, $8, $9)
          RETURNING *`,
-        [item_id, userId, reserved_quantity, by || 'Reservation canceled']
+        [
+          item_id,
+          userId,
+          reserved_quantity,
+          by || 'Reservation canceled',
+          status,
+          model,
+          item_name,
+          category,
+          item_unique_id,
+        ]
       );
       const transactionEntry = transactionResult.rows[0];
 
-      // Mark reservation canceled
+      // Update the reservation status to Canceled
       const updateReservation = await pool.query(
         'UPDATE reservations SET reservation_status = $1, updated_at = NOW() WHERE reservation_id = $2 RETURNING *',
         ['Canceled', reservationId]
       );
+      if (updateReservation.rowCount === 0) {
+        await pool.query('ROLLBACK');
+        return res
+          .status(404)
+          .json({ message: 'Failed to update reservation status' });
+      }
+      const updatedReservation = updateReservation.rows[0];
+
       await pool.query('COMMIT');
+
       res.json({
         message: 'Reservation canceled successfully, transaction logged.',
-        item: updateItem.rows[0],
-        reservation: updateReservation.rows[0],
+        item: updatedItem,
+        reservation: updatedReservation,
         transaction: transactionEntry,
       });
     } catch (error) {
       await pool.query('ROLLBACK');
-      throw error;
+      console.error('Error canceling reservation:', error);
+      res.status(500).json({
+        message: 'An error occurred while canceling the reservation.',
+      });
     }
   })
 );
@@ -1055,8 +1292,10 @@ app.get(
         u.username AS updated_by,
         it.transaction_type,
         it.quantity_change,
+        it.unit,
         it.price_update,
         it.timestamp,
+        i.item_unique_id,
         it.remarks,
         it.status,
         it.change_summary
@@ -1070,7 +1309,6 @@ app.get(
     res.json({ logs: rows });
   })
 );
-
 
 
 app.get(
@@ -1120,6 +1358,30 @@ app.patch(
     }
     res.json({
       message: 'Transaction approved successfully.',
+      transaction: result.rows[0],
+    });
+  })
+);
+
+app.patch(
+  '/cancel-transaction/:transactionId',
+  authenticateAdmin,
+  asyncHandler(async (req, res) => {
+    const { transactionId } = req.params;
+    const result = await pool.query(
+      `UPDATE inventory_transactions
+       SET status = 'Cancelled'
+       WHERE transaction_id = $1 AND status = 'Pending'
+       RETURNING *`,
+      [transactionId]
+    );
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ message: 'Transaction not found or already processed.' });
+    }
+    res.json({
+      message: 'Transaction cancelled successfully.',
       transaction: result.rows[0],
     });
   })

@@ -58,10 +58,16 @@ export default function ReportView() {
   const fetchItems = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+      //   credentials: 'include',
+      //   headers: { 'Content-Type': 'application/json' },
+      // });
+      credentials: 'include', // Pass cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        },
       });
       if (!response.ok) {
         throw new Error('Failed to fetch items');
@@ -78,10 +84,15 @@ export default function ReportView() {
   const fetchLogsRaw = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/logs', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logs', {
         method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        // credentials: 'include',
+        // headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Pass cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '1'
+        }
       });
       if (!response.ok) {
         throw new Error('Failed to fetch logs');

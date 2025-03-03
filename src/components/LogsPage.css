@@ -1,8 +1,16 @@
+/* Color-coded rows */
+.row-positive {
+  background-color: green
+}
+.row-negative {
+  background-color:red;
+}
+
 /* Logs Table Container Styles */
 .logs-table-container {
   max-height: 500px; /* Adjust height as needed */
-  overflow-y: auto;  
-  overflow-x: auto;  
+  overflow-y: auto;
+  overflow-x: auto;
   border: 1px solid #ddd;
 }
 
@@ -14,6 +22,14 @@
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Page Title */
+.logs-page-container h2 {
+  text-align: left;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
 }
 
 /* Table Base Styles */
@@ -29,14 +45,6 @@
   background-color: #0077a1;
   color: white;
   z-index: 2;
-}
-
-/* Page Title */
-.logs-page-container h2 {
-  text-align: left;
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: #333;
 }
 
 /* Table Styling */
@@ -80,11 +88,13 @@
   background-color: #005f80;
 }
 
-/* Base styling for Add and Subtract rows */
+/* Row Coloring based on quantity_change */
+/* Green for positive values */
 .add {
   background-color: #d4edda !important;
 }
 
+/* Red for negative values */
 .subtract {
   background-color: #f8d7da !important;
 }
@@ -104,7 +114,7 @@
   border-color: #dc3545;
 }
 
-/* For other transaction types, you can add similar styling if desired */
+/* Extra styling for Price Update and Combined Update */
 .latest-price {
   background-color: #d0e7ff !important;
   font-weight: bold;

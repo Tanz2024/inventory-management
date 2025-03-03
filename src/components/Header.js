@@ -27,7 +27,7 @@ const Header = ({ isLoggedIn, username, onLogout }) => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:5000/logs', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logs', {
         method: 'GET',
         credentials: 'include', // Ensure cookies are included
         headers: {
@@ -59,7 +59,7 @@ const Header = ({ isLoggedIn, username, onLogout }) => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:5000/logout', {
+      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logout', {
         method: 'POST',
         credentials: 'include', // Ensure cookies are included
         headers: {
