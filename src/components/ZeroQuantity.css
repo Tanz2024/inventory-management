@@ -1,0 +1,157 @@
+.zero-quantity-page {
+  max-width: 100%; /* Full width */
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+  
+.zero-quantity-page h1 {
+  text-align: left;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Table Container */
+.zero-quantity-table-container {
+  max-height: 400px;  /* Set the maximum height of the table */
+  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
+}
+
+/* Table Styling */
+.zero-quantity-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.zero-quantity-table th,
+.zero-quantity-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+/* Table Header */
+.zero-quantity-table th {
+  background-color: #0077a1; /* Updated header color */
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Table Rows */
+.zero-quantity-table td {
+  background-color: #f9f9f9;
+}
+
+.zero-quantity-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.zero-quantity-table tr:hover {
+  background-color: #e2e2e2; /* Add hover effect for table rows */
+  cursor: pointer;
+}
+
+/* Error Message */
+.zero-quantity-table .error-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.zero-quantity-page p {
+  font-size: 18px;
+  color: #333;
+  text-align: center;
+}
+
+/* Second Table */
+.zero-quantity-table-container2 {
+  max-height: 400px;  /* Set the maximum height of the table */
+  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
+}
+
+.zero-quantity-table2 {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.zero-quantity-table2 th,
+.zero-quantity-table2 td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+/* Second Table Header */
+.zero-quantity-table2 th {
+  background-color: #0077a1; /* Updated header color */
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Second Table Rows */
+.zero-quantity-table2 td {
+  background-color: #f9f9f9;
+}
+
+.zero-quantity-table2 tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.zero-quantity-table2 tr:hover {
+  background-color: #e2e2e2; /* Add hover effect for table rows */
+  cursor: pointer;
+}
+
+/* Error Message */
+.zero-quantity-table2 .error-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Transaction Logs Title */
+.transaction-logs-title {
+  margin-bottom: 0px !important;
+  margin-top: 5vh;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 768px) {
+  .zero-quantity-page {
+    padding: 10px;
+  }
+
+  .zero-quantity-table,
+  .zero-quantity-table2 {
+    font-size: 0.7rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .zero-quantity-table th,
+  .zero-quantity-table td,
+  .zero-quantity-table2 th,
+  .zero-quantity-table2 td {
+    padding: 10px;
+  }
+
+  .zero-quantity-page h1 {
+    font-size: 1.5rem;
+  }
+}

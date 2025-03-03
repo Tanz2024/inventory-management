@@ -1,0 +1,83 @@
+/* Center the App */
+.App {
+  text-align: center;
+}
+
+/* Logo Animation */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Links */
+.App-link {
+  color: #61dafb;
+}
+
+/* Main App Container */
+.app-container {
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  min-height: 100vh;
+  width: 100vw; /* Ensure it doesn't overflow */
+  background-color: #ffffff;
+}
+
+/* Main Section (Sidebar + Content) */
+.main-section {
+  display: flex;
+  flex-grow: 1;
+  padding: 0;
+}
+
+/* Content Area */
+.content-area {
+  flex-grow: 1; /* Take up remaining space */
+  margin-left: 12vw; /* Space between sidebar and content */
+  width: calc(100% - 12vw); /* Adjust width dynamically */
+  padding: 20px;
+}
+
+/* Login Page Styling */
+.content-area.login-view {
+  margin-top: 10vh; /* Push the content down */
+  margin-left: 0; /* No sidebar, so reset margin */
+  padding: 20px;
+}
+
+.app-container.login-page {
+  background-color: #fff; /* Different background for login */
+}
+
+/* Ensure Header Width Adjusts Properly */
+.app-header {
+  width: 100%;
+}
+
+  .loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: rgba(0, 119, 161, 0.1); /* Light blue tint */
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    animation: fadeIn 0.5s ease-in-out;
+  }

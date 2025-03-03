@@ -1,0 +1,219 @@
+:root {
+  --primary-color: #0077a1;
+  --primary-hover: #005f80;
+  --text-color: #333;
+  --background-color: #fff;
+  --border-color: #ccc;
+  --font-family: 'Arial', sans-serif;
+
+  /* Subtle backgrounds, shadows, etc. */
+  --card-background: #f9f9f9;
+  --hover-background: #f2f2f2;
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+  /* Additional highlight or accent color */
+  --accent-color: #e1f5fe; /* a light blue accent */
+}
+
+/* Container for the entire report page */
+.report-container {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header with back button */
+.report-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.back-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 24px;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: color 0.2s ease;
+}
+.back-button:hover {
+  color: var(--primary-hover);
+}
+.report-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--primary-color);
+}
+
+/* Filters */
+.report-form {
+  background-color: var(--card-background);
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: var(--box-shadow);
+  margin-bottom: 20px;
+}
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: flex-end;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+.filter-group label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: var(--primary-color);
+}
+.filter-group input,
+.filter-group select {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 3px var(--primary-color);
+}
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.apply-button,
+.clear-button,
+.export-button,
+.collapse-button {
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.apply-button:hover,
+.clear-button:hover,
+.export-button:hover,
+.collapse-button:hover {
+  background-color: var(--primary-hover);
+  box-shadow: var(--box-shadow);
+}
+
+/* Global collapse container */
+.global-collapse-container {
+  margin: 20px 0;
+  text-align: center;
+}
+
+/* Items Section */
+.items-section {
+  margin-top: 30px;
+}
+.item-card {
+  margin-bottom: 25px;
+  background-color: var(--card-background);
+  border-radius: 6px;
+  box-shadow: var(--box-shadow);
+  padding: 15px;
+  transition: background-color 0.2s ease;
+}
+.item-card:hover {
+  background-color: var(--accent-color);
+}
+.item-card h3 {
+  margin: 0 0 10px 0;
+  color: var(--primary-color);
+  font-size: 18px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 5px;
+}
+
+/* Table styling */
+.item-logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.item-logs-table th,
+.item-logs-table td {
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  text-align: left;
+}
+.item-logs-table th {
+  cursor: pointer;
+  background-color: #f0f0f0;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  color: var(--primary-color);
+}
+.item-logs-table th:hover {
+  background-color: #e8e8e8;
+}
+.item-logs-table tbody tr:hover {
+  background-color: var(--hover-background);
+}
+
+/* Color-coded rows */
+.row-positive {
+  background-color: #e3f9e5;
+}
+.row-negative {
+  background-color: #fde7e7;
+}
+
+/* Export section */
+.export-section {
+  margin-top: 20px;
+}
+
+/* Item tag styling for selected items */
+.items-list .item-tag {
+  display: inline-block;
+  margin: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fff;
+}
+.items-list .item-tag:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.items-list .item-tag.selected {
+  background-color: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Highlight styling */
+.highlight {
+  background-color: #fffd54; /* gentle yellow highlight */
+  font-weight: bold;
+  border-radius: 3px;
+  padding: 2px 4px;
+  transition: background-color 0.2s ease;
+}
+.highlight:hover {
+  background-color: #fff176;
+}

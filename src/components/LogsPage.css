@@ -1,0 +1,146 @@
+/* Logs Table Container Styles */
+.logs-table-container {
+  max-height: 500px; /* Adjust height as needed */
+  overflow-y: auto;  
+  overflow-x: auto;  
+  border: 1px solid #ddd;
+}
+
+/* Logs Page Container */
+.logs-page-container {
+  width: 100%;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Base Styles */
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Sticky Table Headers */
+.logs-table-container thead {
+  position: sticky;
+  top: 0;
+  background-color: #0077a1;
+  color: white;
+  z-index: 2;
+}
+
+/* Page Title */
+.logs-page-container h2 {
+  text-align: left;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Table Styling */
+.logs-page-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logs-page-container th,
+.logs-page-container td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.logs-page-container th {
+  background-color: #0077a1;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.logs-page-container td {
+  background-color: #f9f9f9;
+}
+
+/* Row Striping & Hover Effects */
+.logs-page-container tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.logs-page-container tr:hover {
+  background-color: #e2e2e2;
+  cursor: pointer;
+}
+
+.logs-page-container .logs-header:hover {
+  background-color: #005f80;
+}
+
+/* Base styling for Add and Subtract rows */
+.add {
+  background-color: #d4edda !important;
+}
+
+.subtract {
+  background-color: #f8d7da !important;
+}
+
+/* Extra highlighting for latest logs */
+.latest.add,
+.latest.subtract {
+  border: 2px solid;
+  font-weight: bold;
+}
+
+.latest.add {
+  border-color: #28a745;
+}
+
+.latest.subtract {
+  border-color: #dc3545;
+}
+
+/* For other transaction types, you can add similar styling if desired */
+.latest-price {
+  background-color: #d0e7ff !important;
+  font-weight: bold;
+  border: 2px solid #0077a1;
+}
+
+.latest-combined {
+  background: linear-gradient(to right, #d4edda, #f8d7da) !important;
+  font-weight: bold;
+  border: 2px solid #6c757d;
+}
+
+/* Error Message Styling */
+.error-message {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 768px) {
+  .logs-page-container {
+    padding: 10px;
+  }
+  .logs-page-container table {
+    font-size: 0.7rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .logs-page-container th,
+  .logs-page-container td {
+    padding: 10px;
+  }
+  .logs-page-container h2 {
+    font-size: 1.5rem;
+  }
+}
