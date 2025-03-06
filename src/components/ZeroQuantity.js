@@ -15,7 +15,7 @@ const ZeroQuantityPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', { 
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', { 
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ const ZeroQuantityPage = () => {
 
   const fetchTransactionLogs = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logs', {
+      const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

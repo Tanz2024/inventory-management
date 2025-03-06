@@ -19,7 +19,7 @@ const Reservation = ({ onLogout,userId,username }) => {
   // Fetch the list of users when the component is mounted
   const fetchItems = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -92,7 +92,7 @@ const Reservation = ({ onLogout,userId,username }) => {
     }
 
     try {
-      const response = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/reserve`, {
+      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/reserve`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ const Reservation = ({ onLogout,userId,username }) => {
       });
   
       // Make POST request to backend
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/upload', {
+      const response = await fetch('http://localhost:5000/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',

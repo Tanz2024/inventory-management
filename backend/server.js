@@ -27,8 +27,8 @@ app.use(express.json());
 // 2) CORS Setup
 // ---------------------------------------------------------------------
 const corsOptions = {
-  // origin: 'http://localhost:3000', 
-  origin: 'https://inventory-e9c9f.web.app', // your frontend origin
+  origin: 'http://localhost:3000', 
+  // origin: 'https://inventory-e9c9f.web.app', // your frontend origin
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -197,229 +197,26 @@ app.get(
 );
 
 // 8.2) GET Archived Items
+// app.get(
+//   '/admin-dashboard/items/archive',
+//   authenticateAdmin,
+//   asyncHandler(async (req, res) => {
+//     const result = await pool.query(
+//       'SELECT * FROM items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC'
+//     );
+//     res.json({ items: result.rows });
+//   })
+// );
 app.get(
   '/admin-dashboard/items/archive',
   authenticateAdmin,
   asyncHandler(async (req, res) => {
     const result = await pool.query(
-      'SELECT * FROM items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC'
+      `SELECT * FROM items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC`
     );
     res.json({ items: result.rows });
   })
 );
-// 8.3) ADD ITEM – Immediately appear in dashboard
-// app.post(
-//   '/admin-dashboard/items',
-//   authenticateAdmin,
-//   asyncHandler(async (req, res) => {
-//     const {
-//       category,
-//       item_name,
-//       model,
-//       item_unique_id,
-//       quantity,
-//       price,
-//       remarks,
-//       site_name,
-//       location,
-//       unit
-//     } = req.body;
-
-//     if (!item_name || !category) {
-//       return res.status(400).json({ message: 'item_name and category are required.' });
-//     }
-
-//     // Get the current maximum display_order for active items
-//     const { rows: maxRows } = await pool.query(
-//       `SELECT COALESCE(MAX(display_order), 0) as max_order FROM items WHERE archived_at IS NULL`
-//     );
-//     const nextOrder = parseInt(maxRows[0].max_order, 10) + 1;
-
-//     const insertQuery = `
-//       INSERT INTO items
-//         (category, item_name, model, item_unique_id, quantity, price, remarks, site_name, location, unit, display_order, archived_at, reserved_quantity, updated_at)
-//       VALUES
-//         ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULL, 0, NOW())
-//       RETURNING *;
-//     `;
-//     const values = [
-//       category,
-//       item_name,
-//       model || null,
-//       item_unique_id || null,
-//       quantity || 0,
-//       price || 0,
-//       remarks || '',
-//       site_name || '',
-//       location || '',
-//       unit || '',
-//       nextOrder
-//     ];
-
-//     const { rows } = await pool.query(insertQuery, values);
-//     const newItem = rows[0];
-
-//     // Log "Add Item"
-//     await pool.query(
-//       `INSERT INTO inventory_transactions
-//          (item_id, category, user_id, item_name, model, item_unique_id, transaction_type, quantity_change, remarks, status, timestamp, price_update, site_name, change_summary)
-//        VALUES
-//          ($1, $2, $3, $4, $5, $6, 'Add Item', $7, $8, 'Approved', NOW(), $9, $10, $11)`,
-//       [
-//         newItem.item_id,
-//         newItem.category,
-//         req.user.user_id,
-//         newItem.item_name,
-//         newItem.model,
-//         newItem.item_unique_id,
-//         newItem.quantity,
-//         newItem.remarks || '',
-//         newItem.price || 0,
-//         newItem.site_name || '',
-//         `New item added: ${newItem.item_name}, category: ${newItem.category}. Unit: ${newItem.unit}`
-//       ]
-//     );
-
-//     res.status(201).json({
-//       message: 'Item added successfully',
-//       item: newItem,
-//     });
-//   })
-// );
-
-
-// app.patch(
-//   '/admin-dashboard/items/archive',
-//   authenticateAdmin,
-//   asyncHandler(async (req, res) => {
-//     const { itemIds } = req.body;
-
-//     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
-//       return res.status(400).json({ message: 'No items selected for archiving' });
-//     }
-
-//     // Archive items: set archived_at to NOW() and clear display_order
-//     const archiveResult = await pool.query(
-//       `UPDATE items
-//          SET archived_at = NOW(), updated_at = NOW(), display_order = NULL
-//          WHERE item_id = ANY($1::int[]) AND archived_at IS NULL
-//          RETURNING item_id, item_name, quantity, category, model, item_unique_id`,
-//       [itemIds]
-//     );
-
-//     // Recalculate display_order for remaining active items
-//     await pool.query(`
-//       WITH Ordered AS (
-//         SELECT item_id, ROW_NUMBER() OVER (ORDER BY item_id ASC) as new_order
-//         FROM items
-//         WHERE archived_at IS NULL
-//       )
-//       UPDATE items i
-//       SET display_order = o.new_order
-//       FROM Ordered o
-//       WHERE i.item_id = o.item_id;
-//     `);
-
-//     const archivedCount = archiveResult.rowCount;
-//     const requestedCount = itemIds.length;
-//     let message = `${archivedCount} item(s) archived successfully.`;
-//     if (archivedCount < requestedCount) {
-//       message += ` The remaining items may already be archived or do not exist.`;
-//     }
-
-//     // Log transactions for each archived item
-//     for (const item of archiveResult.rows) {
-//       await pool.query(
-//         `INSERT INTO inventory_transactions
-//            (item_id, category, user_id, item_name, model, item_unique_id,
-//             transaction_type, quantity_change, remarks, status, timestamp, change_summary)
-//          VALUES
-//            ($1, $2, $3, $4, $5, $6, 'Archive Item', -($7::integer), 'Item archived', 'Approved', NOW(), 'Item archived from admin dashboard.')`,
-//         [
-//           item.item_id,
-//           item.category,
-//           req.user.user_id,
-//           item.item_name,
-//           item.model,
-//           item.item_unique_id,
-//           item.quantity || 0,
-//         ]
-//       );
-//     }
-
-//     return res.status(200).json({
-//       message,
-//       archivedItems: archiveResult.rows,
-//     });
-//   })
-// );
-
-
-
-// app.patch(
-//   '/admin-dashboard/items/restore',
-//   authenticateAdmin,
-//   asyncHandler(async (req, res) => {
-//     const { itemIds } = req.body;
-//     if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
-//       return res.status(400).json({ error: 'No items selected for restore' });
-//     }
-
-//     // Ensure items are archived
-//     const itemsToRestore = await pool.query(
-//       `SELECT item_id FROM items
-//        WHERE item_id = ANY($1::int[]) AND archived_at IS NOT NULL`,
-//       [itemIds]
-//     );
-//     if (itemsToRestore.rowCount === 0) {
-//       return res.status(404).json({
-//         error: 'No archived items found or items already active',
-//       });
-//     }
-
-//     // Get the current maximum display_order among active items
-//     const { rows: maxRows } = await pool.query(
-//       `SELECT COALESCE(MAX(display_order), 0) as max_order FROM items WHERE archived_at IS NULL`
-//     );
-//     const newOrder = parseInt(maxRows[0].max_order, 10) + 1;
-
-//     // Restore items: set archived_at = NULL and assign new display_order
-//     const restoreResult = await pool.query(
-//       `UPDATE items
-//          SET archived_at = NULL, updated_at = NOW(), display_order = $2
-//          WHERE item_id = ANY($1::int[]) AND archived_at IS NOT NULL
-//          RETURNING item_id, item_name, quantity, category, model, item_unique_id, display_order`,
-//       [itemIds, newOrder]
-//     );
-
-//     // Log a transaction for each restored item
-//     for (const item of restoreResult.rows) {
-//       await pool.query(
-//         `INSERT INTO inventory_transactions
-//            (item_id, category, user_id, item_name, model, item_unique_id,
-//             transaction_type, quantity_change, remarks, status, timestamp, change_summary)
-//          VALUES
-//            ($1, $2, $3, $4, $5, $6, 'Restore Item', $7,
-//             'Item restored back to dashboard', 'Approved', NOW(), 'Item restored from archive to dashboard.')`,
-//         [
-//           item.item_id,
-//           item.category,
-//           req.user.user_id,
-//           item.item_name,
-//           item.model,
-//           item.item_unique_id,
-//           item.quantity || 0
-//         ]
-//       );
-//     }
-
-//     res.status(200).json({
-//       message: `${restoreResult.rowCount} item(s) restored successfully`,
-//       restoredItems: restoreResult.rows,
-//     });
-//   })
-// );
-// ADD ITEM: Put new items at the end (highest display_order).
 app.post(
   '/admin-dashboard/items',
   authenticateAdmin,
@@ -441,9 +238,20 @@ app.post(
       return res.status(400).json({ message: 'item_name and category are required.' });
     }
 
+    // Duplicate check: if item_unique_id is provided, ensure it doesn't exist for a non-archived item.
+    if (item_unique_id) {
+      const { rows: duplicateRows } = await pool.query(
+        'SELECT * FROM items WHERE item_unique_id = $1 AND archived_at IS NULL',
+        [item_unique_id]
+      );
+      if (duplicateRows.length > 0) {
+        return res.status(400).json({ message: 'Duplicate Unique ID detected. Please use a different Unique ID.' });
+      }
+    }
+
     // 1) Get the next item ID and display order
     const { rows: idRows } = await pool.query(`
-    SELECT COALESCE(MAX(item_id), 0) AS max_id FROM items WHERE archived_at IS NULL
+      SELECT COALESCE(MAX(item_id), 0) AS max_id FROM items WHERE archived_at IS NULL
     `);
     const nextItemId = parseInt(idRows[0].max_id, 10) + 1;
 
@@ -486,28 +294,32 @@ app.post(
     const newItem = rows[0];
 
     // 3) Log transaction
-    await pool.query(`
-      INSERT INTO inventory_transactions
-        (item_id, category, user_id, item_name, model, item_unique_id,
-         transaction_type, quantity_change, remarks, status, timestamp,
-         price_update, site_name, change_summary)
-      VALUES
-        ($1, $2, $3, $4, $5, $6,
-         'Add Item', $7, $8, 'Approved', NOW(),
-         $9, $10, $11)
-    `, [
-      newItem.item_id,
-      newItem.category,
-      req.user.user_id,
-      newItem.item_name,
-      newItem.model,
-      newItem.item_unique_id,
-      newItem.quantity,
-      newItem.remarks || '',
-      newItem.price || 0,
-      newItem.site_name || '',
-      `New item added: ${newItem.item_name}, category: ${newItem.category}. Unit: ${newItem.unit}`
-    ]);
+    await pool.query(
+      `
+        INSERT INTO inventory_transactions
+          (item_id, category, user_id, item_name, model, item_unique_id,
+           transaction_type, quantity_change, remarks, status, timestamp,
+           price_update, site_name, unit, change_summary)
+        VALUES
+          ($1, $2, $3, $4, $5, $6,
+           'Add Item', $7, $8, 'Approved', NOW(),
+           $9, $10, $11, $12)
+      `,
+      [
+        newItem.item_id,
+        newItem.category,
+        req.user.user_id,
+        newItem.item_name,
+        newItem.model,
+        newItem.item_unique_id,
+        newItem.quantity,
+        newItem.remarks || '',
+        newItem.price || 0,
+        newItem.site_name || '',
+        newItem.unit || '',
+        `New item added: ${newItem.item_name}, category: ${newItem.category}.`
+      ]
+    );
 
     res.status(201).json({
       message: 'Item added successfully',
@@ -515,8 +327,6 @@ app.post(
     });
   })
 );
-
-// ARCHIVE ITEMS: Mark as archived, keep item_id
 app.patch(
   '/admin-dashboard/items/archive',
   authenticateAdmin,
@@ -526,7 +336,9 @@ app.patch(
       return res.status(400).json({ message: 'No items selected for archiving' });
     }
 
-    const archiveResult = await pool.query(`
+    // Archive the selected items (set archived_at and remove display_order)
+    const archiveResult = await pool.query(
+      `
       UPDATE items
       SET archived_at = NOW(),
           updated_at = NOW(),
@@ -534,33 +346,51 @@ app.patch(
       WHERE item_id = ANY($1::int[])
         AND archived_at IS NULL
       RETURNING item_id, item_name, quantity, category, model, item_unique_id
-    `, [itemIds]);
+      `,
+      [itemIds]
+    );
 
+    // Log each archive transaction
     for (const item of archiveResult.rows) {
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO inventory_transactions
           (item_id, category, user_id, item_name, model, item_unique_id,
-           transaction_type, quantity_change, remarks, status, timestamp,
-           change_summary)
+           transaction_type, quantity_change, remarks, status, timestamp, change_summary)
         VALUES
           ($1, $2, $3, $4, $5, $6, 'Archive Item', -($7::integer),
            'Item archived', 'Approved', NOW(),
            'Item archived from admin dashboard.')
-      `, [
-        item.item_id,
-        item.category,
-        req.user.user_id,
-        item.item_name,
-        item.model,
-        item.item_unique_id,
-        item.quantity || 0
-      ]);
+        `,
+        [
+          item.item_id,
+          item.category,
+          req.user.user_id,
+          item.item_name,
+          item.model,
+          item.item_unique_id,
+          item.quantity || 0,
+        ]
+      );
     }
 
+    // Automatically resequence the display_order for active (non-archived) items
+    await pool.query(`
+      WITH ordered AS (
+        SELECT item_id,
+               ROW_NUMBER() OVER (ORDER BY display_order) AS new_order
+        FROM items
+        WHERE archived_at IS NULL
+      )
+      UPDATE items
+      SET display_order = ordered.new_order
+      FROM ordered
+      WHERE items.item_id = ordered.item_id;
+    `);
+
     const archivedCount = archiveResult.rowCount;
-    const requestedCount = itemIds.length;
     let message = `${archivedCount} item(s) archived successfully.`;
-    if (archivedCount < requestedCount) {
+    if (archivedCount < itemIds.length) {
       message += ' The remaining items may already be archived or do not exist.';
     }
 
@@ -571,7 +401,6 @@ app.patch(
   })
 );
 
-// RESTORE ITEMS: Assign a new sequential item_id
 app.patch(
   '/admin-dashboard/items/restore',
   authenticateAdmin,
@@ -581,12 +410,16 @@ app.patch(
       return res.status(400).json({ error: 'No items selected for restore' });
     }
 
-    const itemsToRestore = await pool.query(`
+    // Select only the items that are actually archived
+    const itemsToRestore = await pool.query(
+      `
       SELECT item_id
       FROM items
       WHERE item_id = ANY($1::int[])
         AND archived_at IS NOT NULL
-    `, [itemIds]);
+      `,
+      [itemIds]
+    );
 
     if (itemsToRestore.rowCount === 0) {
       return res.status(404).json({
@@ -594,55 +427,73 @@ app.patch(
       });
     }
 
-    // 1) Get the highest item_id
-    const { rows: maxRows } = await pool.query(`
-      SELECT COALESCE(MAX(item_id), 0) AS max_id 
-      FROM items 
+    // Get the current highest display_order among active items
+    const { rows: maxRows } = await pool.query(
+      `
+      SELECT COALESCE(MAX(display_order), 0) AS max_display
+      FROM items
       WHERE archived_at IS NULL
-    `);
-    let currentMaxId = parseInt(maxRows[0].max_id, 10);
-    
+      `
+    );
+    let currentMaxDisplay = parseInt(maxRows[0].max_display, 10);
 
     let restoreResult = { rows: [] };
-    for (const itemId of itemIds) {
-      currentMaxId++;
 
-      const partialResult = await pool.query(`
+    // For each archived item, update it as active and assign a new display_order
+    for (const itemId of itemIds) {
+      currentMaxDisplay++;
+      const partialResult = await pool.query(
+        `
         UPDATE items
         SET archived_at = NULL,
             updated_at = NOW(),
-            display_order = (
-              SELECT COALESCE(MAX(display_order), 0) + 1 FROM items WHERE archived_at IS NULL
-            ),
-            item_id = $2  -- Assign new sequential ID
+            display_order = $2
         WHERE item_id = $1
           AND archived_at IS NOT NULL
         RETURNING item_id, item_name, quantity, category, model, item_unique_id, display_order
-      `, [itemId, currentMaxId]);
-
+        `,
+        [itemId, currentMaxDisplay]
+      );
       restoreResult.rows.push(...partialResult.rows);
     }
 
+    // Log each restore transaction
     for (const item of restoreResult.rows) {
-      await pool.query(`
+      await pool.query(
+        `
         INSERT INTO inventory_transactions
           (item_id, category, user_id, item_name, model, item_unique_id,
-           transaction_type, quantity_change, remarks, status, timestamp,
-           change_summary)
+           transaction_type, quantity_change, remarks, status, timestamp, change_summary)
         VALUES
           ($1, $2, $3, $4, $5, $6, 'Restore Item', $7,
            'Item restored back to dashboard', 'Approved', NOW(),
            'Item restored from archive to dashboard.')
-      `, [
-        item.item_id,
-        item.category,
-        req.user.user_id,
-        item.item_name,
-        item.model,
-        item.item_unique_id,
-        item.quantity || 0
-      ]);
+        `,
+        [
+          item.item_id,
+          item.category,
+          req.user.user_id,
+          item.item_name,
+          item.model,
+          item.item_unique_id,
+          item.quantity || 0,
+        ]
+      );
     }
+
+    // Automatically resequence the display_order after restoration
+    await pool.query(`
+      WITH ordered AS (
+        SELECT item_id,
+               ROW_NUMBER() OVER (ORDER BY display_order) AS new_order
+        FROM items
+        WHERE archived_at IS NULL
+      )
+      UPDATE items
+      SET display_order = ordered.new_order
+      FROM ordered
+      WHERE items.item_id = ordered.item_id;
+    `);
 
     return res.status(200).json({
       message: `${restoreResult.rows.length} item(s) restored successfully`,
@@ -650,6 +501,62 @@ app.patch(
     });
   })
 );
+app.patch(
+  '/admin-dashboard/items/fix-item-ids',
+  authenticateAdmin,
+  asyncHandler(async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Step 1: Shift archived items away by adding a large offset.
+      const shiftArchivedQuery = `
+        UPDATE items
+        SET item_id = item_id + 1000000
+        WHERE archived_at IS NOT NULL;
+      `;
+      console.log('Executing shiftArchived query:', shiftArchivedQuery);
+      await client.query(shiftArchivedQuery);
+
+      // Step 2: For active items (archived_at IS NULL), assign temporary negative IDs based on desired order.
+      const tempUpdateQuery = `
+        WITH ordered AS (
+          SELECT item_id,
+                 ROW_NUMBER() OVER (ORDER BY CASE WHEN starred THEN 0 ELSE 1 END, item_id) AS new_id
+          FROM items
+          WHERE archived_at IS NULL
+        )
+        UPDATE items
+        SET item_id = -ordered.new_id
+        FROM ordered
+        WHERE items.item_id = ordered.item_id
+          AND archived_at IS NULL;
+      `;
+      console.log('Executing temporary update query:', tempUpdateQuery);
+      await client.query(tempUpdateQuery);
+
+      // Step 3: Convert negative IDs to positive.
+      const finalUpdateQuery = `
+        UPDATE items
+        SET item_id = ABS(item_id)
+        WHERE archived_at IS NULL;
+      `;
+      console.log('Executing final update query:', finalUpdateQuery);
+      await client.query(finalUpdateQuery);
+
+      await client.query('COMMIT');
+      console.log('Item IDs fixed successfully.');
+      return res.status(200).json({ message: 'Item IDs fixed successfully.' });
+    } catch (error) {
+      console.error('Failed to fix item IDs:', error);
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: error.message });
+    } finally {
+      client.release();
+    }
+  })
+);
+
 
 
 app.delete(
@@ -723,20 +630,18 @@ app.delete(
 );
 
 
-
 // 8.7) PATCH Single Item (Combined Update)
 app.patch(
   '/admin-dashboard/items/:itemId/update',
   authenticateJWT,
   asyncHandler(async (req, res) => {
     const { itemId } = req.params;
-    const { price, remarks, quantityChange, site_name, unit } = req.body;
+    // Destructure starred along with the other fields
+    const { price, remarks, quantityChange, newQuantity, site_name, unit, item_unique_id, audit_date, starred } = req.body;
 
     // Only admins can update the price
-    if (price !== undefined && req.user.role_id !== 1) {
-      return res
-        .status(400)
-        .json({ message: 'Non-admin users cannot update price.' });
+    if (req.body.hasOwnProperty('price') && price !== undefined && req.user.role_id !== 1) {
+      return res.status(400).json({ message: 'Non-admin users cannot update price.' });
     }
 
     // Fetch current item
@@ -749,61 +654,139 @@ app.patch(
     }
     const currentItem = itemRows[0];
 
-    // Prepare new values
-    let newQuantity = currentItem.quantity;
-    let newPrice = currentItem.price;
-    const newSiteName = site_name !== undefined ? site_name : currentItem.site_name;
-    const newUnit = unit !== undefined ? unit : currentItem.unit;
+    // --- Process Unique ID Update ---
+    let updatedUniqueId = currentItem.item_unique_id;
+    let isUniqueIdUpdated = false;
+    if (req.body.hasOwnProperty('item_unique_id')) {
+      if (item_unique_id !== currentItem.item_unique_id) {
+        const { rows: duplicateRows } = await pool.query(
+          'SELECT * FROM items WHERE item_unique_id = $1 AND item_id <> $2',
+          [item_unique_id, itemId]
+        );
+        if (duplicateRows.length > 0) {
+          return res.status(400).json({ message: 'Duplicate Unique ID detected.' });
+        }
+        updatedUniqueId = item_unique_id;
+        isUniqueIdUpdated = true;
+      }
+    }
 
+    // Set defaults from current item for other fields
+    let updatedQuantity = currentItem.quantity;
+    let updatedPrice = currentItem.price;
+    const updatedSiteName = req.body.hasOwnProperty('site_name') ? site_name : currentItem.site_name;
+    const updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
+
+    // Process Audit Date update
+    let updatedAuditDate = currentItem.audit_date;
+    let isAuditDateUpdated = false;
+    if (req.body.hasOwnProperty('audit_date')) {
+      if (audit_date !== currentItem.audit_date) {
+        updatedAuditDate = audit_date;
+        isAuditDateUpdated = true;
+      }
+    }
+
+    // Process Starred update
+    let updatedStarred = currentItem.starred;
+    let isStarredUpdated = false;
+    if (req.body.hasOwnProperty('starred')) {
+      if (starred !== currentItem.starred) {
+        updatedStarred = starred;
+        isStarredUpdated = true;
+      }
+    }
+
+    // Flags to determine which fields have been updated
     let isQuantityUpdated = false;
     let isPriceUpdated = false;
     let isSiteUpdated = false;
     let isRemarksUpdated = false;
     let isUnitUpdated = false;
 
-    if (quantityChange !== undefined) {
-      const parsedQty = parseInt(quantityChange, 10);
-      if (isNaN(parsedQty)) {
+    // Array to hold individual change messages
+    const changeLogs = [];
+
+    // Process quantity update (only if provided)
+    if (req.body.hasOwnProperty('newQuantity')) {
+      const parsedNewQty = parseInt(newQuantity, 10);
+      if (isNaN(parsedNewQty)) {
+        return res.status(400).json({ message: 'Invalid new quantity value.' });
+      }
+      if (parsedNewQty < 0) {
+        return res.status(400).json({ message: 'Quantity cannot be negative.' });
+      }
+      updatedQuantity = parsedNewQty;
+      if (updatedQuantity !== currentItem.quantity) {
+        isQuantityUpdated = true;
+        changeLogs.push(`Quantity updated from ${currentItem.quantity} to ${updatedQuantity}`);
+      }
+    } else if (req.body.hasOwnProperty('quantityChange')) {
+      const parsedChange = parseInt(quantityChange, 10);
+      if (isNaN(parsedChange)) {
         return res.status(400).json({ message: 'Invalid quantity change.' });
       }
-      if (parsedQty !== 0) {
-        newQuantity = currentItem.quantity + parsedQty;
-        if (newQuantity < 0) {
+      if (parsedChange !== 0) {
+        updatedQuantity = currentItem.quantity + parsedChange;
+        if (updatedQuantity < 0) {
           return res.status(400).json({ message: 'Insufficient stock.' });
         }
         isQuantityUpdated = true;
+        changeLogs.push(`Quantity changed from ${currentItem.quantity} to ${updatedQuantity} (Change: ${parsedChange})`);
       }
     }
 
-    if (price !== undefined) {
+    // Process price update
+    if (req.body.hasOwnProperty('price')) {
       const parsedPrice = parseFloat(price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         return res.status(400).json({ message: 'Invalid price value.' });
       }
       if (parsedPrice !== parseFloat(currentItem.price)) {
-        newPrice = parsedPrice;
+        updatedPrice = parsedPrice;
         isPriceUpdated = true;
+        changeLogs.push(`Price updated from RM ${currentItem.price} to RM ${updatedPrice}`);
       }
     }
 
-    if (site_name !== undefined && site_name !== currentItem.site_name) {
+    // Process site name update
+    if (req.body.hasOwnProperty('site_name') && site_name !== currentItem.site_name) {
       isSiteUpdated = true;
+      changeLogs.push(`Site name updated from "${currentItem.site_name}" to "${updatedSiteName}"`);
     }
 
-    if (remarks !== undefined && remarks !== currentItem.remarks) {
+    // Process remarks update
+    if (req.body.hasOwnProperty('remarks') && remarks !== currentItem.remarks) {
       isRemarksUpdated = true;
+      changeLogs.push(`Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`);
     }
 
-    if (unit !== undefined && unit !== currentItem.unit) {
+    // Process unit update
+    if (req.body.hasOwnProperty('unit') && unit !== currentItem.unit) {
       isUnitUpdated = true;
+      changeLogs.push(`Unit updated from "${currentItem.unit}" to "${updatedUnit}"`);
     }
 
+    // Process audit date update
+    if (isAuditDateUpdated) {
+      changeLogs.push(`Audit date updated from "${currentItem.audit_date || 'N/A'}" to "${updatedAuditDate}"`);
+    }
+
+    // Process starred update log if applicable
+    if (isStarredUpdated) {
+      changeLogs.push(`Starred status updated from "${currentItem.starred}" to "${updatedStarred}"`);
+    }
+
+    // If no changes detected, return early without logging
     if (
       !isQuantityUpdated &&
       !isPriceUpdated &&
       !isSiteUpdated &&
       !isRemarksUpdated &&
-      !isUnitUpdated
+      !isUnitUpdated &&
+      !isUniqueIdUpdated &&
+      !isAuditDateUpdated &&
+      !isStarredUpdated
     ) {
       return res.json({
         message: 'No changes detected.',
@@ -811,6 +794,14 @@ app.patch(
       });
     }
 
+    // Log changes
+    if (changeLogs.length === 1) {
+      console.log(`INFO: Item ${itemId} - ${changeLogs[0]}.`);
+    } else {
+      console.log(`INFO: Item ${itemId} - Combined Update: ${changeLogs.join('; ')}.`);
+    }
+
+    // Update the item record (including the unique id, audit_date, and starred fields)
     const updateQuery = `
       UPDATE items
       SET
@@ -819,50 +810,47 @@ app.patch(
         price = $3,
         site_name = $4,
         unit = $5,
+        item_unique_id = $6,
+        audit_date = $7,
+        starred = $8,
         updated_at = NOW()
-      WHERE item_id = $6
+      WHERE item_id = $9
       RETURNING *;
     `;
     const { rows: updatedRows } = await pool.query(updateQuery, [
-      remarks,
-      newQuantity,
-      newPrice,
-      newSiteName,
-      newUnit,
+      req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
+      updatedQuantity,
+      req.body.hasOwnProperty('price') ? updatedPrice : currentItem.price,
+      updatedSiteName,
+      updatedUnit,
+      updatedUniqueId,
+      req.body.hasOwnProperty('audit_date') ? updatedAuditDate : currentItem.audit_date,
+      updatedStarred,
       itemId
     ]);
     const updatedItem = updatedRows[0];
 
-    // Build a change summary
-    let changeSummary = '';
-    if (isQuantityUpdated) {
-      const parsedQty = parseInt(quantityChange, 10);
-      const changeType = parsedQty > 0 ? 'Add' : 'Subtract';
-      changeSummary += `Quantity changed from ${currentItem.quantity} to ${newQuantity} (${changeType} ${Math.abs(parsedQty)}). `;
-    }
-    if (isPriceUpdated) {
-      changeSummary += `Price changed from RM ${currentItem.price} to RM ${newPrice}. `;
-    }
-    if (isSiteUpdated) {
-      changeSummary += `Site name changed from "${currentItem.site_name}" to "${newSiteName}". `;
-    }
-    if (isRemarksUpdated) {
-      const oldRemarks = currentItem.remarks || 'N/A';
-      changeSummary += `Remarks updated from "${oldRemarks}" to "${remarks}". `;
-    }
-    if (isUnitUpdated) {
-      changeSummary += `Unit changed from "${currentItem.unit}" to "${newUnit}". `;
-    }
-    changeSummary = changeSummary.trim();
+    // Build overall change summary string
+    let changeSummary = changeLogs.join('. ') + '.';
 
-    const changesCount = [isQuantityUpdated, isPriceUpdated, isSiteUpdated, isRemarksUpdated, isUnitUpdated].filter(Boolean).length;
-
+    // Determine transaction type based on changes
+    const changesCount = [
+      isQuantityUpdated,
+      isPriceUpdated,
+      isSiteUpdated,
+      isRemarksUpdated,
+      isUnitUpdated,
+      isUniqueIdUpdated,
+      isAuditDateUpdated,
+      isStarredUpdated
+    ].filter(Boolean).length;
     let transactionType;
     if (changesCount > 1) {
       transactionType = 'Combined Update';
     } else if (isQuantityUpdated) {
-      const parsedQty = parseInt(quantityChange, 10);
-      transactionType = parsedQty > 0 ? 'Add' : 'Subtract';
+      transactionType = req.body.hasOwnProperty('newQuantity')
+        ? 'Quantity Value Update'
+        : (parseInt(quantityChange, 10) > 0 ? 'Add' : 'Subtract');
     } else if (isPriceUpdated) {
       transactionType = 'Price Update';
     } else if (isSiteUpdated) {
@@ -871,10 +859,19 @@ app.patch(
       transactionType = 'Remarks Update';
     } else if (isUnitUpdated) {
       transactionType = 'Unit Update';
+    } else if (isUniqueIdUpdated) {
+      transactionType = 'Unique ID Update';
+    } else if (isAuditDateUpdated) {
+      transactionType = 'Audit Date Update';
+    } else if (isStarredUpdated) {
+      transactionType = 'Starred Update';
     } else {
       transactionType = 'Inventory Update';
     }
 
+    console.log(`INFO: Item ${itemId} - Overall Change Summary: ${changeSummary}`);
+
+    // Insert record into inventory_transactions
     await pool.query(
       `
         INSERT INTO inventory_transactions
@@ -886,11 +883,15 @@ app.patch(
         itemId,
         req.user.user_id,
         transactionType,
-        isQuantityUpdated ? Math.abs(parseInt(quantityChange, 10)) : 0,
-        remarks || '',
-        isPriceUpdated ? newPrice : null,
-        newSiteName,
-        newUnit,
+        isQuantityUpdated
+          ? req.body.hasOwnProperty('newQuantity')
+            ? Math.abs(parseInt(newQuantity, 10))
+            : Math.abs(parseInt(quantityChange, 10))
+          : 0,
+        req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
+        isPriceUpdated ? updatedPrice : null,
+        updatedSiteName,
+        updatedUnit,
         changeSummary
       ]
     );
@@ -902,6 +903,8 @@ app.patch(
     });
   })
 );
+
+
 
 // Reserve an item: update stock, log transaction, and create a reservation record
 app.patch(

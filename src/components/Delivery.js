@@ -25,7 +25,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
   // ---------------------------
   useEffect(() => {
     const fetchAdminItems = () => {
-      fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -106,7 +106,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
       })),
     };
 
-    fetch('https://3f42-211-25-11-204.ngrok-free.app/delivery/update-inventory', {
+    fetch('http://localhost:5000/delivery/update-inventory', {
       method: 'POST',
       headers: {
         'ngrok-skip-browser-warning': '1',

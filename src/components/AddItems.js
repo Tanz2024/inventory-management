@@ -20,27 +20,57 @@ const AddItems = ({ onClose, onAddItem }) => {
   const [location, setLocation] = useState('');
   const [unique, setUnique] = useState('');
   const [price, setPrice] = useState('');
-  const [unit, setUnit] = useState(''); // NEW: unit state
+  const [unit, setUnit] = useState('');
   const [categories, setCategories] = useState(predefinedCategories);
   const [customCategory, setCustomCategory] = useState('');
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+
+  // Check if the Unique ID already exists
+  const checkDuplicateUniqueId = async (uniqueId) => {
+    try {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'ngrok-skip-browser-warning': '1',
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.items || [];
+        return items.some(item => item.item_unique_id === uniqueId);
+      }
+    } catch (error) {
+      console.error('Error checking unique id duplicate:', error);
+    }
+    return false;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const selectedCategory = useCustomCategory ? customCategory : category;
-  
+
     // Validate form fields
     if (!itemName || !selectedCategory || !model || !unique || !quantity || !location || !price || !unit) {
       alert('All fields are required');
       return;
     }
-  
-    // Add new category if custom
+
+    // Check for duplicate Unique ID
+    const duplicateExists = await checkDuplicateUniqueId(unique);
+    if (duplicateExists) {
+      alert('The Unique ID already exists. Please choose a different Unique ID.');
+      return;
+    }
+
+    // Add new category if custom and not already in the list
     if (useCustomCategory && !categories.includes(customCategory)) {
       setCategories([...categories, customCategory]);
     }
-  
+
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/', {
         method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': '1',
@@ -58,14 +88,14 @@ const AddItems = ({ onClose, onAddItem }) => {
           unit
         }),
       });
-  
+
       if (response.ok) {
         const result = await response.json();
         // Immediately update the parent's state with the new item.
         onAddItem(result.item);
         onClose();
         alert('Item added successfully');
-  
+
         // Reset form fields
         setItemName('');
         setCategory('');
@@ -86,7 +116,6 @@ const AddItems = ({ onClose, onAddItem }) => {
       alert('An error occurred while adding the item.');
     }
   };
-  
 
   return (
     <div className="add-item-dialog">

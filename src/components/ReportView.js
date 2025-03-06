@@ -4,8 +4,7 @@ import generateReportPDF from './GenerateReport';
 import './ReportView.css';
 
 /**
- * highlightText:
- * Splits 'text' by any occurrences of 'searchTerm' (case-insensitive)
+ * Splits `text` by any occurrences of `searchTerm` (case-insensitive)
  * and wraps matches in a <span> with class "highlight" for yellow highlighting.
  */
 function highlightText(text = '', searchTerm = '') {
@@ -35,7 +34,7 @@ export default function ReportView() {
   const [filterByLocation, setFilterByLocation] = useState(false);
   const [location, setLocation] = useState('');
 
-  // Additional search fields
+  // ------------------ Additional Search Fields ------------------
   const [changedBySearch, setChangedBySearch] = useState('');
   const [siteSearch, setSiteSearch] = useState('');
   const [remarksSearch, setRemarksSearch] = useState('');
@@ -47,23 +46,20 @@ export default function ReportView() {
   // ------------------ UI States ------------------
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(true);
-  const [globalCollapse, setGlobalCollapse] = useState(false); // Global collapse/expand state
+  const [globalCollapse, setGlobalCollapse] = useState(false);
 
   // ------------------ Lifecycle ------------------
   useEffect(() => {
     fetchItems();
   }, []);
 
-  // 1) Fetch Items from server
+  // 1) Fetch Items from Server
   const fetchItems = async () => {
     try {
       setError(null);
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
-      //   credentials: 'include',
-      //   headers: { 'Content-Type': 'application/json' },
-      // });
-      credentials: 'include', // Pass cookies for authentication
+        credentials: 'include', // Pass cookies for authentication
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': '1'
@@ -84,10 +80,8 @@ export default function ReportView() {
   const fetchLogsRaw = async () => {
     try {
       setError(null);
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logs', {
+      const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
-        // credentials: 'include',
-        // headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Pass cookies for authentication
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +100,7 @@ export default function ReportView() {
     }
   };
 
-  // 3) Filter Logs based on form inputs
+  // 3) Filter Logs Based on Form Inputs
   const handleFetchLogs = async () => {
     const allLogs = await fetchLogsRaw();
     if (!allLogs.length && !error) {
@@ -127,6 +121,7 @@ export default function ReportView() {
       if (endObj) endObj.setHours(23, 59, 59, 999);
     }
 
+    // Filter items by location if applicable.
     let workingItems = [...items];
     if (filterByLocation && location) {
       const locLower = location.toLowerCase();
@@ -155,13 +150,13 @@ export default function ReportView() {
           logItem.location.toLowerCase() === location.toLowerCase();
       }
 
-      let matchesChangedBy = changedBySearch
+      const matchesChangedBy = changedBySearch
         ? (log.updated_by || '').toLowerCase().includes(changedBySearch.toLowerCase())
         : true;
-      let matchesSite = siteSearch
+      const matchesSite = siteSearch
         ? (log.site_name || '').toLowerCase().includes(siteSearch.toLowerCase())
         : true;
-      let matchesRemarks = remarksSearch
+      const matchesRemarks = remarksSearch
         ? (log.remarks || '').toLowerCase().includes(remarksSearch.toLowerCase())
         : true;
 
@@ -178,7 +173,7 @@ export default function ReportView() {
     setLogs(filteredLogs);
   };
 
-  // 4) Export PDF with current filter settings
+  // 4) Export PDF with Current Filter Settings
   const handleExportPDF = () => {
     let startObj, endObj;
     if (!startDate && !endDate) {
@@ -223,11 +218,12 @@ export default function ReportView() {
     generateReportPDF(config);
   };
 
-  // 5) Navigate back
+  // 5) Navigate Back
   const handleBack = () => {
     navigate('/admin-dashboard');
   };
 
+  // ------------------ UI Handlers ------------------
   const handleReportTypeChange = (newType) => {
     if (newType === 'specific') {
       setFilterByLocation(false);
@@ -242,9 +238,7 @@ export default function ReportView() {
       setSelectedItems([]);
     }
     setFilterByLocation(checked);
-    if (!checked) {
-      setLocation('');
-    }
+    if (!checked) setLocation('');
   };
 
   const handleClearAllFields = () => {
@@ -262,6 +256,7 @@ export default function ReportView() {
     setLogs([]);
   };
 
+  // ------------------ Derived Data ------------------
   const uniqueLocations = Array.from(
     new Set(
       items
@@ -271,11 +266,12 @@ export default function ReportView() {
     )
   ).sort();
 
-  const filteredItems = filterByLocation && location
-    ? items.filter(
-        (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
-      )
-    : items;
+  const filteredItems =
+    filterByLocation && location
+      ? items.filter(
+          (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
+        )
+      : items;
 
   const displayItems =
     reportType === 'specific'
@@ -284,7 +280,7 @@ export default function ReportView() {
 
   return (
     <div className="report-container">
-      {/* Header with Back Button */}
+      {/* Header */}
       <div className="report-header">
         <button className="back-button" onClick={handleBack}>
           ←
@@ -464,7 +460,7 @@ export default function ReportView() {
         </div>
       )}
 
-      {/* Global Collapse/Expand Button placed below the filters */}
+      {/* Global Collapse/Expand Button */}
       <div className="global-collapse-container">
         <button
           className="collapse-button"
@@ -474,7 +470,7 @@ export default function ReportView() {
         </button>
       </div>
 
-      {/* Display Logs by Filtered Items */}
+      {/* Logs Display */}
       <div className="items-section">
         {displayItems.map((item) => (
           <ItemLogs
@@ -489,7 +485,7 @@ export default function ReportView() {
         ))}
       </div>
 
-      {/* Export PDF Button */}
+      {/* Export PDF */}
       <div className="export-section">
         <button className="export-button" onClick={handleExportPDF}>
           Export PDF
@@ -500,17 +496,15 @@ export default function ReportView() {
 }
 
 /**
- * ItemLogs:
- * - Collapsible logs table per item.
- * - Color-coded rows for inbound/outbound transactions.
- * - Uses highlightText for search term highlighting.
- * - Displays a "Stock" column showing running stock after each transaction.
+ * ItemLogs Component:
+ * - Displays a collapsible logs table per item.
+ * - Uses `highlightText` for search term highlighting.
+ * - Calculates and displays a running stock after each transaction.
  */
 function ItemLogs({ item, logs, changedBySearch, siteSearch, remarksSearch, globalCollapse }) {
   const [sortDirection, setSortDirection] = useState('desc');
   const [collapsed, setCollapsed] = useState(false);
 
-  // Sync local collapsed state with globalCollapse when it changes.
   useEffect(() => {
     setCollapsed(globalCollapse);
   }, [globalCollapse]);
@@ -541,10 +535,7 @@ function ItemLogs({ item, logs, changedBySearch, siteSearch, remarksSearch, glob
         <h3>
           {item.item_name} (Current Stock: {Math.max(item.quantity, 0)})
         </h3>
-        <button
-          className="collapse-button"
-          onClick={() => setCollapsed((prev) => !prev)}
-        >
+        <button className="collapse-button" onClick={() => setCollapsed((prev) => !prev)}>
           {collapsed ? 'Show Logs' : 'Hide Logs'}
         </button>
       </div>
@@ -578,11 +569,7 @@ function ItemLogs({ item, logs, changedBySearch, siteSearch, remarksSearch, glob
                 const siteHighlighted = highlightText(log.site_name || '', siteSearch);
                 const remarksHighlighted = highlightText(log.remarks || '', remarksSearch);
                 const rowClass =
-                  qtyChange > 0
-                    ? 'row-positive'
-                    : qtyChange < 0
-                    ? 'row-negative'
-                    : '';
+                  qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : '';
                 return (
                   <tr key={idx} className={rowClass}>
                     <td>{dateString}</td>

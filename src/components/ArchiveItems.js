@@ -14,7 +14,7 @@ const ArchivedItems = () => {
 
   const fetchArchivedItems = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/archive', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -41,7 +41,7 @@ const ArchivedItems = () => {
   // -----------------------------------------------------
   const handleRestore = async (itemId) => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/restore', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/restore', {
         method: 'PATCH',
         credentials: 'include',
         headers: {
@@ -99,7 +99,7 @@ const ArchivedItems = () => {
     }
 
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/permanent', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/permanent', {
         method: 'DELETE',
         credentials: 'include',
         headers: {

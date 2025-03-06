@@ -11,7 +11,7 @@ const PendingTransactions = () => {
 
   const fetchPendingTransactions = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/pending-transactions', {
+      const response = await fetch('http://localhost:5000/pending-transactions', {
         method: 'GET',
         credentials: 'include', // Pass cookies for authentication
         headers: {
@@ -36,7 +36,7 @@ const PendingTransactions = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/approve-transaction/${transactionId}`, {
+      const response = await fetch(`http://localhost:5000/approve-transaction/${transactionId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {
@@ -62,7 +62,7 @@ const PendingTransactions = () => {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/cancel-transaction/${transactionId}`, {
+      const response = await fetch(`http://localhost:5000/cancel-transaction/${transactionId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {

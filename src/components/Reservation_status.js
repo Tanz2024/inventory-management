@@ -9,7 +9,7 @@ const Reservation_status = ({ onClose, fetchItems }) => {
   // Function to fetch reservations from backend
   const fetchItemsFromServer = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/reservations', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/reservations', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -66,7 +66,7 @@ const Reservation_status = ({ onClose, fetchItems }) => {
       return;
     }
 
-    const endpoint = `https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items/${reservationId}/${action}`;
+    const endpoint = `http://localhost:5000/admin-dashboard/items/${reservationId}/${action}`;
     try {
       const response = await fetch(endpoint, {
         method: 'PATCH',

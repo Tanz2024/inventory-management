@@ -60,7 +60,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   // ---------------------------
   useEffect(() => {
     const fetchAdminItems = () => {
-      fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -89,7 +89,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   }, []);
 
   const fetchFileHistory = () => {
-    fetch('https://3f42-211-25-11-204.ngrok-free.app/api/fileHistory', {
+    fetch('http://localhost:5000/api/fileHistory', {
       method: 'GET',
       credentials: 'include',
       headers: { 
@@ -108,7 +108,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   const handleItemSelectChange = (selectedOption, index) => {
     const newItems = [...items];
     newItems[index].value = selectedOption ? selectedOption.value : '';
-    newItems[index].label = selectedOption ? selectedOption.label : '';
+    newItems[index].label = selectedOption ? selectedOption.label : newItems[index].label;
     // Reset the addToAdmin flag when selecting an option from the list
     if (selectedOption) {
       newItems[index].addToAdmin = false;
@@ -179,7 +179,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         qty: Number(item.qty)
       }))
     };
-    fetch('https://3f42-211-25-11-204.ngrok-free.app/goodsreceived/update-inventory', {
+    fetch('http://localhost:5000/goodsreceived/update-inventory', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
     localFiles.forEach(({ file }) => formData.append('files', file));
     formData.append('siteName', siteName);
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/api/uploadFiles', {
+      const response = await fetch('http://localhost:5000/api/uploadFiles', {
         method: 'POST',
         credentials: 'include',
         headers: { 'ngrok-skip-browser-warning': '1' },
@@ -250,7 +250,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   // ---------------------------
   const previewFile = async (fileId) => {
     try {
-      const res = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/api/filePreview/${fileId}`, {
+      const res = await fetch(`http://localhost:5000/api/filePreview/${fileId}`, {
         method: 'GET',
         credentials: 'include',
         headers: { 
@@ -273,7 +273,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   const deleteFile = async (fileId) => {
     if (!window.confirm('Are you sure you want to delete this file?')) return;
     try {
-      const res = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/api/deleteFile/${fileId}`, {
+      const res = await fetch(`http://localhost:5000/api/deleteFile/${fileId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 
@@ -300,7 +300,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
   const saveFileEdits = async () => {
     if (!currentFile) return;
     try {
-      const res = await fetch(`https://3f42-211-25-11-204.ngrok-free.app/api/updateFile/${currentFile.id}`, {
+      const res = await fetch(`http://localhost:5000/api/updateFile/${currentFile.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -494,7 +494,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
     for (const item of items) {
       if (!item.value && item.label.trim() !== '' && item.addToAdmin) {
         try {
-          await fetch('https://3f42-211-25-11-204.ngrok-free.app/admin-dashboard/add-item', {
+          await fetch('http://localhost:5000/admin-dashboard/add-item', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -640,13 +640,16 @@ function GoodReceivedForm({ onItemsUpdate }) {
                 onChange={(option) => handleItemSelectChange(option, index)}
                 options={adminItems}
                 value={item.value ? { value: item.value, label: item.label } : null}
+                // For new items, pass the current label as inputValue so it remains visible.
+                inputValue={item.value ? undefined : item.label}
                 placeholder="Select or type an item"
-                onInputChange={(inputValue) => {
-                  // Update the label as the user types for new items
-                  const newItems = [...items];
-                  newItems[index].label = inputValue;
-                  setItems(newItems);
-                  if (onItemsUpdate) onItemsUpdate(newItems);
+                onInputChange={(newValue, { action }) => {
+                  if (action === 'input-change') {
+                    const newItems = [...items];
+                    newItems[index].label = newValue;
+                    setItems(newItems);
+                    if (onItemsUpdate) onItemsUpdate(newItems);
+                  }
                 }}
               />
             </div>

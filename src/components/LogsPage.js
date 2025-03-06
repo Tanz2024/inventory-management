@@ -9,7 +9,7 @@ const LogsPage = () => {
   // Fetch logs from API on component mount
   const fetchLogs = async () => {
     try {
-      const response = await fetch('https://3f42-211-25-11-204.ngrok-free.app/logs', {
+      const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         credentials: 'include',
         headers: {

@@ -60,8 +60,8 @@
   margin-top: 20px;
 }
 
-.archived-items-container .restore-button,
-.archived-items-container .delete-button {
+.restore-button,
+.delete-button {
   padding: 6px 12px;
   margin: 0 4px;
   border: none;
@@ -71,40 +71,39 @@
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-/* Restore Button */
-.archived-items-container .restore-button {
+.restore-button {
   background-color: #28a745;
   color: #fff;
 }
-.archived-items-container .restore-button:hover {
+
+.restore-button:hover {
   background-color: #218838;
   transform: scale(1.05);
 }
 
-/* Delete Button */
-.archived-items-container .delete-button {
+.delete-button {
   background-color: #dc3545;
   color: #fff;
 }
-.archived-items-container .delete-button:hover {
+
+.delete-button:hover {
   background-color: #c82333;
   transform: scale(1.05);
 }
 
-/* Highlight Classes */
+/* Permanent green background for restored items */
 .green-row {
   background-color: #ccffcc;
 }
 
-/* Optional fade-out animation after highlight */
+/* Temporary highlight animation (if desired) */
 .highlight {
   animation: fadeOut 3s forwards;
 }
 
-/* Start from highlight color, end with normal row color */
 @keyframes fadeOut {
   0% {
-    background-color: #ccffcc; /* match .green-row color */
+    background-color: #ccffcc;
   }
   90% {
     background-color: #ccffcc;
