@@ -26,30 +26,33 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [siteNames, setSiteNames] = useState({});
   const [units, setUnits] = useState({});
   const [uniqueIds, setUniqueIds] = useState({}); // For Unique IDs
-  const [quantityValue, setQuantityValue] = useState({}); // For persisted quantity value
-  // New state: Audit Date for manual date/time entry
+  const [quantityValue, setQuantityValue] = useState({}); // Persisted quantity value
+
+  // New state: Audit Date represents the Key-in Date (when the admin records the change)
   const [auditDates, setAuditDates] = useState({});
 
   const [confirmed, setConfirmed] = useState({});
   const [editMode, setEditMode] = useState({}); // Track edit mode for each field
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
 
-  // Starred state comes directly from the backend property "starred"
+  // Starred state comes from the backend property "starred"
   const [starred, setStarred] = useState({});
 
   // -----------------------------------------------------------------------
-  // Helper Functions for Malaysia Time Conversion
+  // Helper Functions for Date Conversion
   // -----------------------------------------------------------------------
+  // Converts a stored UTC date string to Malaysia Time (MYT) for display.
   const convertToMYTDisplay = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
   };
 
+  // Formats a date string (stored audit_date) for the datetime-local input.
   const formatForInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Format the date as "YYYY-MM-DDTHH:mm" in MYT
+    // Format as "YYYY-MM-DDTHH:mm" using MYT values.
     const options = { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
     const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
     const day = parts.find(p => p.type === 'day').value;
@@ -105,8 +108,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUnitsValues(fetchedItems);
     setQuantityValues(fetchedItems);
     setUniqueIdsValues(fetchedItems);
-    setAuditDatesValues(fetchedItems); // Initialize audit dates
-    // Read the starred value from each fetched item (persisted on backend)
+    setAuditDatesValues(fetchedItems); // Initialize key-in dates
     const initStarred = fetchedItems.reduce((acc, item) => {
       acc[item.item_id] = item.starred || false;
       return acc;
@@ -170,9 +172,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUniqueIds(initial);
   };
 
-  // Initialize audit dates; backend returns audit_date (if any)
+  // Here, we initialize audit dates directly from the fetched items.
   const setAuditDatesValues = (fetchedItems) => {
     const initial = fetchedItems.reduce((acc, item) => {
+      // The backend sends audit_date as an ISO string (UTC), and we display it in MYT.
       acc[item.item_id] = item.audit_date || '';
       return acc;
     }, {});
@@ -225,14 +228,16 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       return updatedStarred;
     });
 
-    // Update the backend
     try {
-      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ starred: newStarred })
-      });
+      const response = await fetch(
+        `http://localhost:5000/admin-dashboard/items/${itemId}/update`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ starred: newStarred })
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Failed to update star: ${errorData.message}`);
@@ -299,9 +304,13 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUniqueIds((prev) => ({ ...prev, [itemId]: newUniqueId }));
   };
 
-  // New: Handle audit date changes
+  // New: Handle audit date (key-in date) changes.
+  // The date is converted to ISO format (UTC) by the frontend.
   const handleAuditDateChange = (itemId, newDate) => {
-    setAuditDates((prev) => ({ ...prev, [itemId]: newDate }));
+    if (!newDate) return;
+    const localDate = new Date(newDate); // local time from input
+    const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+    setAuditDates((prev) => ({ ...prev, [itemId]: utcDate.toISOString() }));
   };
 
   const toggleEditMode = (itemId, field) => {
@@ -313,7 +322,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         unit: false,
         quantity: false,
         uniqueId: false,
-        auditDate: false, // new field for audit date
+        auditDate: false, // for key-in date editing
       };
       return { ...prev, [itemId]: { ...current, [field]: !current[field] } };
     });
@@ -331,15 +340,18 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
     const payload = { [field]: value };
     try {
-      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
-        method: 'PATCH',
-        headers: {
-          'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `http://localhost:5000/admin-dashboard/items/${itemId}/update`,
+        {
+          method: 'PATCH',
+          headers: {
+            'ngrok-skip-browser-warning': '1',
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Failed to update ${field}: ${errorData.message}`);
@@ -387,15 +399,18 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
     const payload = { newQuantity: newQty };
     try {
-      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
-        method: 'PATCH',
-        headers: {
-          'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `http://localhost:5000/admin-dashboard/items/${itemId}/update`,
+        {
+          method: 'PATCH',
+          headers: {
+            'ngrok-skip-browser-warning': '1',
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Failed to update quantity: ${errorData.message}`);
@@ -559,9 +574,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
   };
 
-  // -----------------------------------------------------------------------
-  // Fix Item IDs – Trigger a manual reordering to reassign item_id values
-  // -----------------------------------------------------------------------
   const handleFixItemIds = async () => {
     try {
       const response = await fetch('http://localhost:5000/admin-dashboard/items/fix-item-ids', {
@@ -575,7 +587,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        // Re-fetch items so that item IDs (and their corresponding starred states) are updated
         fetchItems();
       } else {
         alert(`Failed to fix item IDs: ${data.error}`);
@@ -634,7 +645,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       ...prev,
       [newItem.item_id]: newItem.audit_date || '',
     }));
-    // Persist starred state from backend for the new item
     setStarred((prev) => ({ ...prev, [newItem.item_id]: newItem.starred || false }));
   };
 
@@ -738,7 +748,8 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
               <th>Unit</th>
               <th>Price</th>
               <th>Remarks</th>
-              <th>Date/Time (MYT)</th>
+              {/* "Key-in Date" column */}
+              <th>Key-in Date</th>
               <th>Quantity Changed</th>
               <th>Confirmation</th>
             </tr>
@@ -781,22 +792,26 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                   )}
                 </td>
                 <td>
-                  {editMode[item.item_id]?.quantity ? (
-                    <>
-                      <input
-                        type="number"
-                        value={quantityValue[item.item_id] || 0}
-                        onChange={(e) =>
-                          setQuantityValue((prev) => ({ ...prev, [item.item_id]: e.target.value }))
-                        }
-                      />
-                      <button className="save-button" onClick={() => handleSaveQuantity(item.item_id)}>Save</button>
-                    </>
+                  {userId === 2 ? (
+                    editMode[item.item_id]?.quantity ? (
+                      <>
+                        <input
+                          type="number"
+                          value={quantityValue[item.item_id] || 0}
+                          onChange={(e) =>
+                            setQuantityValue((prev) => ({ ...prev, [item.item_id]: e.target.value }))
+                          }
+                        />
+                        <button className="save-button" onClick={() => handleSaveQuantity(item.item_id)}>Save</button>
+                      </>
+                    ) : (
+                      <>
+                        <span>{quantityValue[item.item_id]}</span>
+                        <button onClick={() => toggleEditMode(item.item_id, 'quantity')}>Edit</button>
+                      </>
+                    )
                   ) : (
-                    <>
-                      <span>{quantityValue[item.item_id]}</span>
-                      <button onClick={() => toggleEditMode(item.item_id, 'quantity')}>Edit</button>
-                    </>
+                    <span>{quantityValue[item.item_id]}</span>
                   )}
                 </td>
                 <td>{item.reserved_quantity}</td>
@@ -891,7 +906,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     </>
                   )}
                 </td>
-                {/* New Date/Time (MYT) Column */}
+                {/* Key-in Date Column – audit date */}
                 <td>
                   {userId === 2 ? (
                     editMode[item.item_id]?.auditDate ? (
@@ -900,6 +915,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           type="datetime-local"
                           value={formatForInput(auditDates[item.item_id])}
                           onChange={(e) => handleAuditDateChange(item.item_id, e.target.value)}
+                          placeholder="Key-in Date"
                         />
                         <button className="save-button" onClick={() => handleSaveField(item.item_id, 'audit_date', auditDates[item.item_id])}>
                           Save
