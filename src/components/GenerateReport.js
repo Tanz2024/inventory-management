@@ -19,18 +19,9 @@ function formatDateTime(date) {
 /**
  * generateReportPDF
  *
- * This function creates a PDF report that contains:
- *  - A header with company information and logo.
- *  - A metadata section with report details.
- *  - For each selected item, a table of transaction logs with a running stock
- *    calculation.
- *
- *  The logs are sorted from newest to oldest, and the cumulative sum of quantity
- *  changes is used to determine the stock level prior to each transaction.
- *
- *  CHANGES:
- *    - The third column's label is now "Changed By Who",
- *      but it displays log.remarks data.
+ * - Shows a "Key-in Date" column for each log.
+ * - Skips rows where quantity_change = 0 (i.e. no quantity in/out change).
+ * - The "Changed By Who" column displays `log.remarks`.
  */
 export default function generateReportPDF(reportConfig) {
   const {
@@ -134,24 +125,33 @@ export default function generateReportPDF(reportConfig) {
 
   // ---------- PER-ITEM TABLES ----------
   selectedItems.forEach((item) => {
-    // Get logs for the item and sort in descending order (newest first)
-    const itemLogs = (logsByItemId.get(item.item_id) || []).slice();
+    // 1) Filter logs for this item and skip any log with quantity_change = 0
+    let itemLogs = logsByItemId.get(item.item_id) || [];
+    itemLogs = itemLogs.filter((log) => {
+      const qtyChange = parseInt(log.quantity_change, 10) || 0;
+      return qtyChange !== 0; // keep only logs with a nonzero quantity change
+    });
+
+    // 2) Sort the logs in descending order (newest first)
     itemLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    // Use a cumulative sum to calculate the running stock
+    // 3) Build table rows with a cumulative stock calculation
     let cumulativeChange = 0;
     const tableRows = itemLogs.map((log) => {
       const qtyChange = parseInt(log.quantity_change, 10) || 0;
       cumulativeChange += qtyChange;
+
       // Running Stock = max(item.quantity - cumulativeChange, 0)
       const runningStock = Math.max(item.quantity - cumulativeChange, 0);
 
       // Real-time log date
       const dtStr = formatDateTime(new Date(log.timestamp));
-      // Key-in date from item (fallback to log.timestamp if needed)
-      const keyInStr = formatDateTime(new Date(item.audit_date || log.timestamp));
 
-      // We use log.remarks for this new column labeled "Changed By Who"
+      // Always show Key‑in Date from log.key_in_date if available
+      const keyInDate = log.key_in_date || log.timestamp;
+      const keyInStr = formatDateTime(new Date(keyInDate));
+
+      // "Changed By Who" column uses log.remarks
       const changedByWho = log.remarks || '';
 
       // Format quantity changes
@@ -162,7 +162,7 @@ export default function generateReportPDF(reportConfig) {
       return [
         dtStr,         // Date & Time
         keyInStr,      // Key-in Date
-        changedByWho,  // Our new 3rd column labeled "Changed By Who"
+        changedByWho,  // "Changed By Who"
         quantityIn,
         quantityOut,
         String(runningStock),
@@ -170,10 +170,10 @@ export default function generateReportPDF(reportConfig) {
       ];
     });
 
-    // If no logs exist for the item, show a placeholder row
+    // If no logs remain after filtering, show a placeholder row
     if (tableRows.length === 0) {
       tableRows.push([
-        'No logs found',
+        'No quantity changes found',
         'N/A',  // Key-in Date
         'N/A',  // Changed By Who
         '',
@@ -183,18 +183,18 @@ export default function generateReportPDF(reportConfig) {
       ]);
     }
 
-    // Write item header
+    // 4) Item header
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     const headerText = `Item: ${item.item_name} (Current Stock: ${Math.max(item.quantity, 0)})`;
     doc.text(headerText, marginLeft, currentY);
     currentY += 6;
 
-    // Table header (7 columns total)
+    // 5) Table header (7 columns total)
     const headCols = [
       'Date & Time',
       'Key-in Date',
-      'Changed By Who', // new label for remarks
+      'Changed By Who',
       'Qty In',
       'Qty Out',
       'Stock',
@@ -203,43 +203,23 @@ export default function generateReportPDF(reportConfig) {
     const tableHead = [headCols];
 
     // Column styles (adjust widths as needed)
-    const columnStyles = {};
-    headCols.forEach((col, idx) => {
-      let cellWidth = 25;
-      switch (col.toLowerCase()) {
-        case 'date & time':
-          cellWidth = 38;
-          break;
-        case 'key-in date':
-          cellWidth = 38;
-          break;
-        case 'changed by who':
-          cellWidth = 35; // for remarks
-          break;
-        case 'qty in':
-          cellWidth = 20;
-          break;
-        case 'qty out':
-          cellWidth = 20;
-          break;
-        case 'stock':
-          cellWidth = 20;
-          break;
-        case 'site':
-          cellWidth = 25;
-          break;
-        default:
-          cellWidth = 25;
-      }
-      columnStyles[idx] = { halign: 'center', cellWidth };
-    });
-    const totalTableWidth = headCols.reduce(
-      (sum, _, idx) => sum + columnStyles[idx].cellWidth,
+    const columnStyles = {
+      0: { halign: 'center', cellWidth: 38 }, // Date & Time
+      1: { halign: 'center', cellWidth: 38 }, // Key-in Date
+      2: { halign: 'center', cellWidth: 35 }, // Changed By Who
+      3: { halign: 'center', cellWidth: 20 }, // Qty In
+      4: { halign: 'center', cellWidth: 20 }, // Qty Out
+      5: { halign: 'center', cellWidth: 20 }, // Stock
+      6: { halign: 'center', cellWidth: 25 }, // Site
+    };
+
+    const totalTableWidth = Object.values(columnStyles).reduce(
+      (sum, style) => sum + style.cellWidth,
       0
     );
     const startX = (pageWidth - totalTableWidth) / 2;
 
-    // Render the table
+    // 6) Render the table
     autoTable(doc, {
       startY: currentY,
       startX: startX,
@@ -264,7 +244,7 @@ export default function generateReportPDF(reportConfig) {
 
     currentY = doc.lastAutoTable.finalY + 10;
 
-    // Page break check
+    // 7) Page break check
     if (currentY > pageHeight - 40) {
       doc.addPage();
       drawHeader();

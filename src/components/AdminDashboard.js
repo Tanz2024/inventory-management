@@ -28,38 +28,55 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [uniqueIds, setUniqueIds] = useState({}); // For Unique IDs
   const [quantityValue, setQuantityValue] = useState({}); // Persisted quantity value
 
-  // New state: Audit Date represents the Key-in Date (when the admin records the change)
+  // Audit Date (Key-in Date) - only relevant for admin
   const [auditDates, setAuditDates] = useState({});
 
   const [confirmed, setConfirmed] = useState({});
   const [editMode, setEditMode] = useState({}); // Track edit mode for each field
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
 
-  // Starred state comes from the backend property "starred"
+  // Starred state from backend property "starred"
   const [starred, setStarred] = useState({});
+
+  // Predefined names for remarks dropdown (for non-admin)
+  const remarksOptions = [
+    'sarah',
+    'yap',
+    'hairi',
+    'zhul',
+    'haziq',
+    'giri',
+    'syafiqah',
+    // Add more names here if desired
+  ];
 
   // -----------------------------------------------------------------------
   // Helper Functions for Date Conversion
   // -----------------------------------------------------------------------
-  // Converts a stored UTC date string to Malaysia Time (MYT) for display.
   const convertToMYTDisplay = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
   };
 
-  // Formats a date string (stored audit_date) for the datetime-local input.
   const formatForInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Format as "YYYY-MM-DDTHH:mm" using MYT values.
-    const options = { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+    const options = {
+      timeZone: 'Asia/Kuala_Lumpur',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
     const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
-    const day = parts.find(p => p.type === 'day').value;
-    const month = parts.find(p => p.type === 'month').value;
-    const year = parts.find(p => p.type === 'year').value;
-    const hour = parts.find(p => p.type === 'hour').value;
-    const minute = parts.find(p => p.type === 'minute').value;
+    const day = parts.find((p) => p.type === 'day').value;
+    const month = parts.find((p) => p.type === 'month').value;
+    const year = parts.find((p) => p.type === 'year').value;
+    const hour = parts.find((p) => p.type === 'hour').value;
+    const minute = parts.find((p) => p.type === 'minute').value;
     return `${year}-${month}-${day}T${hour}:${minute}`;
   };
 
@@ -108,7 +125,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUnitsValues(fetchedItems);
     setQuantityValues(fetchedItems);
     setUniqueIdsValues(fetchedItems);
-    setAuditDatesValues(fetchedItems); // Initialize key-in dates
+    setAuditDatesValues(fetchedItems);
     const initStarred = fetchedItems.reduce((acc, item) => {
       acc[item.item_id] = item.starred || false;
       return acc;
@@ -125,8 +142,17 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   const setRemarksValues = (fetchedItems) => {
+    // If user is admin (userId=2), default to the existing remarks or 'admin'
+    // If user is not admin, default to item.remarks or the first dropdown value
     const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = userId === 2 ? 'admin' : item.remarks || '';
+      if (userId === 2) {
+        acc[item.item_id] = item.remarks || '';
+      } else {
+        // Non-admin default: if there's an existing remark that matches our dropdown,
+        // we use it. Otherwise default to first in the list, e.g. 'sarah'.
+        const remark = item.remarks || '';
+        acc[item.item_id] = remarksOptions.includes(remark) ? remark : remarksOptions[0];
+      }
       return acc;
     }, {});
     setRemarks(initial);
@@ -172,10 +198,8 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUniqueIds(initial);
   };
 
-  // Here, we initialize audit dates directly from the fetched items.
   const setAuditDatesValues = (fetchedItems) => {
     const initial = fetchedItems.reduce((acc, item) => {
-      // The backend sends audit_date as an ISO string (UTC), and we display it in MYT.
       acc[item.item_id] = item.audit_date || '';
       return acc;
     }, {});
@@ -286,6 +310,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   const handlePriceChange = (itemId, newPrice) => {
+    // Only admin can update price
     if (userId !== 2) return;
     if (isNaN(newPrice)) return;
     setPrices((prev) => ({ ...prev, [itemId]: newPrice }));
@@ -304,11 +329,11 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUniqueIds((prev) => ({ ...prev, [itemId]: newUniqueId }));
   };
 
-  // New: Handle audit date (key-in date) changes.
-  // The date is converted to ISO format (UTC) by the frontend.
   const handleAuditDateChange = (itemId, newDate) => {
+    // Admin only
+    if (userId !== 2) return;
     if (!newDate) return;
-    const localDate = new Date(newDate); // local time from input
+    const localDate = new Date(newDate);
     const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
     setAuditDates((prev) => ({ ...prev, [itemId]: utcDate.toISOString() }));
   };
@@ -322,19 +347,20 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         unit: false,
         quantity: false,
         uniqueId: false,
-        auditDate: false, // for key-in date editing
+        auditDate: false
       };
       return { ...prev, [itemId]: { ...current, [field]: !current[field] } };
     });
   };
 
   const handleSaveField = async (itemId, field, value) => {
+    // Special check for unique_id duplication
     if (field === 'item_unique_id') {
       const duplicate = items.find(
         (it) => it.item_id !== itemId && it.item_unique_id === value
       );
       if (duplicate) {
-        alert("Error: Duplicate Unique ID detected. Please use a different Unique ID.");
+        alert('Error: Duplicate Unique ID detected. Please use a different Unique ID.');
         return;
       }
     }
@@ -392,9 +418,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   const handleSaveQuantity = async (itemId) => {
+    if (userId !== 2) return; // only admin can direct-edit quantity
     const newQty = parseInt(quantityValue[itemId], 10);
     if (isNaN(newQty)) {
-      alert("Invalid quantity value.");
+      alert('Invalid quantity value.');
       return;
     }
     const payload = { newQuantity: newQty };
@@ -424,10 +451,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       );
       setQuantityValue((prev) => ({ ...prev, [itemId]: result.item.quantity }));
       toggleEditMode(itemId, 'quantity');
-      alert("Quantity updated successfully.");
+      alert('Quantity updated successfully.');
     } catch (err) {
-      console.error("Error updating quantity:", err);
-      alert("An error occurred while updating the quantity.");
+      console.error('Error updating quantity:', err);
+      alert('An error occurred while updating the quantity.');
     }
   };
 
@@ -451,8 +478,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       remarks: updatedRemarks,
       quantityChange,
       site_name: updatedSiteName,
-      unit: updatedUnit,
+      unit: updatedUnit
     };
+    // Only admin can set price
     if (userId === 2 && submittedPrice !== null) {
       payload.price = submittedPrice;
     }
@@ -503,7 +531,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       const quantityChangeRaw = inputValue[itemId] || 0;
       const quantityChange = parseInt(quantityChangeRaw, 10);
       const updatedRemarks = remarks[itemId] || '';
-      const submittedPrice = prices[itemId] ? parseFloat(prices[item.item_id]) : null;
+      const submittedPrice = prices[item.item_id] ? parseFloat(prices[item.item_id]) : null;
       const updatedSiteName = siteNames[itemId] || '';
       const updatedUnit = units[itemId] !== undefined ? units[itemId] : '';
       if (
@@ -519,7 +547,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         remarks: updatedRemarks,
         quantityChange,
         site_name: updatedSiteName,
-        unit: updatedUnit,
+        unit: updatedUnit
       };
       if (userId === 2 && submittedPrice !== null) {
         payload.price = submittedPrice;
@@ -600,7 +628,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // -----------------------------------------------------------------------
   // Highlight Matching Search Text
   // -----------------------------------------------------------------------
-  const highlightText = (text, query) => {
+  const highlightSearchText = (text, query) => {
     if (!query) return text;
     const regex = new RegExp(`(${query})`, 'gi');
     return text.split(regex).map((part, index) =>
@@ -631,19 +659,24 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setItems((prev) => [...prev, newItem]);
     setRemarks((prev) => ({
       ...prev,
-      [newItem.item_id]: userId === 2 ? 'admin' : newItem.remarks || '',
+      [newItem.item_id]:
+        userId === 2
+          ? newItem.remarks || ''
+          : remarksOptions.includes(newItem.remarks)
+            ? newItem.remarks
+            : remarksOptions[0]
     }));
     setQuantityValue((prev) => ({
       ...prev,
-      [newItem.item_id]: newItem.quantity,
+      [newItem.item_id]: newItem.quantity
     }));
     setUniqueIds((prev) => ({
       ...prev,
-      [newItem.item_id]: newItem.item_unique_id || '',
+      [newItem.item_id]: newItem.item_unique_id || ''
     }));
     setAuditDates((prev) => ({
       ...prev,
-      [newItem.item_id]: newItem.audit_date || '',
+      [newItem.item_id]: newItem.audit_date || ''
     }));
     setStarred((prev) => ({ ...prev, [newItem.item_id]: newItem.starred || false }));
   };
@@ -655,18 +688,15 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
     const numericIds = selectedItemIds.map((id) => Number(id));
     try {
-      const response = await fetch(
-        'http://localhost:5000/admin-dashboard/items/archive',
-        {
-          method: 'PATCH',
-          headers: {
-            'ngrok-skip-browser-warning': '1',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify({ itemIds: numericIds })
-        }
-      );
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
+        method: 'PATCH',
+        headers: {
+          'ngrok-skip-browser-warning': '1',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ itemIds: numericIds })
+      });
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to archive items:', errorText);
@@ -748,8 +778,8 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
               <th>Unit</th>
               <th>Price</th>
               <th>Remarks</th>
-              {/* "Key-in Date" column */}
-              <th>Key-in Date</th>
+              {/* Show Key-in Date column ONLY for admin */}
+              {userId === 2 && <th>Key-in Date</th>}
               <th>Quantity Changed</th>
               <th>Confirmation</th>
             </tr>
@@ -763,9 +793,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     <FaStar className="star-icon" color={starred[item.item_id] ? '#f1c40f' : '#ccc'} />
                   </button>
                 </td>
-                <td>{highlightText(item.category, debouncedSearchQuery)}</td>
-                <td>{highlightText(item.item_name, debouncedSearchQuery)}</td>
-                <td>{item.model ? highlightText(item.model, debouncedSearchQuery) : ''}</td>
+                <td>{highlightSearchText(item.category, debouncedSearchQuery)}</td>
+                <td>{highlightSearchText(item.item_name, debouncedSearchQuery)}</td>
+                <td>{item.model ? highlightSearchText(item.model, debouncedSearchQuery) : ''}</td>
                 <td>
                   {userId === 2 ? (
                     editMode[item.item_id]?.uniqueId ? (
@@ -777,7 +807,16 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           placeholder="Unique ID"
                           className="unique-id-input"
                         />
-                        <button className="save-button" onClick={() => handleSaveField(item.item_id, 'item_unique_id', uniqueIds[item.item_id])}>
+                        <button
+                          className="save-button"
+                          onClick={() =>
+                            handleSaveField(
+                              item.item_id,
+                              'item_unique_id',
+                              uniqueIds[item.item_id]
+                            )
+                          }
+                        >
                           Save
                         </button>
                       </>
@@ -799,10 +838,15 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           type="number"
                           value={quantityValue[item.item_id] || 0}
                           onChange={(e) =>
-                            setQuantityValue((prev) => ({ ...prev, [item.item_id]: e.target.value }))
+                            setQuantityValue((prev) => ({
+                              ...prev,
+                              [item.item_id]: e.target.value
+                            }))
                           }
                         />
-                        <button className="save-button" onClick={() => handleSaveQuantity(item.item_id)}>Save</button>
+                        <button className="save-button" onClick={() => handleSaveQuantity(item.item_id)}>
+                          Save
+                        </button>
                       </>
                     ) : (
                       <>
@@ -826,7 +870,14 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                         placeholder="Site Name"
                         className="site-name-input"
                       />
-                      <button className="save-button" onClick={() => handleSaveField(item.item_id, 'site_name', siteNames[item.item_id])}>Save</button>
+                      <button
+                        className="save-button"
+                        onClick={() =>
+                          handleSaveField(item.item_id, 'site_name', siteNames[item.item_id])
+                        }
+                      >
+                        Save
+                      </button>
                     </>
                   ) : (
                     <>
@@ -846,7 +897,14 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           placeholder="Unit"
                           className="unit-input"
                         />
-                        <button className="save-button" onClick={() => handleSaveField(item.item_id, 'unit', units[item.item_id])}>Save</button>
+                        <button
+                          className="save-button"
+                          onClick={() =>
+                            handleSaveField(item.item_id, 'unit', units[item.item_id])
+                          }
+                        >
+                          Save
+                        </button>
                       </>
                     ) : (
                       <>
@@ -864,7 +922,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                       <>
                         <input
                           type="text"
-                          value={prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                          value={
+                            prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''
+                          }
                           onChange={(e) => {
                             let val = e.target.value;
                             if (val.toUpperCase().startsWith('RM ')) {
@@ -875,41 +935,77 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           }}
                           className="price-input"
                         />
-                        <button className="save-button" onClick={() => handleSaveField(item.item_id, 'price', prices[item.item_id])}>Save</button>
+                        <button
+                          className="save-button"
+                          onClick={() => handleSaveField(item.item_id, 'price', prices[item.item_id])}
+                        >
+                          Save
+                        </button>
                       </>
                     ) : (
                       <>
-                        <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
+                        <span>
+                          {prices[item.item_id] !== undefined
+                            ? `RM ${prices[item.item_id]}`
+                            : ''}
+                        </span>
                         <button onClick={() => toggleEditMode(item.item_id, 'price')}>Edit</button>
                       </>
                     )
                   ) : (
-                    <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
+                    <span>
+                      {prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                    </span>
                   )}
                 </td>
                 <td>
-                  {editMode[item.item_id]?.remarks ? (
-                    <>
-                      <input
-                        type="text"
-                        value={remarks[item.item_id] || ''}
-                        onChange={(e) => handleRemarksChange(item.item_id, e.target.value)}
-                        placeholder="Remarks"
-                        className="remarks-input"
-                      />
-                      <button className="save-button" onClick={() => handleSaveField(item.item_id, 'remarks', remarks[item.item_id])}>Save</button>
-                    </>
-                  ) : (
-                    <>
-                      <span>{remarks[item.item_id] || ''}</span>
-                      <button onClick={() => toggleEditMode(item.item_id, 'remarks')}>Edit</button>
-                    </>
-                  )}
-                </td>
-                {/* Key-in Date Column – audit date */}
-                <td>
+                  {/* For remarks:
+                      - Admin => old "Edit" text input
+                      - Non-admin => a dropdown with remarksOptions
+                  */}
                   {userId === 2 ? (
-                    editMode[item.item_id]?.auditDate ? (
+                    editMode[item.item_id]?.remarks ? (
+                      <>
+                        <input
+                          type="text"
+                          value={remarks[item.item_id] || ''}
+                          onChange={(e) => handleRemarksChange(item.item_id, e.target.value)}
+                          placeholder="Remarks"
+                          className="remarks-input"
+                        />
+                        <button
+                          className="save-button"
+                          onClick={() =>
+                            handleSaveField(item.item_id, 'remarks', remarks[item.item_id])
+                          }
+                        >
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span>{remarks[item.item_id] || ''}</span>
+                        <button onClick={() => toggleEditMode(item.item_id, 'remarks')}>Edit</button>
+                      </>
+                    )
+                  ) : (
+                    // Non-admin => show dropdown
+                    <select
+                      value={remarks[item.item_id]}
+                      onChange={(e) => handleRemarksChange(item.item_id, e.target.value)}
+                    >
+                      {remarksOptions.map((opt) => (
+                        <option value={opt} key={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </td>
+                {/* Key-in Date column is shown only for admin */}
+                {userId === 2 && (
+                  <td>
+                    {editMode[item.item_id]?.auditDate ? (
                       <>
                         <input
                           type="datetime-local"
@@ -917,34 +1013,55 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           onChange={(e) => handleAuditDateChange(item.item_id, e.target.value)}
                           placeholder="Key-in Date"
                         />
-                        <button className="save-button" onClick={() => handleSaveField(item.item_id, 'audit_date', auditDates[item.item_id])}>
+                        <button
+                          className="save-button"
+                          onClick={() =>
+                            handleSaveField(item.item_id, 'audit_date', auditDates[item.item_id])
+                          }
+                        >
                           Save
                         </button>
                       </>
                     ) : (
                       <>
                         <span>{convertToMYTDisplay(auditDates[item.item_id])}</span>
-                        <button onClick={() => toggleEditMode(item.item_id, 'auditDate')}>Edit</button>
+                        <button onClick={() => toggleEditMode(item.item_id, 'auditDate')}>
+                          Edit
+                        </button>
                       </>
-                    )
-                  ) : (
-                    <span>{convertToMYTDisplay(auditDates[item.item_id])}</span>
-                  )}
-                </td>
+                    )}
+                  </td>
+                )}
                 <td>
                   <div className="stepper-container">
-                    <button type="button" className="stepper-btn decrement" onClick={() => handleQuantityDecrement(item.item_id)}>-</button>
+                    <button
+                      type="button"
+                      className="stepper-btn decrement"
+                      onClick={() => handleQuantityDecrement(item.item_id)}
+                    >
+                      -
+                    </button>
                     <input
                       type="number"
                       className="stepper-input"
                       value={inputValue[item.item_id] || 0}
-                      onChange={(e) => handleInputChange(item.item_id, parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        handleInputChange(item.item_id, parseInt(e.target.value) || 0)
+                      }
                     />
-                    <button type="button" className="stepper-btn increment" onClick={() => handleQuantityIncrement(item.item_id)}>+</button>
+                    <button
+                      type="button"
+                      className="stepper-btn increment"
+                      onClick={() => handleQuantityIncrement(item.item_id)}
+                    >
+                      +
+                    </button>
                   </div>
                 </td>
                 <td>
-                  <button className="confirmButton" onClick={() => handleConfirm(item.item_id)}>Confirm</button>
+                  <button className="confirmButton" onClick={() => handleConfirm(item.item_id)}>
+                    Confirm
+                  </button>
                 </td>
               </tr>
             ))}
@@ -953,7 +1070,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       </div>
 
       <div className="bulk-actions">
-        <button className="confirm-all-button" onClick={handleConfirmAll}>Confirm All Updates</button>
+        <button className="confirm-all-button" onClick={handleConfirmAll}>
+          Confirm All Updates
+        </button>
       </div>
     </div>
   );

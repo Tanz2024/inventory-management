@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import generateReportPDF from './GenerateReport';
 import './ReportView.css';
 
-/**
- * Splits text by occurrences of searchTerm (case-insensitive) and wraps matches in a span with class "highlight".
- */
+/* ------------------ Utility Functions ------------------ */
 function highlightText(text = '', searchTerm = '') {
   if (!searchTerm) return text;
   const regex = new RegExp(`(${searchTerm})`, 'gi');
@@ -20,34 +18,23 @@ function highlightText(text = '', searchTerm = '') {
   );
 }
 
-/**
- * Wraps content with a highlight span if condition is true.
- */
 function maybeHighlight(content, condition) {
   return condition ? <span className="highlight">{content}</span> : content;
 }
 
-/**
- * Converts a date string to a localized Malaysian time display.
- */
 function convertToMYTDisplay(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
 }
 
-/**
- * Formats a date string into YYYY-MM-DD format in local time.
- */
 function formatLocalDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-CA');
 }
 
-/**
- * FilterForm Component – Renders the filters and search fields.
- */
+/* ------------------ FilterForm Component ------------------ */
 function FilterForm({
   adminName,
   setAdminName,
@@ -257,10 +244,7 @@ function FilterForm({
   );
 }
 
-/**
- * ItemLogs Component – Displays a collapsible logs table for an item,
- * allowing sorting by each column.
- */
+/* ------------------ ItemLogs Component ------------------ */
 function ItemLogs({
   item,
   logs,
@@ -289,6 +273,7 @@ function ItemLogs({
     });
   };
 
+  // 1) Filter to logs for this item, then sort
   const sortedLogs = useMemo(() => {
     const filtered = logs.filter((log) => log.item_id === item.item_id);
     const sorted = filtered.sort((a, b) => {
@@ -323,6 +308,7 @@ function ItemLogs({
           bValue = (b.remarks || '').toLowerCase();
           break;
         default:
+          // default sort by timestamp
           aValue = new Date(a.timestamp).getTime();
           bValue = new Date(b.timestamp).getTime();
           break;
@@ -332,15 +318,40 @@ function ItemLogs({
       return 0;
     });
     return sorted;
-  }, [logs, item.item_id, sortConfig]);
+  }, [logs, item.item_id, sortConfig, item.audit_date]);
 
-  // Compute running stock cumulatively in the sorted order.
+  // 2) Compute running stock cumulatively
   let cumulativeChange = 0;
   const logsWithStock = sortedLogs.map((log) => {
     const qtyChange = parseInt(log.quantity_change, 10) || 0;
     cumulativeChange += qtyChange;
-    return { ...log, runningStock: Math.max(item.quantity - cumulativeChange, 0) };
+    return {
+      ...log,
+      runningStock: Math.max(item.quantity - cumulativeChange, 0),
+    };
   });
+
+  // 3) Utility for highlight
+  function highlightText(text = '', searchTerm = '') {
+    if (!searchTerm) return text;
+    const regex = new RegExp(`(${searchTerm})`, 'gi');
+    return text.split(regex).map((part, idx) =>
+      regex.test(part) ? (
+        <span key={idx} className="highlight">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  }
+
+  // 4) Convert date for display
+  function convertToMYTDisplay(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
+  }
 
   return (
     <div className="item-card">
@@ -352,18 +363,22 @@ function ItemLogs({
           {collapsed ? 'Show Logs' : 'Hide Logs'}
         </button>
       </div>
+
       {!collapsed && (
         <table className="item-logs-table">
           <thead>
             <tr>
               <th onClick={() => handleSortToggle('timestamp')}>
-                Date &amp; Time {sortConfig.column === 'timestamp' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                Date &amp; Time{' '}
+                {sortConfig.column === 'timestamp' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('audit_date')}>
-                Key‑in Date {sortConfig.column === 'audit_date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                Key‑in Date{' '}
+                {sortConfig.column === 'audit_date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('updated_by')}>
-                Changed By {sortConfig.column === 'updated_by' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                Changed By{' '}
+                {sortConfig.column === 'updated_by' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('qty_in')}>
                 Qty In {sortConfig.column === 'qty_in' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
@@ -389,10 +404,21 @@ function ItemLogs({
               </tr>
             ) : (
               logsWithStock.map((log, idx) => {
+                // 1) Basic info
                 const qtyChange = parseInt(log.quantity_change, 10) || 0;
                 const logDate = new Date(log.timestamp);
                 const logDateStr = logDate.toLocaleString();
-                // Determine if the log's date is within the provided log date range.
+
+                // 2) Check if key‑in date changed
+                const dateChanged =
+                  log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
+
+                // 3) Skip rows that have NEITHER quantity change nor date change
+                if (qtyChange === 0 && !dateChanged) {
+                  return null;
+                }
+
+                // 4) Check if within start/end date range
                 let showLog = true;
                 if (startDate) {
                   const startISO = new Date(startDate).toLocaleDateString('en-CA');
@@ -406,37 +432,50 @@ function ItemLogs({
                 }
                 if (!showLog) return null;
 
+                // 5) Highlight fields if they match searches
                 const changedByHighlighted = highlightText(log.updated_by || '', changedBySearch);
                 const siteHighlighted = highlightText(log.site_name || '', siteSearch);
                 const remarksHighlighted = highlightText(log.remarks || '', remarksSearch);
 
-                // For key‑in date cell, highlight and append tick if the item's audit_date (YYYY‑MM‑DD) matches keyInDate.
-                let auditDateDisplay = convertToMYTDisplay(item.audit_date);
-                if (keyInDate && item.audit_date) {
-                  const auditLocal = formatLocalDate(item.audit_date);
-                  const isMatch = auditLocal === keyInDate;
-                  auditDateDisplay = maybeHighlight(auditDateDisplay, isMatch);
-                  if (isMatch) {
-                    auditDateDisplay = (
-                      <span>
-                        {auditDateDisplay} <span className="tick-mark">✔</span>
-                      </span>
-                    );
-                  }
+                // 6) If both quantity and date changed, render the "old/new" row pattern
+                if (qtyChange !== 0 && dateChanged) {
+                  return (
+                    <React.Fragment key={idx}>
+                      <tr className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}>
+                        <td>{logDateStr}</td>
+                        <td>{convertToMYTDisplay(log.key_in_date_old)}</td>
+                        <td>{changedByHighlighted}</td>
+                        <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
+                        <td>{qtyChange < 0 ? qtyChange : ''}</td>
+                        <td>{log.runningStock}</td>
+                        <td>{siteHighlighted}</td>
+                        <td>{remarksHighlighted}</td>
+                      </tr>
+                      <tr className="sub-row" key={`${idx}-new`}>
+                        <td colSpan="8">
+                          New Key‑in Date: {convertToMYTDisplay(log.key_in_date)}
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                } else {
+                  // 7) Single row otherwise
+                  return (
+                    <tr
+                      key={idx}
+                      className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}
+                    >
+                      <td>{logDateStr}</td>
+                      <td>{convertToMYTDisplay(log.key_in_date)}</td>
+                      <td>{changedByHighlighted}</td>
+                      <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
+                      <td>{qtyChange < 0 ? qtyChange : ''}</td>
+                      <td>{log.runningStock}</td>
+                      <td>{siteHighlighted}</td>
+                      <td>{remarksHighlighted}</td>
+                    </tr>
+                  );
                 }
-
-                return (
-                  <tr key={idx} className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}>
-                    <td>{logDateStr}</td>
-                    <td>{auditDateDisplay}</td>
-                    <td>{changedByHighlighted}</td>
-                    <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
-                    <td>{qtyChange < 0 ? qtyChange : ''}</td>
-                    <td>{log.runningStock}</td>
-                    <td>{siteHighlighted}</td>
-                    <td>{remarksHighlighted}</td>
-                  </tr>
-                );
               })
             )}
           </tbody>
@@ -446,10 +485,7 @@ function ItemLogs({
   );
 }
 
-/**
- * ReportView Component – Main component that manages state, data fetching,
- * filtering and PDF export.
- */
+/* ------------------ ReportView Component ------------------ */
 export default function ReportView() {
   const navigate = useNavigate();
 
@@ -480,7 +516,6 @@ export default function ReportView() {
   const [loadingItems, setLoadingItems] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
-  // ------------------ Lifecycle ------------------
   useEffect(() => {
     fetchItems();
   }, []);
@@ -495,7 +530,7 @@ export default function ReportView() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
+          'ngrok-skip-browser-warning': '1',
         },
       });
       if (!response.ok) throw new Error('Failed to fetch items');
@@ -519,8 +554,8 @@ export default function ReportView() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        }
+          'ngrok-skip-browser-warning': '1',
+        },
       });
       if (!response.ok) throw new Error('Failed to fetch logs');
       const data = await response.json();
@@ -535,8 +570,6 @@ export default function ReportView() {
   };
 
   // 3) Filter Logs Based on Form Inputs.
-  //    - Log date range: only logs with timestamps between start and end dates are kept.
-  //    - Key‑in date: if provided, only logs whose corresponding item's audit_date matches the key‑in date are kept.
   const handleFetchLogs = async () => {
     const allLogs = await fetchLogsRaw();
     if (!allLogs.length && !error) {
@@ -556,7 +589,6 @@ export default function ReportView() {
       if (endObj) endObj.setHours(23, 59, 59, 999);
     }
 
-    // Filter items by location if needed.
     let workingItems = [...items];
     if (filterByLocation && location) {
       const locLower = location.toLowerCase();
@@ -566,9 +598,7 @@ export default function ReportView() {
     }
 
     const itemIdsToInclude =
-      reportType === 'all'
-        ? workingItems.map((it) => it.item_id)
-        : selectedItems;
+      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
 
     const filteredLogs = allLogs.filter((log) => {
       const logDate = new Date(log.timestamp);
@@ -576,7 +606,6 @@ export default function ReportView() {
         (!startObj || logDate >= startObj) && (!endObj || logDate <= endObj);
       const inSelectedItems = itemIdsToInclude.includes(log.item_id);
 
-      // Check location filter based on the item.
       let matchesLocation = true;
       if (filterByLocation && location) {
         const logItem = items.find((i) => i.item_id === log.item_id);
@@ -586,7 +615,6 @@ export default function ReportView() {
           logItem.location.toLowerCase() === location.toLowerCase();
       }
 
-      // Key‑in date filter: if provided, only include logs whose corresponding item's audit_date matches.
       let matchesKeyInDate = true;
       if (keyInDate) {
         const logItem = items.find((i) => i.item_id === log.item_id);
@@ -644,9 +672,13 @@ export default function ReportView() {
       );
     }
     const finalSelectedIds =
-      reportType === 'all'
-        ? workingItems.map((it) => it.item_id)
-        : selectedItems;
+      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
+
+    // Determine if any log has BOTH a quantity change and a key‑in date change
+    const showKeyInDateColumn = logs.some((log) => {
+      const qtyChange = parseInt(log.quantity_change, 10) || 0;
+      return qtyChange !== 0 && log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
+    });
 
     const config = {
       adminName,
@@ -662,17 +694,18 @@ export default function ReportView() {
       locationFilter: filterByLocation ? location.toLowerCase() : null,
       showLocation: filterByLocation,
       showSite: false,
+      showKeyInDate: showKeyInDateColumn, // Only show key‑in date column if there's a combined change
     };
 
     generateReportPDF(config);
   };
 
-  // 5) Navigate Back.
+  // 5) Navigate Back
   const handleBack = () => {
     navigate('/admin-dashboard');
   };
 
-  // Clear all filter fields.
+  // Clear all filter fields
   const handleClearAllFields = () => {
     setAdminName('');
     setRecipientName('');
@@ -689,7 +722,7 @@ export default function ReportView() {
     setLogs([]);
   };
 
-  // ------------------ Derived Data ------------------
+  // Compute unique locations for the filter dropdown
   const uniqueLocations = useMemo(() => {
     return Array.from(
       new Set(
@@ -701,6 +734,7 @@ export default function ReportView() {
     ).sort();
   }, [items]);
 
+  // Filter items by location (if needed)
   const filteredItems = useMemo(() => {
     return filterByLocation && location
       ? items.filter(
@@ -709,6 +743,7 @@ export default function ReportView() {
       : items;
   }, [items, filterByLocation, location]);
 
+  // If "specific" report, only show selected items
   const displayItems = useMemo(() => {
     return reportType === 'specific'
       ? filteredItems.filter((it) => selectedItems.includes(it.item_id))
@@ -717,7 +752,6 @@ export default function ReportView() {
 
   return (
     <div className="report-container">
-      {/* Header */}
       <div className="report-header">
         <button className="back-button" onClick={handleBack}>
           ←
@@ -727,12 +761,10 @@ export default function ReportView() {
 
       {error && <div className="error-message">{error}</div>}
 
-      {/* Toggle Filters */}
       <button className="toggle-filters-button" onClick={() => setShowFilters((prev) => !prev)}>
         {showFilters ? 'Hide Filters' : 'Show Filters'}
       </button>
 
-      {/* Filters Form */}
       {showFilters && (
         <FilterForm
           adminName={adminName}
@@ -766,18 +798,15 @@ export default function ReportView() {
         />
       )}
 
-      {/* Global Collapse/Expand Button */}
       <div className="global-collapse-container">
         <button className="collapse-button" onClick={() => setGlobalCollapse((prev) => !prev)}>
           {globalCollapse ? 'Expand All Logs' : 'Collapse All Logs'}
         </button>
       </div>
 
-      {/* Loading Indicators */}
       {loadingItems && <p>Loading items...</p>}
       {loadingLogs && <p>Loading logs...</p>}
 
-      {/* Logs Display */}
       <div className="items-section">
         {displayItems.map((item) => (
           <ItemLogs
@@ -795,7 +824,6 @@ export default function ReportView() {
         ))}
       </div>
 
-      {/* Export PDF */}
       <div className="export-section">
         <button className="export-button" onClick={handleExportPDF}>
           Export PDF

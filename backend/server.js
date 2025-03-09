@@ -179,6 +179,8 @@ app.post('/logout', (req, res) => {
 // 8) Admin Dashboard / Inventory Endpoints
 // ---------------------------------------------------------------------
 
+
+
 // 8.1) GET Non-Archived Items
 app.get(
   '/admin-dashboard/items',
@@ -628,7 +630,6 @@ app.delete(
     });
   })
 );
-// Helper function to format a date string in MYT
 const formatMYT = (dateStr) => {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
@@ -646,10 +647,8 @@ app.patch(
       site_name,
       unit,
       item_unique_id,
-      audit_date,
-      starred,
-      confirm,       // flag to confirm update
-      confirmAll     // alternative confirmation flag
+      audit_date, // manually set key‑in date from the frontend
+      starred
     } = req.body;
 
     // Only admins can update the price.
@@ -686,13 +685,13 @@ app.patch(
     let updatedPrice = currentItem.price;
     const updatedSiteName = req.body.hasOwnProperty('site_name') ? site_name : currentItem.site_name;
     const updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
+    // Use the manually provided audit_date as the key‑in date.
     let updatedAuditDate = currentItem.audit_date;
     let isAuditDateUpdated = false;
     if (req.body.hasOwnProperty('audit_date') && audit_date !== currentItem.audit_date) {
       updatedAuditDate = audit_date;
       isAuditDateUpdated = true;
     }
-
     let updatedStarred = currentItem.starred;
     let isStarredUpdated = false;
     if (req.body.hasOwnProperty('starred') && starred !== currentItem.starred) {
@@ -765,9 +764,7 @@ app.patch(
     // Process remarks update.
     if (req.body.hasOwnProperty('remarks') && remarks !== currentItem.remarks) {
       isRemarksUpdated = true;
-      changeLogs.push(
-        `Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`
-      );
+      changeLogs.push(`Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`);
     }
 
     // Process unit update.
@@ -806,29 +803,58 @@ app.patch(
       return res.json({ message: 'No changes detected.', item: currentItem });
     }
 
-    // Build a change summary.
-    let changeSummary = '';
-    if (changeLogs.length === 1) {
-      changeSummary = `Single change detected: ${changeLogs[0]}.`;
-    } else {
-      changeSummary = `Multiple changes detected: ${changeLogs.join('. ')}.`;
-    }
-    // Append the key in date if quantity was updated.
+    // Build change summary.
+    // Only include the key‑in date change if both quantity and audit date have changed.
+    let changeSummary = changeLogs.join('. ');
     if (isQuantityUpdated) {
-      changeSummary += ` (key in date: ${formatMYT(updatedAuditDate)})`;
-    }
-    console.log(`INFO: Item ${itemId} - ${changeSummary}`);
-
-    // If confirmation flags are not provided, return the change summary and logs without saving.
-    if (!confirm && !confirmAll) {
-      return res.json({
-        message: 'Changes detected. Please confirm to apply changes.',
-        changeSummary,
-        changeLogs
-      });
+      if (isAuditDateUpdated) {
+        changeSummary += ` (site: ${updatedSiteName}; key in date updated from ${formatMYT(currentItem.audit_date)} to ${formatMYT(updatedAuditDate)}`;
+      } else {
+        changeSummary += ` (site: ${updatedSiteName}`;
+      }
+      if (remarks) {
+        changeSummary += `; remarks: ${remarks}`;
+      }
+      changeSummary += `)`;
     }
 
-    // If confirmed, proceed with updating the item record.
+    // Determine transaction type.
+    const changesCount = [
+      isQuantityUpdated,
+      isPriceUpdated,
+      isSiteUpdated,
+      isRemarksUpdated,
+      isUnitUpdated,
+      isUniqueIdUpdated,
+      isAuditDateUpdated,
+      isStarredUpdated
+    ].filter(Boolean).length;
+    let transactionType;
+    if (changesCount > 1) {
+      transactionType = 'Combined Update';
+    } else if (isQuantityUpdated) {
+      transactionType = req.body.hasOwnProperty('newQuantity')
+        ? 'Quantity Value Update'
+        : (parseInt(quantityChange, 10) > 0 ? 'Add' : 'Subtract');
+    } else if (isPriceUpdated) {
+      transactionType = 'Price Update';
+    } else if (isSiteUpdated) {
+      transactionType = 'Site Update';
+    } else if (isRemarksUpdated) {
+      transactionType = 'Remarks Update';
+    } else if (isUnitUpdated) {
+      transactionType = 'Unit Update';
+    } else if (isUniqueIdUpdated) {
+      transactionType = 'Unique ID Update';
+    } else if (isAuditDateUpdated) {
+      transactionType = 'Audit Date Update';
+    } else if (isStarredUpdated) {
+      transactionType = 'Starred Update';
+    } else {
+      transactionType = 'Inventory Update';
+    }
+
+    // Update the item record.
     const updateQuery = `
       UPDATE items
       SET
@@ -857,55 +883,50 @@ app.patch(
     ]);
     const updatedItem = updatedRows[0];
 
-    // Insert a record into inventory_transactions.
-    await pool.query(
-      `
+    // Handle inventory transaction logging.
+    // Only record the old key_in_date if both quantity and audit date have been updated.
+    if (isQuantityUpdated) {
+      const keyInDateOldValue = isAuditDateUpdated ? currentItem.audit_date : null;
+      await pool.query(`
         INSERT INTO inventory_transactions
-          (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, unit, change_summary)
+          (item_id, user_id, transaction_type, quantity_change, timestamp, key_in_date, key_in_date_old, remarks, status, price_update, site_name, unit, change_summary)
         VALUES
-          ($1, $2, $3, $4, NOW(), $5, 'Approved', $6, $7, $8, $9)
+          ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
       `,
       [
         itemId,
         req.user.user_id,
-        (() => {
-          const changesCount = [
-            isQuantityUpdated,
-            isPriceUpdated,
-            isSiteUpdated,
-            isRemarksUpdated,
-            isUnitUpdated,
-            isUniqueIdUpdated,
-            isAuditDateUpdated,
-            isStarredUpdated
-          ].filter(Boolean).length;
-          if (changesCount > 1) return 'Combined Update';
-          if (isQuantityUpdated) {
-            return req.body.hasOwnProperty('newQuantity')
-              ? 'Quantity Value Update'
-              : (parseInt(quantityChange, 10) > 0 ? 'Add' : 'Subtract');
-          }
-          if (isPriceUpdated) return 'Price Update';
-          if (isSiteUpdated) return 'Site Update';
-          if (isRemarksUpdated) return 'Remarks Update';
-          if (isUnitUpdated) return 'Unit Update';
-          if (isUniqueIdUpdated) return 'Unique ID Update';
-          if (isAuditDateUpdated) return 'Audit Date Update';
-          if (isStarredUpdated) return 'Starred Update';
-          return 'Inventory Update';
-        })(),
-        isQuantityUpdated
-          ? req.body.hasOwnProperty('newQuantity')
-            ? Math.abs(parseInt(newQuantity, 10))
-            : Math.abs(parseInt(quantityChange, 10))
-          : 0,
+        transactionType,
+        req.body.hasOwnProperty('newQuantity')
+          ? newQuantity - currentItem.quantity
+          : parseInt(quantityChange, 10),
+        updatedAuditDate,       // New key_in_date (updated value)
+        keyInDateOldValue,      // Old key_in_date only if audit date changed; otherwise null
         req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
         isPriceUpdated ? updatedPrice : null,
         updatedSiteName,
         updatedUnit,
         changeSummary
-      ]
-    );
+      ]);
+    } else {
+      // Handle updates that do not involve a quantity change.
+      await pool.query(`
+        INSERT INTO inventory_transactions
+          (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, unit, change_summary)
+        VALUES
+          ($1, $2, $3, 0, NOW(), $4, 'Approved', $5, $6, $7, $8)
+      `,
+      [
+        itemId,
+        req.user.user_id,
+        transactionType,
+        req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
+        isPriceUpdated ? updatedPrice : null,
+        updatedSiteName,
+        updatedUnit,
+        changeSummary
+      ]);
+    }
 
     return res.json({
       message: 'Item updated successfully.',
@@ -914,295 +935,6 @@ app.patch(
     });
   })
 );
-
-// app.patch(
-//   '/admin-dashboard/items/:itemId/update',
-//   authenticateJWT,
-//   asyncHandler(async (req, res) => {
-//     const { itemId } = req.params;
-//     const {
-//       price,
-//       remarks,
-//       quantityChange,
-//       newQuantity,
-//       site_name,
-//       unit,
-//       item_unique_id,
-//       audit_date,
-//       starred
-//     } = req.body;
-
-//     // Only admins can update the price.
-//     if (req.body.hasOwnProperty('price') && price !== undefined && req.user.role_id !== 1) {
-//       return res.status(400).json({ message: 'Non-admin users cannot update price.' });
-//     }
-
-//     // Fetch current item.
-//     const { rows: itemRows } = await pool.query('SELECT * FROM items WHERE item_id = $1', [itemId]);
-//     if (itemRows.length === 0) {
-//       return res.status(404).json({ message: 'Item not found.' });
-//     }
-//     const currentItem = itemRows[0];
-
-//     // --- Unique ID Update ---
-//     let updatedUniqueId = currentItem.item_unique_id;
-//     let isUniqueIdUpdated = false;
-//     if (req.body.hasOwnProperty('item_unique_id')) {
-//       if (item_unique_id !== currentItem.item_unique_id) {
-//         const { rows: duplicateRows } = await pool.query(
-//           'SELECT * FROM items WHERE item_unique_id = $1 AND item_id <> $2',
-//           [item_unique_id, itemId]
-//         );
-//         if (duplicateRows.length > 0) {
-//           return res.status(400).json({ message: 'Duplicate Unique ID detected.' });
-//         }
-//         updatedUniqueId = item_unique_id;
-//         isUniqueIdUpdated = true;
-//       }
-//     }
-
-//     // Set defaults for other fields.
-//     let updatedQuantity = currentItem.quantity;
-//     let updatedPrice = currentItem.price;
-//     const updatedSiteName = req.body.hasOwnProperty('site_name') ? site_name : currentItem.site_name;
-//     const updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
-//     let updatedAuditDate = currentItem.audit_date;
-//     let isAuditDateUpdated = false;
-//     if (req.body.hasOwnProperty('audit_date') && audit_date !== currentItem.audit_date) {
-//       updatedAuditDate = audit_date;
-//       isAuditDateUpdated = true;
-//     }
-
-//     let updatedStarred = currentItem.starred;
-//     let isStarredUpdated = false;
-//     if (req.body.hasOwnProperty('starred') && starred !== currentItem.starred) {
-//       updatedStarred = starred;
-//       isStarredUpdated = true;
-//     }
-
-//     // Flags for other updates.
-//     let isQuantityUpdated = false;
-//     let isPriceUpdated = false;
-//     let isSiteUpdated = false;
-//     let isRemarksUpdated = false;
-//     let isUnitUpdated = false;
-
-//     // Array to collect change logs.
-//     const changeLogs = [];
-
-//     // Process quantity update.
-//     if (req.body.hasOwnProperty('newQuantity')) {
-//       const parsedNewQty = parseInt(newQuantity, 10);
-//       if (isNaN(parsedNewQty)) {
-//         return res.status(400).json({ message: 'Invalid new quantity value.' });
-//       }
-//       if (parsedNewQty < 0) {
-//         return res.status(400).json({ message: 'Quantity cannot be negative.' });
-//       }
-//       updatedQuantity = parsedNewQty;
-//       if (updatedQuantity !== currentItem.quantity) {
-//         isQuantityUpdated = true;
-//         changeLogs.push(
-//           `Quantity updated from ${currentItem.quantity} to ${updatedQuantity} on ${formatMYT(updatedAuditDate)}`
-//         );
-//       }
-//     } else if (req.body.hasOwnProperty('quantityChange')) {
-//       const parsedChange = parseInt(quantityChange, 10);
-//       if (isNaN(parsedChange)) {
-//         return res.status(400).json({ message: 'Invalid quantity change.' });
-//       }
-//       if (parsedChange !== 0) {
-//         updatedQuantity = currentItem.quantity + parsedChange;
-//         if (updatedQuantity < 0) {
-//           return res.status(400).json({ message: 'Insufficient stock.' });
-//         }
-//         isQuantityUpdated = true;
-//         changeLogs.push(
-//           `Quantity changed from ${currentItem.quantity} to ${updatedQuantity} (Change: ${parsedChange}) on ${formatMYT(updatedAuditDate)}`
-//         );
-//       }
-//     }
-
-//     // Process price update.
-//     if (req.body.hasOwnProperty('price')) {
-//       const parsedPrice = parseFloat(price);
-//       if (isNaN(parsedPrice) || parsedPrice < 0) {
-//         return res.status(400).json({ message: 'Invalid price value.' });
-//       }
-//       if (parsedPrice !== parseFloat(currentItem.price)) {
-//         updatedPrice = parsedPrice;
-//         isPriceUpdated = true;
-//         changeLogs.push(`Price updated from RM ${currentItem.price} to RM ${updatedPrice}`);
-//       }
-//     }
-
-//     // Process site name update.
-//     if (req.body.hasOwnProperty('site_name') && site_name !== currentItem.site_name) {
-//       isSiteUpdated = true;
-//       changeLogs.push(`Site name updated from "${currentItem.site_name}" to "${updatedSiteName}"`);
-//     }
-
-//     // Process remarks update.
-//     if (req.body.hasOwnProperty('remarks') && remarks !== currentItem.remarks) {
-//       isRemarksUpdated = true;
-//       changeLogs.push(
-//         `Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`
-//       );
-//     }
-
-//     // Process unit update.
-//     if (req.body.hasOwnProperty('unit') && unit !== currentItem.unit) {
-//       isUnitUpdated = true;
-//       changeLogs.push(`Unit updated from "${currentItem.unit}" to "${updatedUnit}"`);
-//     }
-
-//     // Process audit date update log.
-//     if (isAuditDateUpdated) {
-//       const formattedCurrentAudit = formatMYT(currentItem.audit_date);
-//       const formattedUpdatedAudit = formatMYT(updatedAuditDate);
-//       if (formattedCurrentAudit !== formattedUpdatedAudit) {
-//         changeLogs.push(
-//           `Audit date updated from "${formattedCurrentAudit}" to "${formattedUpdatedAudit}"`
-//         );
-//       }
-//     }
-
-//     // Process starred update log.
-//     if (isStarredUpdated) {
-//       changeLogs.push(`Starred status updated from "${currentItem.starred}" to "${updatedStarred}"`);
-//     }
-
-//     // If no changes detected, return early.
-//     if (
-//       !isQuantityUpdated &&
-//       !isPriceUpdated &&
-//       !isSiteUpdated &&
-//       !isRemarksUpdated &&
-//       !isUnitUpdated &&
-//       !isUniqueIdUpdated &&
-//       !isAuditDateUpdated &&
-//       !isStarredUpdated
-//     ) {
-//       return res.json({ message: 'No changes detected.', item: currentItem });
-//     }
-
-//     // Process each log individually.
-//     changeLogs.forEach((log, index) => {
-//       console.log(`Processing log #${index + 1}: ${log}`);
-//       // Additional actions can be performed here.
-//     });
-
-//     // Build a change summary.
-//     let changeSummary = '';
-//     if (changeLogs.length === 1) {
-//       changeSummary = `Single change detected: ${changeLogs[0]}.`;
-//     } else {
-//       changeSummary = `Multiple changes detected: ${changeLogs.join('. ')}.`;
-//     }
-//     // Append the key in date if quantity was updated.
-//     if (isQuantityUpdated) {
-//       changeSummary += ` (key in date: ${formatMYT(updatedAuditDate)})`;
-//     }
-//     console.log(`INFO: Item ${itemId} - ${changeSummary}`);
-
-//     // Determine transaction type.
-//     const changesCount = [
-//       isQuantityUpdated,
-//       isPriceUpdated,
-//       isSiteUpdated,
-//       isRemarksUpdated,
-//       isUnitUpdated,
-//       isUniqueIdUpdated,
-//       isAuditDateUpdated,
-//       isStarredUpdated
-//     ].filter(Boolean).length;
-//     let transactionType;
-//     if (changesCount > 1) {
-//       transactionType = 'Combined Update';
-//     } else if (isQuantityUpdated) {
-//       transactionType = req.body.hasOwnProperty('newQuantity')
-//         ? 'Quantity Value Update'
-//         : (parseInt(quantityChange, 10) > 0 ? 'Add' : 'Subtract');
-//     } else if (isPriceUpdated) {
-//       transactionType = 'Price Update';
-//     } else if (isSiteUpdated) {
-//       transactionType = 'Site Update';
-//     } else if (isRemarksUpdated) {
-//       transactionType = 'Remarks Update';
-//     } else if (isUnitUpdated) {
-//       transactionType = 'Unit Update';
-//     } else if (isUniqueIdUpdated) {
-//       transactionType = 'Unique ID Update';
-//     } else if (isAuditDateUpdated) {
-//       transactionType = 'Audit Date Update';
-//     } else if (isStarredUpdated) {
-//       transactionType = 'Starred Update';
-//     } else {
-//       transactionType = 'Inventory Update';
-//     }
-
-//     // Update the item record.
-//     const updateQuery = `
-//       UPDATE items
-//       SET
-//         remarks = $1,
-//         quantity = $2,
-//         price = $3,
-//         site_name = $4,
-//         unit = $5,
-//         item_unique_id = $6,
-//         audit_date = $7,
-//         starred = $8,
-//         updated_at = NOW()
-//       WHERE item_id = $9
-//       RETURNING *;
-//     `;
-//     const { rows: updatedRows } = await pool.query(updateQuery, [
-//       req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
-//       updatedQuantity,
-//       req.body.hasOwnProperty('price') ? updatedPrice : currentItem.price,
-//       updatedSiteName,
-//       updatedUnit,
-//       updatedUniqueId,
-//       req.body.hasOwnProperty('audit_date') ? updatedAuditDate : currentItem.audit_date,
-//       updatedStarred,
-//       itemId
-//     ]);
-//     const updatedItem = updatedRows[0];
-
-//     // Insert a record into inventory_transactions.
-//     await pool.query(
-//       `
-//         INSERT INTO inventory_transactions
-//           (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, unit, change_summary)
-//         VALUES
-//           ($1, $2, $3, $4, NOW(), $5, 'Approved', $6, $7, $8, $9)
-//       `,
-//       [
-//         itemId,
-//         req.user.user_id,
-//         transactionType,
-//         isQuantityUpdated
-//           ? req.body.hasOwnProperty('newQuantity')
-//             ? Math.abs(parseInt(newQuantity, 10))
-//             : Math.abs(parseInt(quantityChange, 10))
-//           : 0,
-//         req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
-//         isPriceUpdated ? updatedPrice : null,
-//         updatedSiteName,
-//         updatedUnit,
-//         changeSummary
-//       ]
-//     );
-
-//     return res.json({
-//       message: 'Item updated successfully.',
-//       item: updatedItem,
-//       changeSummary
-//     });
-//   })
-// );
-
 
 
 
@@ -1598,6 +1330,7 @@ app.get(
         it.unit,
         it.price_update,
         it.timestamp,
+        it.key_in_date, 
         i.item_unique_id,
         it.remarks,
         it.status,
@@ -1612,7 +1345,6 @@ app.get(
     res.json({ logs: rows });
   })
 );
-
 
 app.get(
   '/pending-transactions',

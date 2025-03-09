@@ -222,3 +222,8 @@
   color: green;
   font-size: 16px;
 }
+.sub-row {
+  background-color: #f9f9f9;
+  font-style: italic;
+  color: #555;
+}
