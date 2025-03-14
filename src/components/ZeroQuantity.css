@@ -1,12 +1,15 @@
-.zero-quantity-page {
-  max-width: 100%; /* Full width */
+/**************************************
+ * Page Container
+ **************************************/
+ .zero-quantity-page {
+  max-width: 100%;
   margin: 50px auto;
   padding: 20px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-  
+
 .zero-quantity-page h1 {
   text-align: left;
   font-size: 2rem;
@@ -14,109 +17,76 @@
   color: #333;
 }
 
-/* Table Container */
-.zero-quantity-table-container {
-  max-height: 400px;  /* Set the maximum height of the table */
-  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
+.zero-quantity-page p {
+  font-size: 1rem; /* Slightly smaller to keep consistency */
+  color: #333;
+  text-align: center;
+  margin: 10px 0;
 }
 
-/* Table Styling */
-.zero-quantity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 0.8rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+/**************************************
+ * Table Containers
+ **************************************/
+.zero-quantity-table-container,
+.zero-quantity-table-container2 {
+  max-height: 400px; /* Limit the max height */
+  overflow-y: auto;  /* Vertical scroll if needed */
   margin-bottom: 20px;
 }
 
-.zero-quantity-table th,
-.zero-quantity-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-/* Table Header */
-.zero-quantity-table th {
-  background-color: #0077a1; /* Updated header color */
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* Table Rows */
-.zero-quantity-table td {
-  background-color: #f9f9f9;
-}
-
-.zero-quantity-table tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.zero-quantity-table tr:hover {
-  background-color: #e2e2e2; /* Add hover effect for table rows */
-  cursor: pointer;
-}
-
-/* Error Message */
-.zero-quantity-table .error-message {
-  color: red;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.zero-quantity-page p {
-  font-size: 18px;
-  color: #333;
-  text-align: center;
-}
-
-/* Second Table */
-.zero-quantity-table-container2 {
-  max-height: 400px;  /* Set the maximum height of the table */
-  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
-}
-
+/**************************************
+ * Base Table Styles
+ **************************************/
+.zero-quantity-table,
 .zero-quantity-table2 {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
   font-size: 0.8rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden; /* So border-radius applies to corners */
 }
 
-.zero-quantity-table2 th,
+/* Table Headers */
+.zero-quantity-table th,
+.zero-quantity-table2 th {
+  background-color: #0077a1; /* Header color */
+  color: #fff;
+  font-weight: bold;
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+  cursor: pointer;
+}
+
+/* Table Cells */
+.zero-quantity-table td,
 .zero-quantity-table2 td {
   padding: 12px 15px;
   text-align: left;
   border: 1px solid #ddd;
-}
-
-/* Second Table Header */
-.zero-quantity-table2 th {
-  background-color: #0077a1; /* Updated header color */
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* Second Table Rows */
-.zero-quantity-table2 td {
   background-color: #f9f9f9;
 }
 
+/* Zebra Striping */
+.zero-quantity-table tr:nth-child(even),
 .zero-quantity-table2 tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
+/* Hover Effect */
+.zero-quantity-table tr:hover,
 .zero-quantity-table2 tr:hover {
-  background-color: #e2e2e2; /* Add hover effect for table rows */
+  background-color: #e2e2e2;
   cursor: pointer;
+  transition: background-color 0.2s ease-in;
 }
 
-/* Error Message */
+/**************************************
+ * Error Message
+ **************************************/
+.zero-quantity-table .error-message,
 .zero-quantity-table2 .error-message {
   color: red;
   font-weight: bold;
@@ -124,24 +94,36 @@
   margin-top: 20px;
 }
 
-/* Transaction Logs Title */
+/**************************************
+ * Transaction Logs Title
+ **************************************/
 .transaction-logs-title {
-  margin-bottom: 0px !important;
+  margin-bottom: 0 !important;
   margin-top: 5vh;
 }
 
-/* Mobile Responsive */
+/**************************************
+ * Responsive
+ **************************************/
 @media screen and (max-width: 768px) {
   .zero-quantity-page {
     padding: 10px;
+    margin: 20px auto;
   }
 
+  .zero-quantity-page h1 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+
+  /* Make tables scroll horizontally on small screens */
   .zero-quantity-table,
   .zero-quantity-table2 {
     font-size: 0.7rem;
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+    border-radius: 0;
   }
 
   .zero-quantity-table th,
@@ -149,9 +131,5 @@
   .zero-quantity-table2 th,
   .zero-quantity-table2 td {
     padding: 10px;
-  }
-
-  .zero-quantity-page h1 {
-    font-size: 1.5rem;
   }
 }

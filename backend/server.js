@@ -28,7 +28,7 @@ app.use(express.json());
 // ---------------------------------------------------------------------
 const corsOptions = {
   origin: 'http://localhost:3000', 
-  // origin: 'https://inventory-e9c9f.web.app', // your frontend origin
+  // origin: ' https://inventory-e9c9f.web.app', // your frontend origin
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -76,6 +76,7 @@ const authenticateJWT = (req, res, next) => {
     next();
   });
 };
+
 
 const authenticateAdmin = (req, res, next) => {
   const token = req.cookies.token;
@@ -179,17 +180,310 @@ app.post('/logout', (req, res) => {
 // 8) Admin Dashboard / Inventory Endpoints
 // ---------------------------------------------------------------------
 
+// Add a new remark option
+app.post('/dropdown-options/remarks', async (req, res) => {
+  const { option } = req.body;
+  if (!option) {
+    return res.status(400).json({ message: 'Option is required' });
+  }
+  try {
+    // Check for a duplicate (case-insensitive)
+    const existing = await pool.query(
+      'SELECT option FROM remarks_options WHERE LOWER(option) = LOWER($1)',
+      [option]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({
+        message: `A remark with a similar name already exists: "${existing.rows[0].option}"`,
+        existingOptions: existing.rows.map(row => row.option),
+      });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO remarks_options (option) VALUES ($1) RETURNING id, option',
+      [option]
+    );
+    const newRemark = result.rows[0];
+
+    // Log the addition in history (for "add", new_value is the inserted remark)
+    await pool.query(
+      'INSERT INTO remarks_history (action_type, remark_id, new_value) VALUES ($1, $2, $3)',
+      ['add', newRemark.id, newRemark.option]
+    );
+
+    res.status(201).json({ option: newRemark.option });
+  } catch (error) {
+    console.error('Error adding remark option:', error);
+    res.status(500).json({ message: 'Error adding remark option' });
+  }
+});
+
+// Rename a remark option
+app.patch('/dropdown-options/remarks/rename', async (req, res) => {
+  const { oldOption, newOption } = req.body;
+  if (!oldOption || !newOption) {
+    return res.status(400).json({ message: 'Both oldOption and newOption are required.' });
+  }
+  try {
+    // Check if newOption already exists (case-insensitive)
+    const duplicateCheck = await pool.query(
+      'SELECT option FROM remarks_options WHERE LOWER(option) = LOWER($1)',
+      [newOption]
+    );
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(400).json({
+        message: `A remark with a similar name already exists: "${duplicateCheck.rows[0].option}"`,
+        existingOptions: duplicateCheck.rows.map(row => row.option),
+      });
+    }
+
+    const result = await pool.query(
+      'UPDATE remarks_options SET option = $1 WHERE option = $2 RETURNING id, option',
+      [newOption, oldOption]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Old remark option not found' });
+    }
+
+    const updatedRemark = result.rows[0];
+
+    // Log the rename in history with old and new values
+    await pool.query(
+      'INSERT INTO remarks_history (action_type, remark_id, old_value, new_value) VALUES ($1, $2, $3, $4)',
+      ['rename', updatedRemark.id, oldOption, newOption]
+    );
+
+    res.json({ message: 'Remark option renamed successfully.' });
+  } catch (error) {
+    console.error('Error renaming remark option:', error);
+    res.status(500).json({ message: 'Error renaming remark option' });
+  }
+});
+
+// Delete a remark option using URL parameter
+app.delete('/dropdown-options/remarks/:option', async (req, res) => {
+  const option = req.params.option;
+  if (!option) {
+    return res.status(400).json({ message: 'Option is required for deletion' });
+  }
+  try {
+    const result = await pool.query(
+      'DELETE FROM remarks_options WHERE option = $1 RETURNING id, option',
+      [option]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Remark option not found' });
+    }
+
+    const deletedRemark = result.rows[0];
+
+    // Log the deletion in history:
+    // Set remark_id to null, store the deleted remark name in old_value,
+    // and record the action as "delete" in new_value.
+    await pool.query(
+      'INSERT INTO remarks_history (action_type, remark_id, old_value, new_value) VALUES ($1, $2, $3, $4)',
+      ['delete', null, deletedRemark.option, 'delete']
+    );
+
+    res.json({ message: 'Remark option deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting remark option:', error);
+    res.status(500).json({ message: 'Error deleting remark option' });
+  }
+});
 
 
-// 8.1) GET Non-Archived Items
+// Fetch all remark options
+app.get('/dropdown-options/remarks', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT option FROM remarks_options ORDER BY option ASC');
+    res.status(200).json({ remarks: result.rows.map(row => row.option) });
+  } catch (error) {
+    console.error('Error fetching remark options:', error);
+    res.status(500).json({ message: 'Error fetching remark options' });
+  }
+});
+
+// Fetch remarks history
+app.get('/dropdown-options/remarks/history', async (req, res) => {
+  try {
+    const history = await pool.query(
+      'SELECT action_type, old_value, new_value, created_at FROM remarks_history ORDER BY created_at DESC'
+    );
+    res.json({
+      history: history.rows.map(entry => ({
+        ...entry,
+        created_at: new Date(entry.created_at).toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching remark history:', error);
+    res.status(500).json({ message: 'Error fetching remark history' });
+  }
+});
+
+
+// --- SITE ENDPOINTS ---
+
+// Add a new site option (with duplicate check)
+app.post('/dropdown-options/sites', async (req, res) => {
+  const { option } = req.body;
+  if (!option) return res.status(400).json({ message: 'Option is required.' });
+
+  try {
+    // Check for duplicate site name (case-insensitive)
+    const existing = await pool.query(
+      'SELECT option FROM site_options WHERE LOWER(option) = LOWER($1)',
+      [option]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({
+        message: `A site with a similar name already exists: "${existing.rows[0].option}"`,
+        existingOptions: existing.rows.map(row => row.option),
+      });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO site_options (option) VALUES ($1) RETURNING id, option',
+      [option]
+    );
+
+    // Log the addition in history
+    await pool.query(
+      'INSERT INTO site_history (action_type, site_id, new_value) VALUES ($1, $2, $3)',
+      ['add', result.rows[0].id, result.rows[0].option]
+    );
+
+    res.status(201).json({ option: result.rows[0].option });
+  } catch (error) {
+    console.error('Error adding site option:', error);
+    res.status(500).json({ message: 'Error adding site option' });
+  }
+});
+
+// Rename a site option
+app.patch('/dropdown-options/sites/rename', async (req, res) => {
+  const { oldOption, newOption } = req.body;
+  if (!oldOption || !newOption) {
+    return res.status(400).json({ message: 'Both oldOption and newOption are required.' });
+  }
+
+  try {
+    // Check for duplicate new name
+    const duplicateCheck = await pool.query(
+      'SELECT option FROM site_options WHERE LOWER(option) = LOWER($1)',
+      [newOption]
+    );
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(400).json({
+        message: `A site with a similar name already exists: "${duplicateCheck.rows[0].option}"`,
+        existingOptions: duplicateCheck.rows.map(row => row.option),
+      });
+    }
+
+    const existing = await pool.query('SELECT id FROM site_options WHERE option = $1', [oldOption]);
+    if (existing.rowCount === 0)
+      return res.status(404).json({ message: `Site "${oldOption}" not found.` });
+
+    const siteId = existing.rows[0].id;
+
+    // Log rename BEFORE updating
+    await pool.query(
+      'INSERT INTO site_history (action_type, site_id, old_value, new_value) VALUES ($1, $2, $3, $4)',
+      ['rename', siteId, oldOption, newOption]
+    );
+
+    // Now update the site name
+    await pool.query('UPDATE site_options SET option = $1 WHERE id = $2', [newOption, siteId]);
+
+    res.json({ message: `Site renamed from "${oldOption}" to "${newOption}" successfully.` });
+  } catch (error) {
+    console.error('Error renaming site:', error);
+    res.status(500).json({ message: 'Error renaming site option' });
+  }
+});
+// Delete a site option
+app.delete('/dropdown-options/sites', async (req, res) => {
+  const { option } = req.body;
+  if (!option) return res.status(400).json({ message: 'Option is required for deletion.' });
+  try {
+    const result = await pool.query(
+      'DELETE FROM site_options WHERE option = $1 RETURNING id, option',
+      [option]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Site option not found.' });
+    }
+    const deletedSite = result.rows[0];
+
+    await pool.query(
+      'INSERT INTO site_history (action_type, site_id, old_value, new_value) VALUES ($1, $2, $3, $4)',
+      ['delete', null, deletedSite.option, 'delete']
+    );
+
+    res.json({ message: 'Site option deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting site option:', error);
+    res.status(500).json({ message: 'Error deleting site option' });
+  }
+});
+
+// Fetch all site options
+app.get('/dropdown-options/sites', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT option FROM site_options ORDER BY option ASC');
+    res.status(200).json({ sites: result.rows.map(row => row.option) });
+  } catch (error) {
+    console.error('Error fetching site options:', error);
+    res.status(500).json({ message: 'Error fetching site options' });
+  }
+});
+
+// Fetch site history
+app.get('/dropdown-options/sites/history', async (req, res) => {
+  try {
+    const history = await pool.query(
+      'SELECT action_type, old_value, new_value, created_at FROM site_history ORDER BY created_at DESC'
+    );
+    res.json({
+      history: history.rows.map(entry => ({
+        ...entry,
+        created_at: new Date(entry.created_at).toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching site history:', error);
+    res.status(500).json({ message: 'Error fetching site history' });
+  }
+});
+
+
+
 app.get(
   '/admin-dashboard/items',
   authenticateJWT,
   asyncHandler(async (req, res) => {
     try {
-      const result = await pool.query(
-        'SELECT * FROM items WHERE archived_at IS NULL ORDER BY item_id ASC'
-      );
+      const result = await pool.query(`
+        SELECT *
+        FROM items
+        WHERE archived_at IS NULL
+        ORDER BY starred DESC, item_id ASC
+      `);
       res.json({ items: result.rows });
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -198,17 +492,8 @@ app.get(
   })
 );
 
-// 8.2) GET Archived Items
-// app.get(
-//   '/admin-dashboard/items/archive',
-//   authenticateAdmin,
-//   asyncHandler(async (req, res) => {
-//     const result = await pool.query(
-//       'SELECT * FROM items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC'
-//     );
-//     res.json({ items: result.rows });
-//   })
-// );
+
+
 app.get(
   '/admin-dashboard/items/archive',
   authenticateAdmin,
@@ -237,26 +522,27 @@ app.post(
     } = req.body;
 
     if (!item_name || !category) {
-      return res.status(400).json({ message: 'item_name and category are required.' });
+      return res
+        .status(400)
+        .json({ message: 'item_name and category are required.' });
     }
 
-    // Duplicate check: if item_unique_id is provided, ensure it doesn't exist for a non-archived item.
+    // 1) If item_unique_id is provided, ensure it's not duplicated
     if (item_unique_id) {
-      const { rows: duplicateRows } = await pool.query(
-        'SELECT * FROM items WHERE item_unique_id = $1 AND archived_at IS NULL',
+      const { rows: dupRows } = await pool.query(
+        `SELECT item_id FROM items
+         WHERE item_unique_id = $1
+           AND archived_at IS NULL`,
         [item_unique_id]
       );
-      if (duplicateRows.length > 0) {
-        return res.status(400).json({ message: 'Duplicate Unique ID detected. Please use a different Unique ID.' });
+      if (dupRows.length > 0) {
+        return res.status(400).json({
+          message: 'Duplicate Unique ID detected. Please use a different Unique ID.'
+        });
       }
     }
 
-    // 1) Get the next item ID and display order
-    const { rows: idRows } = await pool.query(`
-      SELECT COALESCE(MAX(item_id), 0) AS max_id FROM items WHERE archived_at IS NULL
-    `);
-    const nextItemId = parseInt(idRows[0].max_id, 10) + 1;
-
+    // 2) Optional: find next display_order if you use it
     const { rows: maxRows } = await pool.query(`
       SELECT COALESCE(MAX(display_order), 0) AS max_order
       FROM items
@@ -264,21 +550,19 @@ app.post(
     `);
     const nextOrder = parseInt(maxRows[0].max_order, 10) + 1;
 
-    // 2) Insert new item
+    // 3) Insert new item, omitting "item_id"
     const insertQuery = `
       INSERT INTO items
-        (item_id, category, item_name, model, item_unique_id, quantity, price,
+        (category, item_name, model, item_unique_id, quantity, price,
          remarks, site_name, location, unit, display_order,
          archived_at, reserved_quantity, updated_at)
       VALUES
         ($1, $2, $3, $4, $5, $6,
-         $7, $8, $9, $10, $11, $12,
+         $7, $8, $9, $10, $11,
          NULL, 0, NOW())
       RETURNING *;
     `;
-
     const values = [
-      nextItemId, // Assign sequential item_id
       category,
       item_name,
       model || null,
@@ -295,7 +579,7 @@ app.post(
     const { rows } = await pool.query(insertQuery, values);
     const newItem = rows[0];
 
-    // 3) Log transaction
+    // 4) Log a transaction (optional)
     await pool.query(
       `
         INSERT INTO inventory_transactions
@@ -308,7 +592,7 @@ app.post(
            $9, $10, $11, $12)
       `,
       [
-        newItem.item_id,
+        newItem.item_id,           // auto-generated by Postgres
         newItem.category,
         req.user.user_id,
         newItem.item_name,
@@ -325,10 +609,11 @@ app.post(
 
     res.status(201).json({
       message: 'Item added successfully',
-      item: newItem,
+      item: newItem
     });
   })
 );
+
 app.patch(
   '/admin-dashboard/items/archive',
   authenticateAdmin,
@@ -396,9 +681,15 @@ app.patch(
       message += ' The remaining items may already be archived or do not exist.';
     }
 
+    // 1) Mask the item_id in the response
+    const maskedItems = archiveResult.rows.map((item) => ({
+      ...item,
+      item_id: '*****', // or null, or any placeholder you want
+    }));
+
     return res.status(200).json({
       message,
-      archivedItems: archiveResult.rows,
+      archivedItems: maskedItems, // 2) Return masked items
     });
   })
 );
@@ -647,69 +938,75 @@ app.patch(
       site_name,
       unit,
       item_unique_id,
-      audit_date, // manually set key‑in date from the frontend
+      audit_date,
       starred
     } = req.body;
 
-    // Only admins can update the price.
+    // 1) Only admins can update the price
     if (req.body.hasOwnProperty('price') && price !== undefined && req.user.role_id !== 1) {
       return res.status(400).json({ message: 'Non-admin users cannot update price.' });
     }
 
-    // Fetch current item.
+    // 2) Fetch the current item
     const { rows: itemRows } = await pool.query('SELECT * FROM items WHERE item_id = $1', [itemId]);
     if (itemRows.length === 0) {
       return res.status(404).json({ message: 'Item not found.' });
     }
     const currentItem = itemRows[0];
 
-    // --- Unique ID Update ---
-    let updatedUniqueId = currentItem.item_unique_id;
-    let isUniqueIdUpdated = false;
-    if (req.body.hasOwnProperty('item_unique_id')) {
-      if (item_unique_id !== currentItem.item_unique_id) {
-        const { rows: duplicateRows } = await pool.query(
-          'SELECT * FROM items WHERE item_unique_id = $1 AND item_id <> $2',
-          [item_unique_id, itemId]
-        );
-        if (duplicateRows.length > 0) {
-          return res.status(400).json({ message: 'Duplicate Unique ID detected.' });
-        }
-        updatedUniqueId = item_unique_id;
-        isUniqueIdUpdated = true;
-      }
-    }
+    // 3) Decide final values (if no new value provided, keep the old)
+    const updatedSiteName = req.body.hasOwnProperty('site_name')
+      ? site_name
+      : currentItem.site_name;
 
-    // Set defaults for other fields.
+    const updatedRemarks = req.body.hasOwnProperty('remarks')
+      ? remarks
+      : currentItem.remarks;
+
     let updatedQuantity = currentItem.quantity;
     let updatedPrice = currentItem.price;
-    const updatedSiteName = req.body.hasOwnProperty('site_name') ? site_name : currentItem.site_name;
-    const updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
-    // Use the manually provided audit_date as the key‑in date.
+    let updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
+    let updatedUniqueId = currentItem.item_unique_id;
     let updatedAuditDate = currentItem.audit_date;
-    let isAuditDateUpdated = false;
-    if (req.body.hasOwnProperty('audit_date') && audit_date !== currentItem.audit_date) {
-      updatedAuditDate = audit_date;
-      isAuditDateUpdated = true;
-    }
     let updatedStarred = currentItem.starred;
-    let isStarredUpdated = false;
-    if (req.body.hasOwnProperty('starred') && starred !== currentItem.starred) {
-      updatedStarred = starred;
-      isStarredUpdated = true;
-    }
 
-    // Flags for other updates.
+    // 4) Flags to detect changes
+    let isUniqueIdUpdated = false;
     let isQuantityUpdated = false;
     let isPriceUpdated = false;
     let isSiteUpdated = false;
     let isRemarksUpdated = false;
     let isUnitUpdated = false;
+    let isAuditDateUpdated = false;
+    let isStarredUpdated = false;
 
-    // Array to collect change logs.
+    // 5) Array to collect textual logs
     const changeLogs = [];
 
-    // Process quantity update.
+    // ---------------------------------------------------------------------
+    // Unique ID
+    // ---------------------------------------------------------------------
+    if (req.body.hasOwnProperty('item_unique_id')) {
+      if (item_unique_id !== currentItem.item_unique_id) {
+        // Check for duplicates
+        const { rows: duplicates } = await pool.query(
+          'SELECT * FROM items WHERE item_unique_id = $1 AND item_id <> $2',
+          [item_unique_id, itemId]
+        );
+        if (duplicates.length > 0) {
+          return res.status(400).json({ message: 'Duplicate Unique ID detected.' });
+        }
+        updatedUniqueId = item_unique_id;
+        isUniqueIdUpdated = true;
+        changeLogs.push(
+          `Unique ID updated from "${currentItem.item_unique_id || 'N/A'}" to "${updatedUniqueId}"`
+        );
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Quantity Updates (newQuantity or quantityChange)
+    // ---------------------------------------------------------------------
     if (req.body.hasOwnProperty('newQuantity')) {
       const parsedNewQty = parseInt(newQuantity, 10);
       if (isNaN(parsedNewQty)) {
@@ -742,54 +1039,70 @@ app.patch(
       }
     }
 
-    // Process price update.
+    // ---------------------------------------------------------------------
+    // Price Update
+    // ---------------------------------------------------------------------
     if (req.body.hasOwnProperty('price')) {
       const parsedPrice = parseFloat(price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         return res.status(400).json({ message: 'Invalid price value.' });
       }
+      // Compare to current price
       if (parsedPrice !== parseFloat(currentItem.price)) {
         updatedPrice = parsedPrice;
         isPriceUpdated = true;
-        changeLogs.push(`Price updated from RM ${currentItem.price} to RM ${updatedPrice}`);
+        // Removed "RM" prefix here to avoid duplicate when concatenated in the SQL logs query.
+        changeLogs.push(`Price updated from ${currentItem.price} to ${updatedPrice}`);
       }
     }
 
-    // Process site name update.
+    // ---------------------------------------------------------------------
+    // Site Name Update
+    // ---------------------------------------------------------------------
     if (req.body.hasOwnProperty('site_name') && site_name !== currentItem.site_name) {
       isSiteUpdated = true;
       changeLogs.push(`Site name updated from "${currentItem.site_name}" to "${updatedSiteName}"`);
     }
 
-    // Process remarks update.
+    // ---------------------------------------------------------------------
+    // Remarks Update
+    // ---------------------------------------------------------------------
     if (req.body.hasOwnProperty('remarks') && remarks !== currentItem.remarks) {
       isRemarksUpdated = true;
       changeLogs.push(`Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`);
     }
 
-    // Process unit update.
+    // ---------------------------------------------------------------------
+    // Unit Update
+    // ---------------------------------------------------------------------
     if (req.body.hasOwnProperty('unit') && unit !== currentItem.unit) {
       isUnitUpdated = true;
       changeLogs.push(`Unit updated from "${currentItem.unit}" to "${updatedUnit}"`);
     }
 
-    // Process audit date update log.
-    if (isAuditDateUpdated) {
-      const formattedCurrentAudit = formatMYT(currentItem.audit_date);
-      const formattedUpdatedAudit = formatMYT(updatedAuditDate);
-      if (formattedCurrentAudit !== formattedUpdatedAudit) {
-        changeLogs.push(
-          `Audit date updated from "${formattedCurrentAudit}" to "${formattedUpdatedAudit}"`
-        );
-      }
+    // ---------------------------------------------------------------------
+    // Audit Date (Key-in Date)
+    // ---------------------------------------------------------------------
+    if (req.body.hasOwnProperty('audit_date') && audit_date !== currentItem.audit_date) {
+      isAuditDateUpdated = true;
+      const formattedOld = formatMYT(currentItem.audit_date);
+      const formattedNew = formatMYT(audit_date);
+      changeLogs.push(`Audit date updated from "${formattedOld}" to "${formattedNew}"`);
+      updatedAuditDate = audit_date;
     }
 
-    // Process starred update log.
-    if (isStarredUpdated) {
+    // ---------------------------------------------------------------------
+    // Starred Update
+    // ---------------------------------------------------------------------
+    if (req.body.hasOwnProperty('starred') && starred !== currentItem.starred) {
+      isStarredUpdated = true;
+      updatedStarred = starred;
       changeLogs.push(`Starred status updated from "${currentItem.starred}" to "${updatedStarred}"`);
     }
 
-    // If no changes detected, return early.
+    // ---------------------------------------------------------------------
+    // If no changes, return early
+    // ---------------------------------------------------------------------
     if (
       !isQuantityUpdated &&
       !isPriceUpdated &&
@@ -803,22 +1116,14 @@ app.patch(
       return res.json({ message: 'No changes detected.', item: currentItem });
     }
 
-    // Build change summary.
-    // Only include the key‑in date change if both quantity and audit date have changed.
-    let changeSummary = changeLogs.join('. ');
-    if (isQuantityUpdated) {
-      if (isAuditDateUpdated) {
-        changeSummary += ` (site: ${updatedSiteName}; key in date updated from ${formatMYT(currentItem.audit_date)} to ${formatMYT(updatedAuditDate)}`;
-      } else {
-        changeSummary += ` (site: ${updatedSiteName}`;
-      }
-      if (remarks) {
-        changeSummary += `; remarks: ${remarks}`;
-      }
-      changeSummary += `)`;
-    }
+    // ---------------------------------------------------------------------
+    // Build change summary
+    // ---------------------------------------------------------------------
+    const changeSummary = changeLogs.join('. ');
 
-    // Determine transaction type.
+    // ---------------------------------------------------------------------
+    // Determine transaction type
+    // ---------------------------------------------------------------------
     const changesCount = [
       isQuantityUpdated,
       isPriceUpdated,
@@ -829,13 +1134,16 @@ app.patch(
       isAuditDateUpdated,
       isStarredUpdated
     ].filter(Boolean).length;
+
     let transactionType;
     if (changesCount > 1) {
       transactionType = 'Combined Update';
     } else if (isQuantityUpdated) {
       transactionType = req.body.hasOwnProperty('newQuantity')
         ? 'Quantity Value Update'
-        : (parseInt(quantityChange, 10) > 0 ? 'Add' : 'Subtract');
+        : parseInt(quantityChange, 10) > 0
+        ? 'Add'
+        : 'Subtract';
     } else if (isPriceUpdated) {
       transactionType = 'Price Update';
     } else if (isSiteUpdated) {
@@ -854,7 +1162,9 @@ app.patch(
       transactionType = 'Inventory Update';
     }
 
-    // Update the item record.
+    // ---------------------------------------------------------------------
+    // Update the item in "items" table
+    // ---------------------------------------------------------------------
     const updateQuery = `
       UPDATE items
       SET
@@ -871,63 +1181,54 @@ app.patch(
       RETURNING *;
     `;
     const { rows: updatedRows } = await pool.query(updateQuery, [
-      req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
+      updatedRemarks,
       updatedQuantity,
-      req.body.hasOwnProperty('price') ? updatedPrice : currentItem.price,
+      updatedPrice,
       updatedSiteName,
       updatedUnit,
       updatedUniqueId,
-      req.body.hasOwnProperty('audit_date') ? updatedAuditDate : currentItem.audit_date,
+      updatedAuditDate,
       updatedStarred,
       itemId
     ]);
     const updatedItem = updatedRows[0];
 
-    // Handle inventory transaction logging.
-    // Only record the old key_in_date if both quantity and audit date have been updated.
+    // ---------------------------------------------------------------------
+    // Insert transaction into "inventory_transactions"
+    // (Storing numeric-only price in "price_update")
+    // ---------------------------------------------------------------------
+    const keyInDateOldValue = isAuditDateUpdated ? currentItem.audit_date : null;
+    let quantityToLog = 0;
     if (isQuantityUpdated) {
-      const keyInDateOldValue = isAuditDateUpdated ? currentItem.audit_date : null;
-      await pool.query(`
-        INSERT INTO inventory_transactions
-          (item_id, user_id, transaction_type, quantity_change, timestamp, key_in_date, key_in_date_old, remarks, status, price_update, site_name, unit, change_summary)
-        VALUES
-          ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
-      `,
-      [
-        itemId,
-        req.user.user_id,
-        transactionType,
-        req.body.hasOwnProperty('newQuantity')
-          ? newQuantity - currentItem.quantity
-          : parseInt(quantityChange, 10),
-        updatedAuditDate,       // New key_in_date (updated value)
-        keyInDateOldValue,      // Old key_in_date only if audit date changed; otherwise null
-        req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
-        isPriceUpdated ? updatedPrice : null,
-        updatedSiteName,
-        updatedUnit,
-        changeSummary
-      ]);
-    } else {
-      // Handle updates that do not involve a quantity change.
-      await pool.query(`
-        INSERT INTO inventory_transactions
-          (item_id, user_id, transaction_type, quantity_change, timestamp, remarks, status, price_update, site_name, unit, change_summary)
-        VALUES
-          ($1, $2, $3, 0, NOW(), $4, 'Approved', $5, $6, $7, $8)
-      `,
-      [
-        itemId,
-        req.user.user_id,
-        transactionType,
-        req.body.hasOwnProperty('remarks') ? remarks : currentItem.remarks,
-        isPriceUpdated ? updatedPrice : null,
-        updatedSiteName,
-        updatedUnit,
-        changeSummary
-      ]);
+      quantityToLog = req.body.hasOwnProperty('newQuantity')
+        ? updatedQuantity - currentItem.quantity
+        : parseInt(quantityChange, 10);
     }
 
+    await pool.query(`
+      INSERT INTO inventory_transactions
+        (item_id, user_id, transaction_type, quantity_change, timestamp,
+         key_in_date, key_in_date_old, remarks, status, price_update,
+         site_name, unit, change_summary)
+      VALUES
+        ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
+    `, [
+      itemId,
+      req.user.user_id,
+      transactionType,
+      quantityToLog,
+      updatedAuditDate,
+      keyInDateOldValue,
+      updatedRemarks,
+      isPriceUpdated ? updatedPrice : null,  // Ensure only numeric value is stored
+      updatedSiteName,
+      updatedUnit,
+      changeSummary
+    ]);
+    
+    // ---------------------------------------------------------------------
+    // Return response
+    // ---------------------------------------------------------------------
     return res.json({
       message: 'Item updated successfully.',
       item: updatedItem,
@@ -985,9 +1286,7 @@ app.patch(
           .json({ message: 'Not enough reserved stock available to release.' });
       }
 
-      // Calculate new quantities:
-      // For a positive quantity, available stock decreases and reserved increases.
-      // For a negative quantity, available stock increases and reserved decreases.
+    
       const newQuantity = currentItem.quantity - quantityToReserve;
       const newReservedQuantity = currentItem.reserved_quantity + quantityToReserve;
 
@@ -1316,35 +1615,92 @@ app.get(
   authenticateJWT,
   asyncHandler(async (req, res) => {
     const query = `
-      SELECT
-        it.transaction_id,
-        it.item_id,
-        COALESCE(it.category, i.category) AS category,  -- Use transaction data if available
-        COALESCE(it.item_name, i.item_name) AS item_name,
-        COALESCE(it.model, i.model) AS model,
-        i.item_unique_id,
-        it.site_name,
-        u.username AS updated_by,
-        it.transaction_type,
-        it.quantity_change,
-        it.unit,
-        it.price_update,
-        it.timestamp,
-        it.key_in_date, 
-        i.item_unique_id,
-        it.remarks,
-        it.status,
-        it.change_summary
-      FROM inventory_transactions it
-      LEFT JOIN items i ON it.item_id = i.item_id
-      LEFT JOIN users u ON it.user_id = u.user_id
-      ORDER BY it.timestamp DESC;
+      (
+        -- 1) Inventory Transactions
+        SELECT
+          it.transaction_id,
+          it.item_id,
+          COALESCE(it.category, i.category) AS category,
+          COALESCE(it.item_name, i.item_name) AS item_name,
+          COALESCE(it.model, i.model) AS model,
+          i.item_unique_id,
+          COALESCE(it.site_name, 'N/A') AS site_name,
+          u.username AS updated_by,
+          it.transaction_type,
+          it.quantity_change,
+          it.unit,
+          COALESCE(it.price_update::text, 'N/A') AS price_update,  -- ✅ No "RM", only numeric or "N/A"
+          it.timestamp,
+          it.key_in_date,
+          COALESCE(it.remarks, 'N/A') AS remarks,
+          it.status,
+          it.change_summary
+        FROM inventory_transactions it
+        LEFT JOIN items i ON it.item_id = i.item_id
+        LEFT JOIN users u ON it.user_id = u.user_id
+      )
+      UNION ALL
+      (
+        -- 2) Site History
+        SELECT
+          NULL AS transaction_id,
+          NULL AS item_id,
+          NULL AS category,
+          NULL AS item_name,
+          NULL AS model,
+          NULL AS item_unique_id,
+          sh.new_value AS site_name,
+          NULL AS updated_by,
+          'Site update' AS transaction_type,
+          0 AS quantity_change,
+          NULL AS unit,
+          'N/A' AS price_update,
+          sh.created_at AS timestamp,
+          NULL AS key_in_date,
+          NULL AS remarks,
+          'N/A' AS status,
+          CONCAT(
+            'Site update: ',
+            sh.old_value, ' -> ', sh.new_value,
+            ' on ', TO_CHAR(sh.created_at, 'DD-Mon-YYYY HH24:MI')
+          ) AS change_summary
+        FROM site_history sh
+      )
+      UNION ALL
+      (
+        -- 3) Remarks History
+        SELECT
+          NULL AS transaction_id,
+          NULL AS item_id,
+          NULL AS category,
+          NULL AS item_name,
+          NULL AS model,
+          NULL AS item_unique_id,
+          NULL AS site_name,
+          NULL AS updated_by,
+          'Remarks update' AS transaction_type,
+          0 AS quantity_change,
+          NULL AS unit,
+          'N/A' AS price_update,
+          rh.created_at AS timestamp,
+          NULL AS key_in_date,
+          rh.new_value AS remarks,
+          'N/A' AS status,
+          CONCAT(
+            'Remarks update: ',
+            rh.old_value, ' -> ', rh.new_value,
+            ' on ', TO_CHAR(rh.created_at, 'DD-Mon-YYYY HH24:MI')
+          ) AS change_summary
+        FROM remarks_history rh
+      )
+      ORDER BY timestamp DESC;
     `;
 
     const { rows } = await pool.query(query);
     res.json({ logs: rows });
   })
 );
+
 
 app.get(
   '/pending-transactions',

@@ -13,7 +13,7 @@ import ArchiveItemsPage from './components/ArchiveItems';
 import Reservation from './components/Reservation';
 import DeliveryOrder from './components/Delivery';
 import GoodReceive from './components/GoodReceive';
-// Import the new ReportView component
+
 import ReportView from './components/ReportView';
 
 function App() {

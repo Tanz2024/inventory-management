@@ -308,7 +308,6 @@ function ItemLogs({
           bValue = (b.remarks || '').toLowerCase();
           break;
         default:
-          // default sort by timestamp
           aValue = new Date(a.timestamp).getTime();
           bValue = new Date(b.timestamp).getTime();
           break;
@@ -346,11 +345,22 @@ function ItemLogs({
     );
   }
 
-  // 4) Convert date for display
+  // 4) Convert timestamp for display (with full date & time)
   function convertToMYTDisplay(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
+  }
+
+  // New function: Format key‑in date into custom format like "6 thursday june 2025"
+  function formatKeyInDateCustom(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const month = date.toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
+    const year = date.getFullYear();
+    return `${day} ${weekday} ${month} ${year}`;
   }
 
   return (
@@ -369,11 +379,11 @@ function ItemLogs({
           <thead>
             <tr>
               <th onClick={() => handleSortToggle('timestamp')}>
-                Date &amp; Time{' '}
+                Timestamp{' '}
                 {sortConfig.column === 'timestamp' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('audit_date')}>
-                Key‑in Date{' '}
+                Date &amp; Time{' '}
                 {sortConfig.column === 'audit_date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('updated_by')}>
@@ -410,8 +420,7 @@ function ItemLogs({
                 const logDateStr = logDate.toLocaleString();
 
                 // 2) Check if key‑in date changed
-                const dateChanged =
-                  log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
+                const dateChanged = log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
 
                 // 3) Skip rows that have NEITHER quantity change nor date change
                 if (qtyChange === 0 && !dateChanged) {
@@ -443,7 +452,7 @@ function ItemLogs({
                     <React.Fragment key={idx}>
                       <tr className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}>
                         <td>{logDateStr}</td>
-                        <td>{convertToMYTDisplay(log.key_in_date_old)}</td>
+                        <td>{formatKeyInDateCustom(log.key_in_date_old)}</td>
                         <td>{changedByHighlighted}</td>
                         <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
                         <td>{qtyChange < 0 ? qtyChange : ''}</td>
@@ -453,7 +462,7 @@ function ItemLogs({
                       </tr>
                       <tr className="sub-row" key={`${idx}-new`}>
                         <td colSpan="8">
-                          New Key‑in Date: {convertToMYTDisplay(log.key_in_date)}
+                          New Date &amp; Time: {formatKeyInDateCustom(log.key_in_date)}
                         </td>
                       </tr>
                     </React.Fragment>
@@ -466,7 +475,7 @@ function ItemLogs({
                       className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}
                     >
                       <td>{logDateStr}</td>
-                      <td>{convertToMYTDisplay(log.key_in_date)}</td>
+                      <td>{formatKeyInDateCustom(log.key_in_date)}</td>
                       <td>{changedByHighlighted}</td>
                       <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
                       <td>{qtyChange < 0 ? qtyChange : ''}</td>

@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Formats a Date object into a human-readable string.
+ * Formats a Date object into a full, human-readable date & time string.
  */
 function formatDateTime(date) {
   if (!(date instanceof Date) || isNaN(date.getTime())) return 'N/A';
@@ -17,9 +17,24 @@ function formatDateTime(date) {
 }
 
 /**
+ * Formats a Date object into a short format for the Date & Time column.
+ * The output format will be like "8 may 2025".
+ */
+function formatKeyInDateShort(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) return 'N/A';
+  const day = date.getDate();
+  let month = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+  month = month.replace('.', '').toLowerCase();
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;  // Added spaces between day, month, and year
+}
+
+/**
  * generateReportPDF
  *
- * - Shows a "Key-in Date" column for each log.
+ * - Uses "Timestamp" for the full log date & time.
+ * - The second column now shows a simplified Date & Time in short format (e.g. “8 may 2025”)
+ *   and its header is renamed to "Date & Time".
  * - Skips rows where quantity_change = 0 (i.e. no quantity in/out change).
  * - The "Changed By Who" column displays `log.remarks`.
  */
@@ -129,7 +144,7 @@ export default function generateReportPDF(reportConfig) {
     let itemLogs = logsByItemId.get(item.item_id) || [];
     itemLogs = itemLogs.filter((log) => {
       const qtyChange = parseInt(log.quantity_change, 10) || 0;
-      return qtyChange !== 0; // keep only logs with a nonzero quantity change
+      return qtyChange !== 0;
     });
 
     // 2) Sort the logs in descending order (newest first)
@@ -144,12 +159,12 @@ export default function generateReportPDF(reportConfig) {
       // Running Stock = max(item.quantity - cumulativeChange, 0)
       const runningStock = Math.max(item.quantity - cumulativeChange, 0);
 
-      // Real-time log date
-      const dtStr = formatDateTime(new Date(log.timestamp));
+      // Use full timestamp for the first column
+      const timestampStr = formatDateTime(new Date(log.timestamp));
 
-      // Always show Key‑in Date from log.key_in_date if available
+      // For the Date & Time column, use the short format. Use log.key_in_date if available; otherwise, fallback to log.timestamp.
       const keyInDate = log.key_in_date || log.timestamp;
-      const keyInStr = formatDateTime(new Date(keyInDate));
+      const keyInStr = formatKeyInDateShort(new Date(keyInDate));
 
       // "Changed By Who" column uses log.remarks
       const changedByWho = log.remarks || '';
@@ -160,9 +175,9 @@ export default function generateReportPDF(reportConfig) {
       const displaySite = log.site_name && log.site_name.trim() !== '' ? log.site_name : 'N/A';
 
       return [
-        dtStr,         // Date & Time
-        keyInStr,      // Key-in Date
-        changedByWho,  // "Changed By Who"
+        timestampStr,  // Timestamp column
+        keyInStr,      // Date & Time column (short format)
+        changedByWho,  // Changed By Who
         quantityIn,
         quantityOut,
         String(runningStock),
@@ -174,8 +189,8 @@ export default function generateReportPDF(reportConfig) {
     if (tableRows.length === 0) {
       tableRows.push([
         'No quantity changes found',
-        'N/A',  // Key-in Date
-        'N/A',  // Changed By Who
+        'N/A',
+        'N/A',
         '',
         '',
         String(item.quantity),
@@ -192,8 +207,8 @@ export default function generateReportPDF(reportConfig) {
 
     // 5) Table header (7 columns total)
     const headCols = [
+      'Timestamp',
       'Date & Time',
-      'Key-in Date',
       'Changed By Who',
       'Qty In',
       'Qty Out',
@@ -204,8 +219,8 @@ export default function generateReportPDF(reportConfig) {
 
     // Column styles (adjust widths as needed)
     const columnStyles = {
-      0: { halign: 'center', cellWidth: 38 }, // Date & Time
-      1: { halign: 'center', cellWidth: 38 }, // Key-in Date
+      0: { halign: 'center', cellWidth: 38 }, // Timestamp
+      1: { halign: 'center', cellWidth: 38 }, // Date & Time
       2: { halign: 'center', cellWidth: 35 }, // Changed By Who
       3: { halign: 'center', cellWidth: 20 }, // Qty In
       4: { halign: 'center', cellWidth: 20 }, // Qty Out
