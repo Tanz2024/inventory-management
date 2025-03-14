@@ -761,12 +761,11 @@ export default function ReportView() {
 
   return (
     <div className="report-container">
-      <div className="report-header">
-        <button className="back-button" onClick={handleBack}>
-          ←
-        </button>
-        <h1>Inventory Management Report</h1>
-      </div>
+   <div className="report-header">
+  
+  <h1>Inventory Management Report</h1>
+</div>
+
 
       {error && <div className="error-message">{error}</div>}
 

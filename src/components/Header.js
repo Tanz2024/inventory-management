@@ -1,23 +1,22 @@
-import './Header.css'; // For styling the header
-import { useNavigate } from 'react-router-dom';
+import './Header.css';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Logo from '../images/SQLOGO3.png';
-import { FaBars, FaBell } from 'react-icons/fa'; // Importing icons for hamburger menu
+import { FaBars, FaBell } from 'react-icons/fa';
 
-const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }) => {
+const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen }) => {
   const navigate = useNavigate();
-
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // State to track mobile view
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768); // Set mobile view for screens <= 768px
+      setIsMobile(window.innerWidth <= 768);
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Initial check on mount
+    handleResize();
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -26,7 +25,7 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
     try {
       const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
-        credentials: 'include', // Ensure cookies are included
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': '1',
@@ -36,12 +35,9 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
         const data = await response.json();
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const filteredLogs = data.logs.filter((log) => {
-          const logDate = new Date(log.timestamp);
-          return logDate >= sevenDaysAgo;
-        });
-
+        const filteredLogs = data.logs.filter(
+          (log) => new Date(log.timestamp) >= sevenDaysAgo
+        );
         setNotifications(filteredLogs);
       } else {
         console.error('Failed to fetch logs.');
@@ -51,12 +47,11 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
     }
   };
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       const response = await fetch('http://localhost:5000/logout', {
         method: 'POST',
-        credentials: 'include', // Ensure cookies are included
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': '1',
@@ -64,10 +59,7 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
       });
 
       if (response.ok) {
-        // Clear the frontend state
         onLogout();
-
-        // Redirect to the login page
         navigate('/login');
       } else {
         alert('Logout failed. Please try again.');
@@ -81,40 +73,28 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
   return (
     <header className="header">
       {isMobile ? (
+        /* ---------------- MOBILE LAYOUT ---------------- */
         <div className="header-mobile">
           {isLoggedIn && (
+            <button className="hamburger-menu-mobile" onClick={onToggleSidebar}>
+              <FaBars />
+            </button>
+          )}
+          {!isLoggedIn && (
             <>
-              {/* Hamburger menu on the left */}
-              <button
-                className="hamburger-menu-mobile"
-                onClick={() => toggleFocusMode()} // Toggle focus mode
-              >
-                {isFocusMode ? <FaBars /> : <FaBars />}
-              </button>
+              <div className="logo-mobile">
+                <img src={Logo} alt="Logo" className="logo-img-mobile" />
+              </div>
+              <div className="company-name-container-mobile">
+                <h1 className="company-name-mobile">SquareCloud Malaysia</h1>
+              </div>
             </>
           )}
-
-          {/* Logo when logged out */}
-          {!isLoggedIn && (
-            <div className="logo-mobile">
-              <img src={Logo} alt="Logo" className="logo-img-mobile" />
-            </div>
-          )}
-
-          {/* SquareCloud Malaysia centered */}
-          {!isLoggedIn && (
-            <div className="company-name-container-mobile">
-              <h1 className="company-name-mobile">SquareCloud Malaysia</h1>
-            </div>
-          )}
-
-          {/* Right-side content for logged-in users */}
           {isLoggedIn && (
             <div className="header-actions-mobile">
               <div className="user-info-mobile">
                 <span>Welcome, {username}</span>
               </div>
-
               <button className="logout-btn-mobile" onClick={handleLogout}>
                 Logout
               </button>
@@ -122,25 +102,34 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
           )}
         </div>
       ) : (
-        // Desktop view
+        /* ---------------- DESKTOP LAYOUT ---------------- */
         <div className="header-desktop">
-          <div className="logo">
-            <img src={Logo} alt="Logo" className="logo-img" />
+          {/* Left side: Hamburger + Logo */}
+          <div className="left-actions">
+            {isLoggedIn && (
+              <button className="toggle-sidebar-btn" onClick={onToggleSidebar}>
+                <FaBars />
+              </button>
+            )}
+            <div className="logo">
+              <img src={Logo} alt="Logo" className="logo-img" />
+            </div>
           </div>
 
-          <div className={`company-name-container ${isLoggedIn ? 'logged-in' : ''}`}>
+          {/* Center: Company Name */}
+          <div className="center-title">
             <h1 className="company-name">SquareCloud Malaysia</h1>
           </div>
 
+          {/* Right side: Notifications, User Info, Logout */}
           {isLoggedIn && (
-            <div className="header-actions">
-              <span className="user-info-desktop">Welcome, {username}</span>
+            <div className="right-actions">
               <FaBell
                 className="notification-icon"
-                onClick={async () => {
+                onClick={() => {
                   setShowDropdown((prev) => {
                     if (!prev) {
-                      fetchLogs(); // Fetch logs only when opening the dropdown
+                      fetchLogs();
                     }
                     return !prev;
                   });
@@ -152,7 +141,10 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
                   {notifications.length > 0 ? (
                     <ul className="notification-list">
                       {notifications.map((log) => (
-                        <li className="notification-item" key={log.transaction_id}>
+                        <li
+                          className="notification-item"
+                          key={log.transaction_id}
+                        >
                           <p className="notification-title">
                             <strong>{log.item_name}</strong> ({log.model})
                           </p>
@@ -175,6 +167,7 @@ const Header = ({ isLoggedIn, username, onLogout, toggleFocusMode, isFocusMode }
                   )}
                 </div>
               )}
+              <span className="user-info-desktop">Welcome, {username}</span>
               <button className="logout-btn-desktop" onClick={handleLogout}>
                 Logout
               </button>

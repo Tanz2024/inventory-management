@@ -1,258 +1,216 @@
+/* Global Header Styles */
 .header {
-  display: flex !important;
-  justify-content: space-between!important;
-  align-items: center!important;
-  background-color: #282c34!important;
-  color: white!important;
-  z-index: 2!important; /* Make sure header stays on top of sidebar */
+  display: flex;
+  align-items: center;
+  background-color: #282c34;
+  color: #fff;
+  padding: 1rem 2rem;
+  position: relative;
+  z-index: 2;
 }
 
+/* ---------------- Desktop Styles ---------------- */
 .header-desktop {
-  width: 100%!important; /* Make header span the entire width */
-
-  display: flex!important;
-  justify-content: space-between!important; /* Ensures spacing between elements */
-  align-items: center!important;
-  padding: 1rem 2rem!important;
-  background-color: #282c34!important;
-  color: white!important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* Spreads out left, center, right */
+  width: 100%;
 }
 
-.header-desktop .logo {
-  display: flex!important;
-  align-items: center!important;
+/* Left side: hamburger + logo */
+.left-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.toggle-sidebar-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.logo {
+  display: flex;
+  align-items: center;
+}
+.logo-img {
+  max-width: 100px;
+  height: auto;
 }
 
-.header-desktop .logo-img {
-  width: 100%!important;    /* Make the logo fill the container while maintaining aspect ratio */
-  height: auto!important;   /* Maintain the aspect ratio */
-  max-width: 100%!important; /* Ensure the logo doesn't exceed the max-width of its container */
+/* Center: company name */
+.center-title {
+  flex: 1;                /* Takes remaining space, ensuring center alignment */
+  text-align: center;
+}
+.company-name {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin: 0;
 }
 
-.header-desktop .company-name-container {
-  margin-right:37.5vw!important;
-  text-align: center!important;
+/* Right side: notifications, user info, logout */
+.right-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.header-desktop .company-name-container.logged-in {
-  margin-left:14vw!important;
-  text-align: center!important;  
-  margin-right:0!important;
-}
-
-.header-desktop .company-name {
-  font-size:2vw!important;
-  font-weight: bold!important;
-  margin: 0!important; /* Remove any default margins */
-}
-
-.header-desktop .header-actions {
-  display: flex!important;
-  align-items: center!important;
-  gap: 1vw!important; /* Adjust spacing between user-info and logout button */
-}
-
-.user-info-desktop {
-  font-size: 1vw!important;
-  font-weight: normal!important;
-  color: white!important;
-  display: flex!important; /* Make the user-info container a flex container */
-  align-items: center!important; /* Align items vertically centered */
-  white-space: nowrap!important; /* Prevent wrapping of the content */
-  gap: 1vw!important;
-}
-
-.user-info-desktop span {
-  margin-right: 1vw!important; /* Add some spacing between "Welcome" text and the button */
-}
-
-.logout-btn-desktop {
-  background-color: transparent!important;
-  color: white!important; /* White text color */
-  border: 1px solid white!important; /* White border */
-  padding: 0.42vw 0.83vw!important;
-  cursor: pointer!important;
-  font-size: 1vw!important;
-  margin-left: 10px!important;
-  margin-top: 0!important;
-  transition: background-color 0.3s ease, border-color 0.3s ease!important;
-}
-
-.logout-btn-desktop:hover {
-  background-color: white!important;
-  color: #282c34!important; /* Change text color to black when hovered */
-  border-color: #282c34!important; /* Border color matches background on hover */
-}
-
-.logout-btn-desktop:focus {
-  outline: none!important; /* Remove the focus outline */
-}
-
+/* Notification icon & dropdown */
 .notification-icon {
-  font-size: 2rem!important;
-  cursor: pointer!important;
-  margin-right: 20px!important;
-  margin-left: 20px!important;
+  font-size: 1.5rem;
+  cursor: pointer;
 }
-
 .notification-dropdown {
-  position: absolute!important;
-  top: 50px!important;
-  right: 20px!important;
-  background-color: #fff!important;
-  border: 1px solid #ccc!important;
-  border-radius: 5px!important;
-  width: 350px!important;
-  max-height: 400px!important;
-  overflow-y: auto!important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2)!important;
-  padding: 10px!important;
-  z-index: 1000!important;
+  position: absolute;
+  top: 60px;
+  right: 2rem;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 350px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  color: #000;
 }
-
 .notification-dropdown h4 {
-  margin: 10px 0 10px 0!important;
-  font-size: 1.2rem!important;
-  text-align: center!important;
-  color:black!important;
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+  text-align: center;
+  position: relative;
 }
-
-.notification-dropdown ul {
-  list-style-type: none!important;
-  padding: 0!important;
-  color:black!important;
-}
-
 .notification-dropdown h4::after {
-  content: ''!important;
-  display: block!important;
-  width: 80%!important; /* Adjust the width as needed */
-  height: 0.25vh!important; /* Thickness of the line */
-  background-color: #ccc!important; /* Line color */
-  margin: 10px auto 0 auto!important; /* Center the line and add space */
+  content: "";
+  display: block;
+  width: 80%;
+  height: 2px;
+  background-color: #ccc;
+  margin: 10px auto 0 auto;
 }
-
 .notification-list {
-  list-style: none!important;
-  margin: 0!important;
-  padding: 0!important;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-
 .notification-item {
-  border-bottom: 1px solid #ccc!important;
-  padding: 10px 5px!important;
-  font-size: 0.9rem!important;
+  border-bottom: 1px solid #ccc;
+  padding: 10px 5px;
+  font-size: 0.9rem;
 }
-
 .notification-item:last-child {
-  border-bottom: none!important;
+  border-bottom: none;
 }
-
 .notification-title {
-  font-weight: bold!important;
-  margin-bottom: 5px!important;
+  font-weight: bold;
+  margin-bottom: 5px;
 }
-
 .notification-details {
-  display: flex!important;
-  font-size: 0.85rem!important;
-  color: #555!important;
-  
+  display: flex;
+  font-size: 0.85rem;
+  color: #555;
+  gap: 10px;
 }
-
-.notification-details span {
-  margin-right: 10px !important;
-}
-
-
 .notification-remarks {
-  margin-top: 5px!important;
-  font-size: 0.85rem!important;
-  color: #444!important;
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #444;
 }
-
 .notification-date {
-  margin-top: 1px!important;
-  font-size: 0.75rem!important;
-  color: #888!important;
+  margin-top: 1px;
+  font-size: 0.75rem;
+  color: #888;
 }
 
-
-
-
-/* //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// */
-
-
-.header-mobile {
-  width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 0.5rem 1rem !important;
-  background-color: #282c34 !important;
-  color: white !important;
+/* User info on desktop */
+.user-info-desktop {
+  font-size: 1rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.hamburger-container-mobile {
-  flex: 0.1 !important; /* Fixed width for hamburger menu */
-  margin-left: -2vw !important;
+/* Logout button (desktop) */
+.logout-btn-desktop {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+.logout-btn-desktop:hover {
+  background-color: #fff;
+  color: #282c34;
+  border-color: #282c34;
 }
 
-.hamburger-menu-mobile {
-  background: none !important;
-  border: none !important;
-  color: white !important;
-  font-size: 1.5rem !important;
-  cursor: pointer !important;
-}
+/* ---------------- Mobile Styles ---------------- */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+  }
 
-.header-actions-mobile {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  flex: 0.6 !important; /* Adjust width to fit the content */
-  gap: 0.5rem !important;
-  margin-left: -7vw !important;
-}
+  .header-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
 
-.user-info-mobile {
-  font-size: 0.9rem !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.3rem !important;
-  color: white !important;
-  width: 100% !important;
-}
+  /* Hamburger Menu (mobile) */
+  .hamburger-menu-mobile {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
 
-.logout-btn-mobile {
-  background: none !important;
-  color: white !important;
-  border: 1px solid white !important;
-  padding: 0.3rem 0.6rem !important;
-  cursor: pointer !important;
-  border-radius: 5px !important;
-}
+  /* Mobile Logo and Company Name */
+  .logo-mobile {
+    display: flex;
+    align-items: center;
+  }
+  .logo-img-mobile {
+    max-width: 120px;
+    height: auto;
+  }
+  .company-name-container-mobile {
+    flex: 1;
+    text-align: center;
+  }
+  .company-name-mobile {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0;
+  }
 
-.logout-btn-mobile:hover {
-  background-color: white !important;
-  color: #282c34 !important;
-}
-
-.company-name-container-mobile {
-  display: flex !important; /* Make it a flex container */
-  align-items: center !important; /* Vertically center the content */
-  justify-content: center !important; /* Center horizontally */
-  width: 100% !important; /* Ensure it spans the full width of the header */
-  text-align: center !important; /* Center-align the text inside */
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.company-name-mobile {
-  font-size: 1rem !important;
-  font-weight: bold !important;
-  color: white !important;
-  margin: 0 !important;
-  margin-left: 15vw !important;
-
+  /* Mobile header actions */
+  .header-actions-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .user-info-mobile {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+  }
+  .logout-btn-mobile {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #fff;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  .logout-btn-mobile:hover {
+    background-color: #fff;
+    color: #282c34;
+  }
 }

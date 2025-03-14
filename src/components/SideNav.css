@@ -1,73 +1,111 @@
+/* 1) MAIN SIDEBAR CONTAINER */
 .side-nav {
+  /* Position & sizing */
   position: fixed;
   top: 0;
-  left: 0;
-  width: 9vw;              /* Use a percentage or fixed width (e.g., 240px) */
-  min-width: 140px;        /* Ensures the sidebar never gets too narrow */
-  height: 100vh;           /* Full screen height */
-  background-color: #282c34; /* Matching your existing dark color */
-  color: #ffffff;          /* White text for contrast */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+  left: 0;                  /* We'll handle show/hide with transform */
+  width: 250px;            /* Fixed width (e.g., 250px) */
+  height: 100vh;           /* Full viewport height */
+
+  /* Appearance: subtle gradient from dark gray to #282c34 */
+  background: linear-gradient(135deg, #2c3035 0%, #282c34 100%);
+  color: #ffffff;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
+
+  /* Layout & spacing */
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 1.25rem;         /* Outer padding */
   box-sizing: border-box;
   z-index: 9999;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif; /* A clean, modern font */
+
+  /* Typography */
+  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Slide-in/out animation (using transform) */
+  transform: translateX(-100%); /* Hidden by default */
+  transition: transform 0.3s ease;
 }
 
-/* LOGO Container at the top of the sidebar */
+/* 2) SIDEBAR "OPEN" STATE */
+.side-nav.open {
+  transform: translateX(0); /* Slides into view */
+}
+
+/* 3) TOP BAR: HAMBURGER + LOGO */
+.top-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem; /* Space below top bar */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle divider */
+  padding-bottom: 1rem;
+}
+
+.hamburger-icon {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-right: 1rem;
+  outline: none;  /* Remove default focus outline; consider a custom focus style */
+
+  /* Hover effect: subtle scale & accent color */
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.hamburger-icon:hover {
+  color: #61dafb;        /* Accent on hover */
+  transform: scale(1.1); /* Slight enlargement */
+}
+
 .logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem; /* Space below the logo to separate from nav links */
 }
 
-/* The logo image itself */
 .logo-img {
-  max-width: 80%; /* Keep the logo scaled */
+  max-width: 80%;
   height: auto;
   display: block;
 }
 
-/* Navigation List */
+/* 4) NAVIGATION LIST */
 .side-nav ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* Navigation Items */
-.side-nav ul li {
-  margin: 1rem 0; /* Spacing between nav links */
+/* 5) NAV ITEMS */
+.side-nav li {
+  margin-bottom: 0.75rem; /* Vertical spacing between items */
 }
 
-/* First nav item: remove top margin if needed */
-.side-nav ul li:first-child {
-  margin-top: 0;
-}
-
-/* Nav Links */
+/* 6) NAV LINKS */
 .side-nav ul li a {
   color: #ffffff;
   text-decoration: none;
-  font-size: 1rem;   /* More readable on most screens */
-  display: block;    /* Gives a full clickable area */
+  font-size: 1rem;
+  display: block;          /* Full clickable area */
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
+
+  /* Transition for hover/active states */
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Hover state: slightly lighter background color */
+/* 7) HOVER STATE */
 .side-nav ul li a:hover {
-  background-color: #3a3f44; /* A shade lighter than #282c34 */
+  background-color: #3a3f44; /* Slightly lighter than #282c34 */
 }
 
-/* Active link state: subtle highlight with a left accent border */
+/* 8) ACTIVE LINK STATE */
 .side-nav ul li a.active {
   background-color: #3a3f44;
-  font-weight: bold;
-  border-left: 4px solid #61dafb; /* React's accent color or pick any accent (#1abc9c, etc.) */
+  font-weight: 600;
+
+  /* Accent border on the left (pick any color you like) */
+  border-left: 4px solid #61dafb;
   padding-left: calc(0.75rem - 4px);
 }

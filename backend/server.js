@@ -79,15 +79,8 @@ const authenticateJWT = (req, res, next) => {
 
 
 const authenticateAdmin = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err || user.role_id !== 1) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    req.user = user;
+  authenticateJWT(req, res, () => {
+    if (req.user.role_id !== 1) return res.status(403).json({ message: 'Forbidden' });
     next();
   });
 };
@@ -110,70 +103,37 @@ const upload = multer({
 // ---------------------------------------------------------------------
 // 7) Authentication Routes
 // ---------------------------------------------------------------------
-app.get('/authenticate', async (req, res) => {
+app.get('/authenticate', (req, res) => {
   const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ message: 'Not authenticated' });
-  }
+  if (!token) return res.status(401).json({ message: 'Not authenticated' });
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const { user_id, username, role_id } = decoded;
-    return res.json({ user_id, username, role_id });
-  } catch (error) {
-    console.error('JWT verification error:', error);
-    return res.status(401).json({ message: 'Invalid token' });
+    const { user_id, username, role_id } = jwt.verify(token, JWT_SECRET);
+    res.json({ user_id, username, role_id });
+  } catch {
+    res.status(401).json({ message: 'Invalid token' });
   }
 });
 
-app.post(
-  '/login',
-  asyncHandler(async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required.' });
-    }
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'User not found' });
-    }
+app.post('/login', asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
 
-    const user = result.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+  const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  if (result.rows.length === 0) return res.status(400).json({ message: 'User not found' });
 
-    const token = jwt.sign(
-      { user_id: user.user_id, username: user.username, role_id: user.role_id },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+  const user = result.rows[0];
+  if (!await bcrypt.compare(password, user.password_hash)) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // Set JWT in an httpOnly cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'None',
-      secure: true,
-      maxAge: 3600000, // 1 hour
-    });
-    console.log("Login success");
+  const token = jwt.sign({ user_id: user.user_id, username: user.username, role_id: user.role_id }, JWT_SECRET, { expiresIn: '1h' });
 
-    return res.json({
-      message: 'Login successful',
-      role_id: user.role_id,
-      user_id: user.user_id,
-      redirect: user.role_id === 1 ? '/admin-dashboard' : '/user-dashboard'
-    });
-  })
-);
+  res.cookie('token', token, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 3600000 });
+  res.json({ message: 'Login successful', role_id: user.role_id, user_id: user.user_id, redirect: user.role_id === 1 ? '/admin-dashboard' : '/user-dashboard' });
+}));
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'Strict',
-    secure: true,
-  });
-  res.status(200).json({ message: 'Logged out successfully' });
+  res.clearCookie('token', { httpOnly: true, sameSite: 'Strict', secure: true });
+  res.json({ message: 'Logged out successfully' });
 });
 
 // ---------------------------------------------------------------------
@@ -1206,26 +1166,27 @@ app.patch(
     }
 
     await pool.query(`
-      INSERT INTO inventory_transactions
-        (item_id, user_id, transaction_type, quantity_change, timestamp,
-         key_in_date, key_in_date_old, remarks, status, price_update,
-         site_name, unit, change_summary)
-      VALUES
-        ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
-    `, [
-      itemId,
-      req.user.user_id,
-      transactionType,
-      quantityToLog,
-      updatedAuditDate,
-      keyInDateOldValue,
-      updatedRemarks,
-      isPriceUpdated ? updatedPrice : null,  // Ensure only numeric value is stored
-      updatedSiteName,
-      updatedUnit,
-      changeSummary
-    ]);
-    
+  INSERT INTO inventory_transactions
+    (item_id, user_id, transaction_type, quantity_change, timestamp,
+     key_in_date, key_in_date_old, remarks, status, price_update,
+     site_name, unit, change_summary)
+  VALUES
+    ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
+`, [
+  itemId,
+  req.user.user_id,
+  transactionType,
+  quantityToLog,
+  updatedAuditDate,
+  keyInDateOldValue,
+  updatedRemarks,
+  isPriceUpdated ? updatedPrice : null,  // Ensure only numeric value is stored
+  updatedSiteName,
+  updatedUnit,
+  changeSummary
+]);
+
+
     // ---------------------------------------------------------------------
     // Return response
     // ---------------------------------------------------------------------

@@ -13,73 +13,94 @@
 
   /* Additional highlight or accent color */
   --accent-color: #e1f5fe; /* a light blue accent */
+
+  /* Sizing & Spacing */
+  --base-spacing: 1rem; /* 16px if 1rem = 16px */
+  --small-spacing: 0.5rem; /* 8px */
+  --transition-duration: 0.2s;
+}
+
+/* Ensure body uses the background color and reset margins */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  line-height: 1.5;
 }
 
 /* Container for the entire report page */
 .report-container {
-  background-color: var(--background-color);
-  color: var(--text-color);
-  font-family: var(--font-family);
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--base-spacing);
 }
 
 /* Header with back button */
 .report-header {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--base-spacing);
 }
+
 .back-button {
-  background: none;
+  background-color: var(--primary-color);
+  color: #fff;
   border: none;
-  color: var(--primary-color);
-  font-size: 24px;
+  padding: var(--small-spacing) var(--base-spacing);
+  font-size: 0.9rem;
   cursor: pointer;
-  margin-right: 10px;
-  transition: color 0.2s ease;
+  border-radius: 4px;
+  margin-right: var(--small-spacing);
+  transition: background-color var(--transition-duration) ease,
+    box-shadow var(--transition-duration) ease;
 }
 .back-button:hover {
-  color: var(--primary-hover);
+  background-color: var(--primary-hover);
+  box-shadow: var(--box-shadow);
 }
+
 .report-header h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 1.5rem;
   color: var(--primary-color);
 }
 
 /* Filters */
 .report-form {
   background-color: var(--card-background);
-  padding: 15px;
+  padding: var(--base-spacing);
   border-radius: 6px;
   box-shadow: var(--box-shadow);
-  margin-bottom: 20px;
+  margin-bottom: var(--base-spacing);
 }
 .filters-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: var(--small-spacing);
+  margin-bottom: var(--base-spacing);
   align-items: flex-end;
 }
 .filter-group {
   display: flex;
   flex-direction: column;
+  min-width: 180px; /* Helps maintain layout in narrower views */
 }
 .filter-group label {
   font-weight: 600;
   margin-bottom: 5px;
   color: var(--primary-color);
+  font-size: 0.9rem;
 }
 .filter-group input,
 .filter-group select {
   padding: 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.9rem;
+  transition: border-color var(--transition-duration) ease,
+    box-shadow var(--transition-duration) ease;
 }
 .filter-group input:focus,
 .filter-group select:focus {
@@ -87,11 +108,15 @@
   border-color: var(--primary-color);
   box-shadow: 0 0 3px var(--primary-color);
 }
+
 .filter-actions {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: var(--small-spacing);
   align-items: center;
 }
+
+/* Buttons */
 .apply-button,
 .clear-button,
 .export-button,
@@ -99,12 +124,14 @@
   background-color: var(--primary-color);
   color: #fff;
   border: none;
-  padding: 8px 14px;
-  font-size: 14px;
+  padding: var(--small-spacing) var(--base-spacing);
+  font-size: 0.9rem;
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color var(--transition-duration) ease,
+    box-shadow var(--transition-duration) ease;
 }
+
 .apply-button:hover,
 .clear-button:hover,
 .export-button:hover,
@@ -115,52 +142,54 @@
 
 /* Global collapse container */
 .global-collapse-container {
-  margin: 20px 0;
+  margin: var(--base-spacing) 0;
   text-align: center;
 }
 
 /* Items Section */
 .items-section {
-  margin-top: 30px;
+  margin-top: calc(var(--base-spacing) * 2);
 }
+
 .item-card {
-  margin-bottom: 25px;
+  margin-bottom: var(--base-spacing);
   background-color: var(--card-background);
   border-radius: 6px;
   box-shadow: var(--box-shadow);
-  padding: 15px;
-  transition: background-color 0.2s ease;
+  padding: var(--base-spacing);
+  transition: background-color var(--transition-duration) ease;
 }
 .item-card:hover {
   background-color: var(--accent-color);
 }
 .item-card h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 var(--small-spacing) 0;
   color: var(--primary-color);
-  font-size: 18px;
+  font-size: 1.1rem;
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 5px;
+  padding-bottom: var(--small-spacing);
 }
 
 /* Table styling */
 .item-logs-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
-  font-size: 14px;
+  margin-bottom: var(--base-spacing);
+  font-size: 0.9rem;
 }
 .item-logs-table th,
 .item-logs-table td {
   border: 1px solid var(--border-color);
-  padding: 8px;
+  padding: var(--small-spacing);
   text-align: left;
 }
 .item-logs-table th {
   cursor: pointer;
   background-color: #f0f0f0;
   user-select: none;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-duration) ease;
   color: var(--primary-color);
+  font-weight: 600;
 }
 .item-logs-table th:hover {
   background-color: #e8e8e8;
@@ -179,7 +208,7 @@
 
 /* Export section */
 .export-section {
-  margin-top: 20px;
+  margin-top: var(--base-spacing);
 }
 
 /* Item tag styling for selected items */
@@ -190,8 +219,11 @@
   border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color var(--transition-duration) ease,
+    color var(--transition-duration) ease,
+    box-shadow var(--transition-duration) ease;
   background-color: #fff;
+  font-size: 0.9rem;
 }
 .items-list .item-tag:hover {
   background-color: var(--primary-color);
@@ -208,22 +240,48 @@
 
 /* Highlight styling */
 .highlight {
-  background-color: #ffd700; /* changed to gold for a more noticeable highlight */
+  background-color: #ffd700; /* gold highlight */
   font-weight: bold;
   border-radius: 3px;
   padding: 2px 4px;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-duration) ease;
 }
 .highlight:hover {
   background-color: #ffcc00;
 }
-.tick-mark {
-  margin-left: 5px;
-  color: green;
-  font-size: 16px;
-}
+
+/* Sub-row styling for old/new date changes */
 .sub-row {
   background-color: #f9f9f9;
   font-style: italic;
   color: #555;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .report-container {
+    padding: var(--small-spacing);
+  }
+
+  .filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    min-width: 100%;
+  }
+
+  .item-logs-table {
+    font-size: 0.85rem;
+  }
+
+  .back-button,
+  .apply-button,
+  .clear-button,
+  .export-button,
+  .collapse-button {
+    font-size: 0.85rem;
+    padding: var(--small-spacing);
+  }
 }

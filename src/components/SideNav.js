@@ -1,17 +1,57 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './SideNav.css';
-// Import your logo image here:
+import { FaBars } from 'react-icons/fa';
 import Logo from '../images/SQLOGO3.png';
 
-function SideNav({ userId }) {
+function SideNav({ userId, onToggleSidebar, isSidebarOpen }) {
   const location = useLocation();
+  const sideNavRef = useRef(null);
+
+  // OPTIONAL: swipe to close the sidebar from inside the side nav
+  useEffect(() => {
+    const sideNav = sideNavRef.current;
+    if (!sideNav) return;
+
+    let touchStartX = 0;
+    let touchCurrentX = 0;
+
+    const handleTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX;
+    };
+
+    const handleTouchMove = (e) => {
+      touchCurrentX = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = () => {
+      // If user swiped left more than 50px inside the side nav, close it
+      if (touchStartX - touchCurrentX > 50) {
+        onToggleSidebar();
+      }
+    };
+
+    sideNav.addEventListener('touchstart', handleTouchStart);
+    sideNav.addEventListener('touchmove', handleTouchMove);
+    sideNav.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      sideNav.removeEventListener('touchstart', handleTouchStart);
+      sideNav.removeEventListener('touchmove', handleTouchMove);
+      sideNav.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [onToggleSidebar]);
 
   return (
-    <div className="side-nav">
-      {/* LOGO at the top */}
-      <div className="logo-container">
-        <img src={Logo} alt="Logo" className="logo-img" />
+    <div ref={sideNavRef} className={`side-nav ${isSidebarOpen ? 'open' : ''}`}>
+      {/* Top bar: hamburger + logo */}
+      <div className="top-bar">
+        <button className="hamburger-icon" onClick={onToggleSidebar}>
+          <FaBars />
+        </button>
+        <div className="logo-container">
+          <img src={Logo} alt="Logo" className="logo-img" />
+        </div>
       </div>
 
       <ul>
@@ -29,7 +69,10 @@ function SideNav({ userId }) {
           </Link>
         </li>
         <li>
-          <Link to="/reservation" className={location.pathname === '/reservation' ? 'active' : ''}>
+          <Link
+            to="/reservation"
+            className={location.pathname === '/reservation' ? 'active' : ''}
+          >
             Reservation
           </Link>
         </li>

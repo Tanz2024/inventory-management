@@ -1,6 +1,13 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from 'react-router-dom';
+import { useSwipeable } from 'react-swipeable';
 import AdminDashboard from './components/AdminDashboard';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -13,7 +20,6 @@ import ArchiveItemsPage from './components/ArchiveItems';
 import Reservation from './components/Reservation';
 import DeliveryOrder from './components/Delivery';
 import GoodReceive from './components/GoodReceive';
-
 import ReportView from './components/ReportView';
 
 function App() {
@@ -27,9 +33,20 @@ function AppContent() {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Setup swipe handlers: swipe left to hide sidebar, right to show sidebar
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => setIsSidebarOpen(false),
+    onSwipedRight: () => setIsSidebarOpen(true),
+    trackMouse: true, // also track mouse drags
+  });
+
+  // Authenticate user and retrieve stored credentials
   useEffect(() => {
     const authenticateUser = async () => {
       setLoading(true);
@@ -41,8 +58,8 @@ function AppContent() {
       if (storedUsername && storedRoleId && storedUserId) {
         setIsLoggedIn(true);
         setUsername(storedUsername);
-        setRoleId(parseInt(storedRoleId));
-        setUserId(parseInt(storedUserId));
+        setRoleId(parseInt(storedRoleId, 10));
+        setUserId(parseInt(storedUserId, 10));
         setLoading(false);
         return;
       }
@@ -58,7 +75,12 @@ function AppContent() {
 
         if (response.ok) {
           const data = await response.json();
-          if (data && data.username && data.role_id !== undefined && data.user_id !== undefined) {
+          if (
+            data &&
+            data.username &&
+            data.role_id !== undefined &&
+            data.user_id !== undefined
+          ) {
             setIsLoggedIn(true);
             setUsername(data.username);
             setRoleId(data.role_id);
@@ -85,6 +107,7 @@ function AppContent() {
     authenticateUser();
   }, []);
 
+  // Clear authentication and redirect to login
   const clearAuthAndRedirect = () => {
     setIsLoggedIn(false);
     setUsername('');
@@ -96,12 +119,14 @@ function AppContent() {
     navigate('/login', { replace: true });
   };
 
+  // Save last path visited when logged in
   useEffect(() => {
     if (isLoggedIn) {
       sessionStorage.setItem('lastPath', location.pathname);
     }
   }, [location.pathname, isLoggedIn]);
 
+  // Navigate to saved path on login
   useEffect(() => {
     if (isLoggedIn) {
       const savedPath = sessionStorage.getItem('lastPath');
@@ -111,6 +136,7 @@ function AppContent() {
     }
   }, [isLoggedIn, navigate, location.pathname]);
 
+  // Handle login and store user credentials
   const handleLogin = (username, roleId, userId) => {
     setIsLoggedIn(true);
     setUsername(username);
@@ -125,8 +151,14 @@ function AppContent() {
     navigate(savedPath, { replace: true });
   };
 
+  // Logout and clear credentials
   const handleLogout = () => {
     clearAuthAndRedirect();
+  };
+
+  // Toggle sidebar visibility (for header or side nav button click)
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
   };
 
   if (loading) {
@@ -135,16 +167,41 @@ function AppContent() {
 
   return (
     <div>
-      <Header className="app-header" isLoggedIn={isLoggedIn} username={username} onLogout={handleLogout} />
-      <div className={`app-container ${isLoggedIn ? '' : 'login-page'}`}>
+      {/* Header with the same toggle function */}
+      <Header
+        isLoggedIn={isLoggedIn}
+        username={username}
+        onLogout={handleLogout}
+        onToggleSidebar={handleToggleSidebar}
+        isSidebarOpen={isSidebarOpen}
+      />
+
+      {/* Wrap main container with swipe handlers for open/close */}
+      <div {...swipeHandlers} className={`app-container ${isLoggedIn ? '' : 'login-page'}`}>
         <div className="main-section">
-          {isLoggedIn && <SideNav userId={userId} />}
-          <div className={`content-area ${isLoggedIn ? '' : 'login-view'}`}>
+          {/* Only show sidebar if logged in and isSidebarOpen */}
+          {isLoggedIn && isSidebarOpen && (
+            <SideNav
+              userId={userId}
+              isSidebarOpen={isSidebarOpen}
+              onToggleSidebar={handleToggleSidebar}
+            />
+          )}
+
+          <div
+            className={`content-area ${isLoggedIn ? '' : 'login-view'} ${
+              isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
+            }`}
+          >
             <Routes>
               <Route
                 path="/login"
                 element={
-                  isLoggedIn ? <Navigate to={sessionStorage.getItem('lastPath') || '/admin-dashboard'} /> : <Login onLogin={handleLogin} />
+                  isLoggedIn ? (
+                    <Navigate to={sessionStorage.getItem('lastPath') || '/admin-dashboard'} />
+                  ) : (
+                    <Login onLogin={handleLogin} />
+                  )
                 }
               />
               <Route
@@ -211,7 +268,6 @@ function AppContent() {
                   </ProtectedRoute>
                 }
               />
-              {/* New route for Report View */}
               <Route
                 path="/report-view"
                 element={
