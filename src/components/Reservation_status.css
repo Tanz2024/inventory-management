@@ -1,0 +1,225 @@
+:root {
+  --primary-color: #008cba;       /* Vibrant blue */
+  --primary-hover: #006b96;
+  --accent-color: #ff9800;        /* Bold accent orange */
+  --text-color: #333;
+  --background-color: #fff;
+  --card-background: #fdfdfd;     /* Clean card background */
+  --border-color: #e0e0e0;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --font-family: 'Arial', sans-serif;
+  --base-spacing: 1rem;
+  --small-spacing: 0.5rem;
+  --transition-duration: 0.3s;
+}
+
+/* Reserve Container & Base Styles */
+.reserve-container {
+  max-width: 100%;
+  margin: 50px auto;
+  padding: var(--base-spacing);
+  background-color: var(--background-color);
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Header Section */
+.reserve-container .header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--base-spacing);
+}
+
+.reserve-container .header-container .add-item-button,
+.reserve-container .header-container .delete-item-button {
+  padding: 10px 15px;
+  font-size: 1.25rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 120px;
+  margin-right: var(--small-spacing);
+  transition: background-color var(--transition-duration) ease;
+}
+
+.reserve-container .header-container .add-item-button:hover,
+.reserve-container .header-container .delete-item-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.reserve-container .header-container .header-admin-dashboard {
+  font-size: 2rem;
+  margin-bottom: var(--small-spacing);
+  text-align: left;
+  color: var(--text-color);
+  font-weight: bold;
+}
+
+/* Table Styling */
+.reserve-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--base-spacing);
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reserve-container table th,
+.reserve-container table td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.reserve-container table th {
+  background-color: var(--primary-color);
+  color: #fff;
+  font-weight: bold;
+  transition: background-color var(--transition-duration) ease;
+}
+
+.reserve-container table th:hover {
+  background-color: var(--primary-hover);
+}
+
+.reserve-container table td {
+  background-color: var(--card-background);
+}
+
+.reserve-container table tbody tr:nth-child(even) {
+  background-color: #f7f7f7;
+}
+
+.reserve-container table tbody tr:hover {
+  background-color: var(--accent-color);
+  cursor: pointer;
+}
+
+/* Quantity Input */
+.reserve-container table .quantity-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reserve-container table .quantity-input {
+  width: 50px;
+  height: 30px;
+  text-align: center;
+  padding: 5px;
+  margin: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  margin-top: 5px;
+}
+
+/* Table Buttons */
+.reserve-container table td button {
+  padding: 5px 10px;
+  margin: 5px;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  transition: background-color var(--transition-duration) ease;
+}
+
+.reserve-container table td button:hover {
+  background-color: var(--primary-hover);
+}
+
+.reserve-container table .confirmButton {
+  width: 100%;
+}
+
+/* Additional Dashboard Text */
+.reserve-container table .dashboard-C,
+.reserve-container table .dashboard-D {
+  font-size: 0.8rem;
+}
+
+/* Remarks Input */
+.reserve-container table .remarks-input {
+  width: 100px;
+  height: 30px;
+  text-align: center;
+  padding: 5px;
+  margin: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  margin-top: 5px;
+}
+
+/* Error Message */
+.reserve-container .error-message {
+  color: #e53935;
+  font-weight: bold;
+  text-align: center;
+  margin-top: var(--base-spacing);
+}
+
+/* OCR Section */
+.ocr-container {
+  margin-bottom: 3vh;
+}
+
+.ocr-submit-btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color var(--transition-duration) ease;
+  width: 20%;
+  margin-top: 1vh;
+}
+
+.ocr-submit-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+  .reserve-container {
+    padding: var(--small-spacing);
+    max-height: none;
+  }
+
+  .reserve-container .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reserve-container .header-container .add-item-button,
+  .reserve-container .header-container .delete-item-button {
+    width: 100%;
+    margin-bottom: var(--small-spacing);
+  }
+
+  .reserve-container .header-container .header-admin-dashboard {
+    font-size: 1.5rem;
+  }
+
+  .reserve-container table {
+    font-size: 0.8rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .reserve-container table th,
+  .reserve-container table td {
+    padding: 10px;
+  }
+
+  .ocr-submit-btn {
+    width: 100%;
+  }
+}

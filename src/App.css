@@ -1,0 +1,67 @@
+:root {
+  --primary-color: #0077A1;
+  --primary-hover: #005F80;
+  --background-color: #ffffff;
+  --text-color: #333;
+  --transition-duration: 0.3s;
+  --sidebar-width: 12vw;
+}
+
+/* App Root */
+.App {
+  text-align: center;
+}
+
+/* Main App Container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--background-color);
+}
+
+/* Main Section (Sidebar + Content) */
+.main-section {
+  display: flex;
+  flex-grow: 1;
+  padding: 0;
+}
+
+/* Content Area */
+.content-area {
+  flex-grow: 1;
+  padding: 20px;
+  transition: all var(--transition-duration) ease;
+}
+
+/* When sidebar is visible */
+.content-area.sidebar-open {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}
+
+/* When sidebar is hidden */
+.content-area.sidebar-closed {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* Loading Screen */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: rgba(0, 119, 161, 0.1);
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
