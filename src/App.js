@@ -65,7 +65,7 @@ function AppContent() {
       }
 
       try {
-        const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/authenticate', {
+        const response = await fetch('http://localhost:5000/authenticate', {
           method: 'GET',
           credentials: 'include',
           headers: {

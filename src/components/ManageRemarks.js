@@ -9,13 +9,19 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newRemark, setNewRemark] = useState('');
 
+  // Helper: Common headers for fetch calls
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '1'
+  };
+
   // Fetch remarks from the backend
   const refreshRemarks = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        headers: commonHeaders
       });
       if (response.ok) {
         const data = await response.json();
@@ -43,20 +49,17 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   const handleAddRemark = async () => {
     const trimmed = newRemark.trim();
     if (!trimmed) return;
-
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/remarks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ option: trimmed }),
+        headers: commonHeaders,
+        body: JSON.stringify({ option: trimmed })
       });
       const data = await resp.json();
       if (!resp.ok) {
         if (data.existingOptions) {
-          alert(
-            `Cannot add: "${trimmed}" already exists as: ${data.existingOptions.join(', ')}.`
-          );
+          alert(`Cannot add: "${trimmed}" already exists as: ${data.existingOptions.join(', ')}`);
         } else {
           alert(`Failed to add remark: ${data.message}`);
         }
@@ -71,14 +74,18 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
     }
   };
 
+  // Delete a remark option
   const handleDeleteRemark = async (remarkName) => {
     if (!window.confirm(`Are you sure you want to delete "${remarkName}"?`)) return;
     try {
-      const resp = await fetch(`https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks/${encodeURIComponent(remarkName)}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
+      const resp = await fetch(
+        `http://localhost:5000/dropdown-options/remarks/${encodeURIComponent(remarkName)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: commonHeaders
+        }
+      );
       const data = await resp.json();
       if (!resp.ok) {
         alert(`Failed to delete remark: ${data.message}`);
@@ -100,11 +107,11 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks/rename', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/remarks/rename', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ oldOption: oldName, newOption: newName }),
+        headers: commonHeaders,
+        body: JSON.stringify({ oldOption: oldName, newOption: newName })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -173,7 +180,6 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-
           {filteredRemarks.length > 0 ? (
             <ul className="sites-list">
               {filteredRemarks.map((remark) => (

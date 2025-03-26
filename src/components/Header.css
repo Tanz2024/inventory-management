@@ -3,13 +3,19 @@
    ============================ */
    .header {
     display: flex;
+    position: fixed;
     align-items: center;
     background-color: #282c34;
     color: #fff;
     padding: 1rem 2rem;
     position: relative;
-    z-index: 2;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
   }
+
   
   /* Desktop container */
   .header-desktop {
@@ -37,8 +43,9 @@
     align-items: center;
   }
   .logo-img {
-    max-width: 100px;
+    width: 180px;
     height: auto;
+    filter: brightness(1.4);
   }
   
   /* Center: company name */

@@ -11,19 +11,27 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const [editingSite, setEditingSite] = useState(null);
   const [renameInput, setRenameInput] = useState('');
 
+  // Common headers for all fetch calls
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '1'
+  };
+
   // Fetch sites from backend
   const fetchSites = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const response = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: commonHeaders,
+        credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
         setOriginalSites(data.sites);
         setLocalSites(data.sites);
         if (typeof onUpdate === 'function') onUpdate(data.sites);
+      } else {
+        console.error('Failed to fetch site options');
       }
     } catch (error) {
       console.error('Error fetching site options:', error);
@@ -48,13 +56,12 @@ const ManageSites = ({ onClose, onUpdate }) => {
       alert('Site name cannot be empty.');
       return;
     }
-
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ option: trimmed }),
+        body: JSON.stringify({ option: trimmed })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -78,11 +85,11 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const handleDeleteSiteLocal = async (siteName) => {
     if (!window.confirm(`Are you sure you want to delete "${siteName}"?`)) return;
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ option: siteName }),
+        body: JSON.stringify({ option: siteName })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -117,11 +124,11 @@ const ManageSites = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites/rename', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites/rename', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ oldOption: oldName, newOption: newName }),
+        body: JSON.stringify({ oldOption: oldName, newOption: newName })
       });
       const data = await resp.json();
       if (!resp.ok) {

@@ -1,5 +1,5 @@
 :root {
-  --sidebar-width: 250px;
+  --sidebar-width: 170px;
   --sidebar-bg-start: #2c3035;
   --sidebar-bg-end: #282c34;
   --sidebar-text: #ffffff;
@@ -17,7 +17,8 @@
   top: 0;
   left: 0;
   width: var(--sidebar-width);
-  height: 100vh;
+  margin-top: 90px;
+  height: 90vh;
   background: linear-gradient(135deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
   color: var(--sidebar-text);
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);

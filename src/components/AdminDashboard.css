@@ -49,40 +49,91 @@
       ========================================================================== */
    .admin-dashboard-container {
      width: 100%;
-     max-width: 1700px;
-     margin: 2rem auto;
+     /* max-width: 2400px; */
+     /* margin: 2rem auto; */
+     margin-top: 90px;
      padding: 20px;
      background-color: var(--background-color);
      border-radius: 0.5rem;
      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
      font-family: var(--font-family);
    }
-   
-   /* Table container */
-   .table-container {
-     width: 100%;
-     overflow-x: auto;
-     padding-bottom: 1rem;
-   }
-   
    /* ==========================================================================
       3. Base Table Styling & Fade-In Animation
       ========================================================================== */
-   .admin-dashboard-table {
-     width: 100%;
-     border-collapse: collapse;
-     font-size: 0.9rem;
-     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-   }
-   
-   .admin-dashboard-table th,
-   .admin-dashboard-table td {
-     padding: 0.75rem 1rem;
-     text-align: center;
-     border: 1px solid var(--light-border);
-     vertical-align: middle;
-   }
-   
+.admin-dashboard-table {
+  width: 100%;
+  table-layout: auto; /* ← changed from fixed */
+}
+/* Allow dropdown text to wrap instead of truncating */
+select {
+  white-space: normal !important;
+}
+select option {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Make table & cells use border‑box sizing so padding doesn’t expand width */
+.admin-dashboard-table,
+.admin-dashboard-table th,
+.admin-dashboard-table td {
+  box-sizing: border-box;
+}
+
+/* Ensure table stays full width but never grows beyond it */
+.admin-dashboard-table {
+  width: 100%;
+  table-layout: auto;
+  max-width: 100%;
+}
+
+/* Your desired padding */
+.admin-dashboard-table th,
+.admin-dashboard-table td {
+  padding: 3px 4px;
+  border: 1px solid var(--light-border);
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+
+.table-container {
+  overflow-x: auto;
+  max-width: 100vw;
+  padding: 5px;
+}
+/* Single‑line controls: truncate overflow with ellipsis */
+input,
+select {
+  width: 170px;
+  padding: 12px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  font-size: 15px;
+  font-family: var(--font-base);
+
+  white-space: nowrap;      /* keep text on one line */
+  overflow: hidden;         /* hide overflow */
+  text-overflow: ellipsis;  /* show “…” for overflow */
+}
+
+/* Multi‑line text area: wrap long content to new lines */
+textarea {
+  width: 150px;
+  padding: 12px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  font-size: 15px;
+  font-family: var(--font-base);
+
+  white-space: pre-wrap;    /* allow wrapping */
+  word-break: break-word;   /* break at word boundaries */
+  resize: vertical;         /* user can adjust height */
+}
+
+
    .admin-dashboard-table th {
      background-color: var(--primary-color);
      color: #fff;
@@ -122,16 +173,18 @@
    /* ==========================================================================
       4. Header & Action Buttons
       ========================================================================== */
+
    .header-container {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     flex-wrap: wrap;
-     border-bottom: 2px solid #f0f0f0;
-     padding-bottom: 0.5rem;
-     margin-bottom: 1rem;
-   }
-   
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .header-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
    .header-admin-dashboard {
      font-size: 1.8rem;
      font-weight: bold;
@@ -143,6 +196,9 @@
      display: flex;
      gap: 0.5rem;
      margin-top: 0.5rem;
+     height: 50px;
+     margin-top: 15px;
+     width: auto;
    }
    
    /* ==========================================================================
@@ -205,19 +261,19 @@
      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
    }
    
-   /* ==========================================================================
-      6. Search Bar
-      ========================================================================== */
 /* ========================================================================== 
    6. Search Bar 
    ========================================================================== */
    .search-container {
     margin-bottom: 1rem;
+    display: flex;
   }
   
   .search-input {
-    width: 100%;
+    width: 50%;
     padding: 0.75rem 1rem;
+    margin-right: 270px;
+    margin-top: 20px;
     font-size: 1rem;
     border: 1px solid var(--border-color);
     border-radius: 0.25rem;
@@ -308,7 +364,14 @@
    /* ==========================================================================
       8. Column Filter Dropdown
       ========================================================================== */
-   .dropdown-container {
+   /* Filters on a single row */
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+      .dropdown-container {
      position: relative;
      margin-bottom: 1rem;
    }
