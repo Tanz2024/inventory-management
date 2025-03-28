@@ -5,7 +5,7 @@
   max-width: 100%;
   margin: 50px auto;
   padding: 20px;
-  background-color: #fff;
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -18,7 +18,7 @@
 }
 
 .zero-quantity-page p {
-  font-size: 1rem; /* Slightly smaller to keep consistency */
+  font-size: 1rem;
   color: #333;
   text-align: center;
   margin: 10px 0;
@@ -29,8 +29,8 @@
  **************************************/
 .zero-quantity-table-container,
 .zero-quantity-table-container2 {
-  max-height: 400px; /* Limit the max height */
-  overflow-y: auto;  /* Vertical scroll if needed */
+  max-height: 400px;
+  overflow-y: auto;
   margin-bottom: 20px;
 }
 
@@ -45,19 +45,25 @@
   font-size: 0.8rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
-  overflow: hidden; /* So border-radius applies to corners */
+  overflow: hidden; /* Ensures border-radius on corners */
 }
 
 /* Table Headers */
 .zero-quantity-table th,
 .zero-quantity-table2 th {
-  background-color: #0077a1; /* Header color */
+  background-color: #0077a1;
   color: #fff;
   font-weight: bold;
   padding: 12px 15px;
   text-align: left;
   border: 1px solid #ddd;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.zero-quantity-table th:hover,
+.zero-quantity-table2 th:hover {
+  background-color: #005f80;
 }
 
 /* Table Cells */
@@ -98,8 +104,8 @@
  * Transaction Logs Title
  **************************************/
 .transaction-logs-title {
-  margin-bottom: 0 !important;
   margin-top: 5vh;
+  margin-bottom: 0 !important;
 }
 
 /**************************************
@@ -116,14 +122,14 @@
     margin-bottom: 15px;
   }
 
-  /* Make tables scroll horizontally on small screens */
+  /* Enable horizontal scrolling for tables on small screens */
   .zero-quantity-table,
   .zero-quantity-table2 {
     font-size: 0.7rem;
     display: block;
     overflow-x: auto;
     white-space: nowrap;
-    border-radius: 0;
+    border-radius: 0; /* Remove rounded corners for better scroll */
   }
 
   .zero-quantity-table th,

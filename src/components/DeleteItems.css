@@ -1,4 +1,6 @@
-/* Delete Dialog Styles with Blue Color Pattern */
+/* ==========================================================================
+   Delete Dialog Styles with Blue Color Pattern
+   ========================================================================== */
 
 /* Dialog Container: fluid & centered */
 .delete-dialog {
@@ -20,6 +22,21 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   z-index: 1000; /* On top of other elements */
   box-sizing: border-box;
+
+  /* Optional: smooth fade-in animation */
+  animation: fadeInDialog 0.3s ease;
+}
+
+/* Fade-in keyframes */
+@keyframes fadeInDialog {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
 }
 
 /* Dialog Title */
@@ -61,47 +78,78 @@
 /* Button Container */
 .delete-dialog-buttons {
   display: flex;
-  justify-content: space-between;
   gap: 1rem; /* Slight gap between buttons if needed */
+  margin-top: 10px;
 }
 
-/* Dialog Buttons */
+/* Base Button Styles */
 .delete-dialog button {
+  flex: 1;                 /* Make all buttons equal width */
   padding: 10px 20px;
   cursor: pointer;
   border: none;
   border-radius: 5px;
   font-size: 1em;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  background-color: #43abc1; /* Blue tone for buttons */
-  color: white;
+  background-color: #43abc1; /* Restored original blue */
+  color: #fff;
   box-sizing: border-box;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* Subtle depth */
 }
 
-.delete-dialog button:last-child {
-  margin-right: 0;
-}
 
-.delete-dialog button:hover {
+/* Confirm Button (Blue) */
+.delete-dialog button.confirm-button {
+  background-color: #43abc1;
+}
+.delete-dialog button.confirm-button:hover {
   background-color: #455883; /* Darker blue on hover */
   transform: scale(1.05);
 }
 
+/* Cancel Button (Red) */
+.delete-dialog button.cancel-button {
+  background-color: #dc3545;
+}
+.delete-dialog button.cancel-button:hover {
+  background-color: #c82333; /* Darker red on hover */
+  transform: scale(1.05);
+}
+
+/* Checkboxes in table rows */
 .delete-dialog input[type="checkbox"] {
   margin-right: 10px;
 }
 
-/* Optional: smooth fade-in animation */
-@keyframes fadeInDialog {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -40%);
+/* ==========================================================================
+   Mobile Optimization: Adjust styles for smaller screens (~576px and below)
+   ========================================================================== */
+@media (max-width: 576px) {
+  .delete-dialog {
+    width: 90vw;      /* More fluid on very small screens */
+    padding: 16px;
   }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
+
+  .delete-dialog h2 {
+    font-size: 1.2em; /* Slightly smaller heading on mobile */
+    margin-bottom: 1.5vh;
   }
-}
-.delete-dialog {
-  animation: fadeInDialog 0.3s ease;
+
+  /* Reduce table's max height if needed */
+  .delete-items-table {
+    max-height: 200px;
+  }
+
+  /* Stack buttons vertically for easier tapping */
+  .delete-dialog-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .delete-dialog button {
+    width: 100%;
+    font-size: 1rem;  /* Keep text readable */
+    padding: 12px;
+  }
 }

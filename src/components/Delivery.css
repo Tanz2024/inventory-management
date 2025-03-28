@@ -26,7 +26,7 @@
 /* Container styling */
 .form-container {
   max-width: 800px;
-  width: 100%;
+  width: 90%;
   padding: 30px;
   margin: 20px auto;
   border: 1px solid var(--border-color);
@@ -189,4 +189,37 @@ button.refresh-btn:hover {
 .summary p {
   margin: 5px 0;
   color: var(--dark-gray);
+}
+
+/* ==========================================================================
+   Mobile Optimizations
+   ========================================================================== */
+@media (max-width: 480px) {
+  .form-container {
+    padding: 20px;
+    margin: 10px auto;
+  }
+  .form-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  label {
+    font-size: 14px;
+  }
+  input,
+  select,
+  textarea {
+    padding: 10px;
+    font-size: 14px;
+  }
+  button {
+    padding: 12px;
+    font-size: 14px;
+  }
+  .grid-container {
+    gap: 15px;
+  }
+  .item-form {
+    padding: 15px;
+  }
 }

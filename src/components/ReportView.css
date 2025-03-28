@@ -1,26 +1,24 @@
 :root {
-  --primary-color: #0077a1;
-  --primary-hover: #005f80;
-  --text-color: #333;
-  --background-color: #fff;
-  --border-color: #ccc;
+  --primary-color: #2a6f97;         /* softer, calming blue */
+  --primary-hover: #245b82;
+  --text-color: #444;
+  --background-color: #fafafa;
+  --border-color: #e0e0e0;
   --font-family: 'Arial', sans-serif;
 
-  /* Subtle backgrounds, shadows, etc. */
-  --card-background: #f9f9f9;
-  --hover-background: #f2f2f2;
+  /* Card & Accent Colors for Agenda/Inventory */
+  --card-background: #ffffff;       /* clean white for cards */
+  --hover-background: #f0f8ff;        /* light, cool hover */
   --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-
-  /* Additional highlight or accent color */
-  --accent-color: #e1f5fe; /* a light blue accent */
+  --accent-color: #ffdd57;          /* warm, inviting accent (golden) */
 
   /* Sizing & Spacing */
-  --base-spacing: 1rem; /* 16px if 1rem = 16px */
-  --small-spacing: 0.5rem; /* 8px */
+  --base-spacing: 1rem;
+  --small-spacing: 0.5rem;
   --transition-duration: 0.2s;
 }
 
-/* Ensure body uses the background color and reset margins */
+/* Global Body & Container */
 body {
   margin: 0;
   padding: 0;
@@ -30,14 +28,13 @@ body {
   line-height: 1.5;
 }
 
-/* Container for the entire report page */
 .report-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--base-spacing);
 }
 
-/* Header with back button */
+/* Header with Back Button */
 .report-header {
   display: flex;
   align-items: center;
@@ -54,8 +51,9 @@ body {
   border-radius: 4px;
   margin-right: var(--small-spacing);
   transition: background-color var(--transition-duration) ease,
-    box-shadow var(--transition-duration) ease;
+              box-shadow var(--transition-duration) ease;
 }
+
 .back-button:hover {
   background-color: var(--primary-hover);
   box-shadow: var(--box-shadow);
@@ -63,11 +61,11 @@ body {
 
 .report-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   color: var(--primary-color);
 }
 
-/* Filters */
+/* Filters Section */
 .report-form {
   background-color: var(--card-background);
   padding: var(--base-spacing);
@@ -75,6 +73,7 @@ body {
   box-shadow: var(--box-shadow);
   margin-bottom: var(--base-spacing);
 }
+
 .filters-row {
   display: flex;
   flex-wrap: wrap;
@@ -82,17 +81,20 @@ body {
   margin-bottom: var(--base-spacing);
   align-items: flex-end;
 }
+
 .filter-group {
   display: flex;
   flex-direction: column;
-  min-width: 180px; /* Helps maintain layout in narrower views */
+  min-width: 180px;
 }
+
 .filter-group label {
   font-weight: 600;
   margin-bottom: 5px;
   color: var(--primary-color);
   font-size: 0.9rem;
 }
+
 .filter-group input,
 .filter-group select {
   padding: 8px;
@@ -100,8 +102,9 @@ body {
   border-radius: 4px;
   font-size: 0.9rem;
   transition: border-color var(--transition-duration) ease,
-    box-shadow var(--transition-duration) ease;
+              box-shadow var(--transition-duration) ease;
 }
+
 .filter-group input:focus,
 .filter-group select:focus {
   outline: none;
@@ -116,7 +119,7 @@ body {
   align-items: center;
 }
 
-/* Buttons */
+/* Vibrant Buttons */
 .apply-button,
 .clear-button,
 .export-button,
@@ -129,7 +132,7 @@ body {
   cursor: pointer;
   border-radius: 4px;
   transition: background-color var(--transition-duration) ease,
-    box-shadow var(--transition-duration) ease;
+              box-shadow var(--transition-duration) ease;
 }
 
 .apply-button:hover,
@@ -140,7 +143,7 @@ body {
   box-shadow: var(--box-shadow);
 }
 
-/* Global collapse container */
+/* Global Collapse Container */
 .global-collapse-container {
   margin: var(--base-spacing) 0;
   text-align: center;
@@ -153,15 +156,17 @@ body {
 
 .item-card {
   margin-bottom: var(--base-spacing);
-  background-color: var(--card-background);
+  background: linear-gradient(135deg, var(--card-background), var(--hover-background));
   border-radius: 6px;
   box-shadow: var(--box-shadow);
   padding: var(--base-spacing);
   transition: background-color var(--transition-duration) ease;
 }
+
 .item-card:hover {
   background-color: var(--accent-color);
 }
+
 .item-card h3 {
   margin: 0 0 var(--small-spacing) 0;
   color: var(--primary-color);
@@ -170,48 +175,52 @@ body {
   padding-bottom: var(--small-spacing);
 }
 
-/* Table styling */
+/* Table Styling */
 .item-logs-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: var(--base-spacing);
   font-size: 0.9rem;
 }
+
 .item-logs-table th,
 .item-logs-table td {
   border: 1px solid var(--border-color);
   padding: var(--small-spacing);
   text-align: left;
 }
+
 .item-logs-table th {
   cursor: pointer;
-  background-color: #f0f0f0;
-  user-select: none;
+  background-color: #e0f7fa;
   transition: background-color var(--transition-duration) ease;
   color: var(--primary-color);
   font-weight: 600;
 }
+
 .item-logs-table th:hover {
-  background-color: #e8e8e8;
+  background-color: #b2ebf2;
 }
+
 .item-logs-table tbody tr:hover {
   background-color: var(--hover-background);
 }
 
-/* Color-coded rows */
+/* Color-coded Rows */
 .row-positive {
-  background-color: #e3f9e5;
-}
-.row-negative {
-  background-color: #fde7e7;
+  background-color: #d0f0c0;
 }
 
-/* Export section */
+.row-negative {
+  background-color: #f8d7da;
+}
+
+/* Export Section */
 .export-section {
   margin-top: var(--base-spacing);
 }
 
-/* Item tag styling for selected items */
+/* Item Tags */
 .items-list .item-tag {
   display: inline-block;
   margin: 5px;
@@ -220,17 +229,19 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color var(--transition-duration) ease,
-    color var(--transition-duration) ease,
-    box-shadow var(--transition-duration) ease;
-  background-color: #fff;
+              color var(--transition-duration) ease,
+              box-shadow var(--transition-duration) ease;
+  background-color: #ffffff;
   font-size: 0.9rem;
 }
+
 .items-list .item-tag:hover {
   background-color: var(--primary-color);
   color: #fff;
   border-color: var(--primary-color);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
+
 .items-list .item-tag.selected {
   background-color: var(--primary-color);
   color: #fff;
@@ -238,44 +249,41 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-/* Highlight styling */
+/* Highlight Styling */
 .highlight {
-  background-color: #ffd700; /* gold highlight */
+  background-color: #ffd700; /* gold */
   font-weight: bold;
   border-radius: 3px;
   padding: 2px 4px;
   transition: background-color var(--transition-duration) ease;
 }
+
 .highlight:hover {
   background-color: #ffcc00;
 }
 
-/* Sub-row styling for old/new date changes */
+/* Sub-row Styling */
 .sub-row {
   background-color: #f9f9f9;
   font-style: italic;
   color: #555;
 }
 
-/* Responsive Adjustments */
+/* Responsive Adjustments for Mobile */
 @media (max-width: 768px) {
   .report-container {
     padding: var(--small-spacing);
   }
-
   .filters-row {
     flex-direction: column;
     align-items: stretch;
   }
-
   .filter-group {
     min-width: 100%;
   }
-
   .item-logs-table {
     font-size: 0.85rem;
   }
-
   .back-button,
   .apply-button,
   .clear-button,
@@ -284,4 +292,8 @@ body {
     font-size: 0.85rem;
     padding: var(--small-spacing);
   }
+}
+.initial-stock-row {
+  background-color: #f2f2f2;
+  font-style: italic;
 }

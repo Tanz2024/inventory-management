@@ -1,35 +1,39 @@
+:root {
+  --sidebar-width: 250px;
+  --sidebar-bg-start: #2c3035;
+  --sidebar-bg-end: #282c34;
+  --sidebar-text: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-accent: #61dafb;
+  --sidebar-hover: #3a3f44;
+  --transition-duration: 0.3s;
+  --padding: 1.25rem;
+  --font-family-sans: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+
 /* 1) MAIN SIDEBAR CONTAINER */
 .side-nav {
-  /* Position & sizing */
   position: fixed;
   top: 0;
-  left: 0;                  /* We'll handle show/hide with transform */
-  width: 250px;            /* Fixed width (e.g., 250px) */
-  height: 100vh;           /* Full viewport height */
-
-  /* Appearance: subtle gradient from dark gray to #282c34 */
-  background: linear-gradient(135deg, #2c3035 0%, #282c34 100%);
-  color: #ffffff;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: linear-gradient(135deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+  color: var(--sidebar-text);
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
-
-  /* Layout & spacing */
   display: flex;
   flex-direction: column;
-  padding: 1.25rem;         /* Outer padding */
+  padding: var(--padding);
   box-sizing: border-box;
   z-index: 9999;
-
-  /* Typography */
-  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-
-  /* Slide-in/out animation (using transform) */
+  font-family: var(--font-family-sans);
   transform: translateX(-100%); /* Hidden by default */
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-duration) ease;
 }
 
 /* 2) SIDEBAR "OPEN" STATE */
 .side-nav.open {
-  transform: translateX(0); /* Slides into view */
+  transform: translateX(0);
 }
 
 /* 3) TOP BAR: HAMBURGER + LOGO */
@@ -37,24 +41,22 @@
   display: flex;
   align-items: center;
   margin-bottom: 2rem; /* Space below top bar */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle divider */
+  border-bottom: 1px solid var(--sidebar-border);
   padding-bottom: 1rem;
 }
 
 .hamburger-icon {
   background: none;
   border: none;
-  color: #ffffff;
+  color: var(--sidebar-text);
   font-size: 1.5rem;
   cursor: pointer;
   margin-right: 1rem;
-  outline: none;  /* Remove default focus outline; consider a custom focus style */
-
-  /* Hover effect: subtle scale & accent color */
+  outline: none; /* Custom focus style can be added if needed */
   transition: color 0.2s ease, transform 0.2s ease;
 }
 .hamburger-icon:hover {
-  color: #61dafb;        /* Accent on hover */
+  color: var(--sidebar-accent); /* Accent on hover */
   transform: scale(1.1); /* Slight enlargement */
 }
 
@@ -84,28 +86,23 @@
 
 /* 6) NAV LINKS */
 .side-nav ul li a {
-  color: #ffffff;
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: 1rem;
   display: block;          /* Full clickable area */
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
-
-  /* Transition for hover/active states */
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 7) HOVER STATE */
 .side-nav ul li a:hover {
-  background-color: #3a3f44; /* Slightly lighter than #282c34 */
+  background-color: var(--sidebar-hover); /* Lighter background on hover */
 }
 
-/* 8) ACTIVE LINK STATE */
+/* 7) ACTIVE LINK STATE */
 .side-nav ul li a.active {
-  background-color: #3a3f44;
+  background-color: var(--sidebar-hover);
   font-weight: 600;
-
-  /* Accent border on the left (pick any color you like) */
-  border-left: 4px solid #61dafb;
+  border-left: 4px solid var(--sidebar-accent);
   padding-left: calc(0.75rem - 4px);
 }

@@ -27,8 +27,8 @@ app.use(express.json());
 // 2) CORS Setup
 // ---------------------------------------------------------------------
 const corsOptions = {
+  // origin: 'https://inventory-e9c9f.web.app',
   origin: 'http://localhost:3000', 
-  // origin: ' https://inventory-e9c9f.web.app', // your frontend origin
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -42,6 +42,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
 
 // ---------------------------------------------------------------------
 // 3) Async Handler Wrapper
@@ -132,7 +133,7 @@ app.post('/login', asyncHandler(async (req, res) => {
 }));
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('token', { httpOnly: true, sameSite: 'Strict', secure: true });
+  res.clearCookie('token', { httpOnly: true, sameSite: 'None', secure: true });
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -478,7 +479,8 @@ app.post(
       remarks,
       site_name,
       location,
-      unit
+      unit,
+      date // <-- New: Key in Date from the client
     } = req.body;
 
     if (!item_name || !category) {
@@ -510,15 +512,15 @@ app.post(
     `);
     const nextOrder = parseInt(maxRows[0].max_order, 10) + 1;
 
-    // 3) Insert new item, omitting "item_id"
+    // 3) Insert new item, including the new "audit_date" field
     const insertQuery = `
       INSERT INTO items
         (category, item_name, model, item_unique_id, quantity, price,
-         remarks, site_name, location, unit, display_order,
+         remarks, site_name, location, unit, display_order, audit_date,
          archived_at, reserved_quantity, updated_at)
       VALUES
         ($1, $2, $3, $4, $5, $6,
-         $7, $8, $9, $10, $11,
+         $7, $8, $9, $10, $11, $12,
          NULL, 0, NOW())
       RETURNING *;
     `;
@@ -533,7 +535,8 @@ app.post(
       site_name || '',
       location || '',
       unit || '',
-      nextOrder
+      nextOrder,
+      date || null  // <-- New: Insert provided date into audit_date column
     ];
 
     const { rows } = await pool.query(insertQuery, values);
@@ -583,7 +586,7 @@ app.patch(
       return res.status(400).json({ message: 'No items selected for archiving' });
     }
 
-    // Archive the selected items (set archived_at and remove display_order)
+    // Archive the selected items (set archived_at, updated_at, and remove display_order)
     const archiveResult = await pool.query(
       `
       UPDATE items
@@ -592,7 +595,7 @@ app.patch(
           display_order = NULL
       WHERE item_id = ANY($1::int[])
         AND archived_at IS NULL
-      RETURNING item_id, item_name, quantity, category, model, item_unique_id
+      RETURNING item_id, item_name, quantity, category, model, item_unique_id, quantity
       `,
       [itemIds]
     );
@@ -606,8 +609,7 @@ app.patch(
            transaction_type, quantity_change, remarks, status, timestamp, change_summary)
         VALUES
           ($1, $2, $3, $4, $5, $6, 'Archive Item', -($7::integer),
-           'Item archived', 'Approved', NOW(),
-           'Item archived from admin dashboard.')
+           'Item archived', 'Approved', NOW(), 'Item archived from admin dashboard.')
         `,
         [
           item.item_id,
@@ -621,19 +623,8 @@ app.patch(
       );
     }
 
-    // Automatically resequence the display_order for active (non-archived) items
-    await pool.query(`
-      WITH ordered AS (
-        SELECT item_id,
-               ROW_NUMBER() OVER (ORDER BY display_order) AS new_order
-        FROM items
-        WHERE archived_at IS NULL
-      )
-      UPDATE items
-      SET display_order = ordered.new_order
-      FROM ordered
-      WHERE items.item_id = ordered.item_id;
-    `);
+    // Automatically resequence display_order for active (non-archived) items
+    await resequenceDisplayOrder();
 
     const archivedCount = archiveResult.rowCount;
     let message = `${archivedCount} item(s) archived successfully.`;
@@ -641,175 +632,44 @@ app.patch(
       message += ' The remaining items may already be archived or do not exist.';
     }
 
-    // 1) Mask the item_id in the response
-    const maskedItems = archiveResult.rows.map((item) => ({
+    // Mask the item_id in the response (if needed)
+    const maskedItems = archiveResult.rows.map(item => ({
       ...item,
-      item_id: '*****', // or null, or any placeholder you want
+      item_id: '*****'
     }));
 
     return res.status(200).json({
       message,
-      archivedItems: maskedItems, // 2) Return masked items
+      archivedItems: maskedItems,
     });
   })
 );
-
-app.patch(
-  '/admin-dashboard/items/restore',
-  authenticateAdmin,
-  asyncHandler(async (req, res) => {
-    const { itemIds } = req.body;
-    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
-      return res.status(400).json({ error: 'No items selected for restore' });
-    }
-
-    // Select only the items that are actually archived
-    const itemsToRestore = await pool.query(
-      `
-      SELECT item_id
-      FROM items
-      WHERE item_id = ANY($1::int[])
-        AND archived_at IS NOT NULL
-      `,
-      [itemIds]
-    );
-
-    if (itemsToRestore.rowCount === 0) {
-      return res.status(404).json({
-        error: 'No archived items found or items already active',
-      });
-    }
-
-    // Get the current highest display_order among active items
-    const { rows: maxRows } = await pool.query(
-      `
-      SELECT COALESCE(MAX(display_order), 0) AS max_display
-      FROM items
+async function resequenceDisplayOrder() {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Retrieve active items ordered by starred status (starred items first), then by display_order, then item_id.
+    const { rows } = await client.query(`
+      SELECT item_id FROM items
       WHERE archived_at IS NULL
-      `
-    );
-    let currentMaxDisplay = parseInt(maxRows[0].max_display, 10);
-
-    let restoreResult = { rows: [] };
-
-    // For each archived item, update it as active and assign a new display_order
-    for (const itemId of itemIds) {
-      currentMaxDisplay++;
-      const partialResult = await pool.query(
-        `
-        UPDATE items
-        SET archived_at = NULL,
-            updated_at = NOW(),
-            display_order = $2
-        WHERE item_id = $1
-          AND archived_at IS NOT NULL
-        RETURNING item_id, item_name, quantity, category, model, item_unique_id, display_order
-        `,
-        [itemId, currentMaxDisplay]
-      );
-      restoreResult.rows.push(...partialResult.rows);
-    }
-
-    // Log each restore transaction
-    for (const item of restoreResult.rows) {
-      await pool.query(
-        `
-        INSERT INTO inventory_transactions
-          (item_id, category, user_id, item_name, model, item_unique_id,
-           transaction_type, quantity_change, remarks, status, timestamp, change_summary)
-        VALUES
-          ($1, $2, $3, $4, $5, $6, 'Restore Item', $7,
-           'Item restored back to dashboard', 'Approved', NOW(),
-           'Item restored from archive to dashboard.')
-        `,
-        [
-          item.item_id,
-          item.category,
-          req.user.user_id,
-          item.item_name,
-          item.model,
-          item.item_unique_id,
-          item.quantity || 0,
-        ]
-      );
-    }
-
-    // Automatically resequence the display_order after restoration
-    await pool.query(`
-      WITH ordered AS (
-        SELECT item_id,
-               ROW_NUMBER() OVER (ORDER BY display_order) AS new_order
-        FROM items
-        WHERE archived_at IS NULL
-      )
-      UPDATE items
-      SET display_order = ordered.new_order
-      FROM ordered
-      WHERE items.item_id = ordered.item_id;
+      ORDER BY (CASE WHEN starred THEN 0 ELSE 1 END), display_order, item_id
     `);
-
-    return res.status(200).json({
-      message: `${restoreResult.rows.length} item(s) restored successfully`,
-      restoredItems: restoreResult.rows,
-    });
-  })
-);
-app.patch(
-  '/admin-dashboard/items/fix-item-ids',
-  authenticateAdmin,
-  asyncHandler(async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // Step 1: Shift archived items away by adding a large offset.
-      const shiftArchivedQuery = `
-        UPDATE items
-        SET item_id = item_id + 1000000
-        WHERE archived_at IS NOT NULL;
-      `;
-      console.log('Executing shiftArchived query:', shiftArchivedQuery);
-      await client.query(shiftArchivedQuery);
-
-      // Step 2: For active items (archived_at IS NULL), assign temporary negative IDs based on desired order.
-      const tempUpdateQuery = `
-        WITH ordered AS (
-          SELECT item_id,
-                 ROW_NUMBER() OVER (ORDER BY CASE WHEN starred THEN 0 ELSE 1 END, item_id) AS new_id
-          FROM items
-          WHERE archived_at IS NULL
-        )
-        UPDATE items
-        SET item_id = -ordered.new_id
-        FROM ordered
-        WHERE items.item_id = ordered.item_id
-          AND archived_at IS NULL;
-      `;
-      console.log('Executing temporary update query:', tempUpdateQuery);
-      await client.query(tempUpdateQuery);
-
-      // Step 3: Convert negative IDs to positive.
-      const finalUpdateQuery = `
-        UPDATE items
-        SET item_id = ABS(item_id)
-        WHERE archived_at IS NULL;
-      `;
-      console.log('Executing final update query:', finalUpdateQuery);
-      await client.query(finalUpdateQuery);
-
-      await client.query('COMMIT');
-      console.log('Item IDs fixed successfully.');
-      return res.status(200).json({ message: 'Item IDs fixed successfully.' });
-    } catch (error) {
-      console.error('Failed to fix item IDs:', error);
-      await client.query('ROLLBACK');
-      return res.status(500).json({ error: error.message });
-    } finally {
-      client.release();
+    // Update display_order sequentially
+    for (let i = 0; i < rows.length; i++) {
+      const id = rows[i].item_id;
+      await client.query(
+        'UPDATE items SET display_order = $1 WHERE item_id = $2',
+        [i + 1, id]
+      );
     }
-  })
-);
-
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Failed to resequence display_order:', err);
+  } finally {
+    client.release();
+  }
+}
 
 
 app.delete(
@@ -899,7 +759,11 @@ app.patch(
       unit,
       item_unique_id,
       audit_date,
-      starred
+      starred,
+      item_name,    // new field
+      model,       // new field
+      category,    // new field
+      location     // new field for location update
     } = req.body;
 
     // 1) Only admins can update the price
@@ -918,18 +782,21 @@ app.patch(
     const updatedSiteName = req.body.hasOwnProperty('site_name')
       ? site_name
       : currentItem.site_name;
-
     const updatedRemarks = req.body.hasOwnProperty('remarks')
       ? remarks
       : currentItem.remarks;
-
     let updatedQuantity = currentItem.quantity;
     let updatedPrice = currentItem.price;
     let updatedUnit = req.body.hasOwnProperty('unit') ? unit : currentItem.unit;
     let updatedUniqueId = currentItem.item_unique_id;
     let updatedAuditDate = currentItem.audit_date;
     let updatedStarred = currentItem.starred;
-
+    // NEW fields
+    let updatedItemName = currentItem.item_name;
+    let updatedModel = currentItem.model;
+    let updatedCategory = currentItem.category;
+    let updatedLocation = currentItem.location;
+    
     // 4) Flags to detect changes
     let isUniqueIdUpdated = false;
     let isQuantityUpdated = false;
@@ -939,13 +806,15 @@ app.patch(
     let isUnitUpdated = false;
     let isAuditDateUpdated = false;
     let isStarredUpdated = false;
+    let isItemNameUpdated = false;
+    let isModelUpdated = false;
+    let isCategoryUpdated = false;
+    let isLocationUpdated = false; // NEW flag
 
     // 5) Array to collect textual logs
     const changeLogs = [];
 
-    // ---------------------------------------------------------------------
-    // Unique ID
-    // ---------------------------------------------------------------------
+    // --- Unique ID Update ---
     if (req.body.hasOwnProperty('item_unique_id')) {
       if (item_unique_id !== currentItem.item_unique_id) {
         // Check for duplicates
@@ -958,15 +827,13 @@ app.patch(
         }
         updatedUniqueId = item_unique_id;
         isUniqueIdUpdated = true;
-        changeLogs.push(
-          `Unique ID updated from "${currentItem.item_unique_id || 'N/A'}" to "${updatedUniqueId}"`
-        );
+        changeLogs.push(`Unique ID updated from "${currentItem.item_unique_id || 'N/A'}" to "${updatedUniqueId}"`);
       }
     }
 
-    // ---------------------------------------------------------------------
-    // Quantity Updates (newQuantity or quantityChange)
-    // ---------------------------------------------------------------------
+    // --- Quantity Updates (newQuantity or quantityChange) ---
+    const summaryDate = formatMYT(updatedAuditDate) || new Date().toLocaleString('en-MY');
+
     if (req.body.hasOwnProperty('newQuantity')) {
       const parsedNewQty = parseInt(newQuantity, 10);
       if (isNaN(parsedNewQty)) {
@@ -978,9 +845,7 @@ app.patch(
       updatedQuantity = parsedNewQty;
       if (updatedQuantity !== currentItem.quantity) {
         isQuantityUpdated = true;
-        changeLogs.push(
-          `Quantity updated from ${currentItem.quantity} to ${updatedQuantity} on ${formatMYT(updatedAuditDate)}`
-        );
+        changeLogs.push(`Quantity updated from ${currentItem.quantity} to ${updatedQuantity} on ${summaryDate}`);
       }
     } else if (req.body.hasOwnProperty('quantityChange')) {
       const parsedChange = parseInt(quantityChange, 10);
@@ -993,76 +858,103 @@ app.patch(
           return res.status(400).json({ message: 'Insufficient stock.' });
         }
         isQuantityUpdated = true;
-        changeLogs.push(
-          `Quantity changed from ${currentItem.quantity} to ${updatedQuantity} (Change: ${parsedChange}) on ${formatMYT(updatedAuditDate)}`
-        );
+        changeLogs.push(`Quantity changed from ${currentItem.quantity} to ${updatedQuantity} (Change: ${parsedChange}) on ${summaryDate}`);
       }
     }
+    
 
-    // ---------------------------------------------------------------------
-    // Price Update
-    // ---------------------------------------------------------------------
+    // --- Price Update ---
     if (req.body.hasOwnProperty('price')) {
       const parsedPrice = parseFloat(price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         return res.status(400).json({ message: 'Invalid price value.' });
       }
-      // Compare to current price
       if (parsedPrice !== parseFloat(currentItem.price)) {
         updatedPrice = parsedPrice;
         isPriceUpdated = true;
-        // Removed "RM" prefix here to avoid duplicate when concatenated in the SQL logs query.
         changeLogs.push(`Price updated from ${currentItem.price} to ${updatedPrice}`);
       }
     }
 
-    // ---------------------------------------------------------------------
-    // Site Name Update
-    // ---------------------------------------------------------------------
+    // --- Site Name Update ---
     if (req.body.hasOwnProperty('site_name') && site_name !== currentItem.site_name) {
       isSiteUpdated = true;
       changeLogs.push(`Site name updated from "${currentItem.site_name}" to "${updatedSiteName}"`);
     }
 
-    // ---------------------------------------------------------------------
-    // Remarks Update
-    // ---------------------------------------------------------------------
+    // --- Remarks Update ---
     if (req.body.hasOwnProperty('remarks') && remarks !== currentItem.remarks) {
       isRemarksUpdated = true;
       changeLogs.push(`Remarks updated from "${currentItem.remarks || 'N/A'}" to "${remarks}"`);
     }
 
-    // ---------------------------------------------------------------------
-    // Unit Update
-    // ---------------------------------------------------------------------
+    // --- Unit Update ---
     if (req.body.hasOwnProperty('unit') && unit !== currentItem.unit) {
       isUnitUpdated = true;
       changeLogs.push(`Unit updated from "${currentItem.unit}" to "${updatedUnit}"`);
     }
 
-    // ---------------------------------------------------------------------
-    // Audit Date (Key-in Date)
-    // ---------------------------------------------------------------------
-    if (req.body.hasOwnProperty('audit_date') && audit_date !== currentItem.audit_date) {
-      isAuditDateUpdated = true;
-      const formattedOld = formatMYT(currentItem.audit_date);
-      const formattedNew = formatMYT(audit_date);
-      changeLogs.push(`Audit date updated from "${formattedOld}" to "${formattedNew}"`);
-      updatedAuditDate = audit_date;
-    }
+    // --- Audit Date Update ---
+// --- Audit Date Update ---
+if (req.body.hasOwnProperty('audit_date')) {
+  // Convert empty string into null so Postgres won’t choke
+  const newDateValue = audit_date === "" ? null : audit_date;
 
-    // ---------------------------------------------------------------------
-    // Starred Update
-    // ---------------------------------------------------------------------
+  if (newDateValue !== currentItem.audit_date) {
+    isAuditDateUpdated = true;
+    const formattedOld = formatMYT(currentItem.audit_date);
+    const formattedNew = formatMYT(newDateValue);
+    changeLogs.push(`Audit date updated from "${formattedOld}" to "${formattedNew}"`);
+    updatedAuditDate = newDateValue;
+  }
+}
+
+
+    // --- Starred Update ---
     if (req.body.hasOwnProperty('starred') && starred !== currentItem.starred) {
       isStarredUpdated = true;
       updatedStarred = starred;
       changeLogs.push(`Starred status updated from "${currentItem.starred}" to "${updatedStarred}"`);
     }
 
-    // ---------------------------------------------------------------------
+    // --- Item Name Update with Duplicate Check ---
+    if (req.body.hasOwnProperty('item_name')) {
+      if (item_name !== currentItem.item_name) {
+        const { rows: duplicateNames } = await pool.query(
+          'SELECT * FROM items WHERE item_name = $1 AND item_id <> $2',
+          [item_name, itemId]
+        );
+        if (duplicateNames.length > 0) {
+          return res.status(400).json({ message: 'Duplicate Item Name detected.' });
+        }
+        updatedItemName = item_name;
+        isItemNameUpdated = true;
+        changeLogs.push(`Item name updated from "${currentItem.item_name}" to "${updatedItemName}"`);
+      }
+    }
+
+    // --- Model Update ---
+    if (req.body.hasOwnProperty('model') && model !== currentItem.model) {
+      updatedModel = model;
+      isModelUpdated = true;
+      changeLogs.push(`Model updated from "${currentItem.model}" to "${updatedModel}"`);
+    }
+
+    // --- Category Update ---
+    if (req.body.hasOwnProperty('category') && category !== currentItem.category) {
+      updatedCategory = category;
+      isCategoryUpdated = true;
+      changeLogs.push(`Category updated from "${currentItem.category}" to "${updatedCategory}"`);
+    }
+
+    // --- Location Update ---
+    if (req.body.hasOwnProperty('location') && location !== currentItem.location) {
+      updatedLocation = location;
+      isLocationUpdated = true;
+      changeLogs.push(`Location updated from "${currentItem.location}" to "${updatedLocation}"`);
+    }
+
     // If no changes, return early
-    // ---------------------------------------------------------------------
     if (
       !isQuantityUpdated &&
       !isPriceUpdated &&
@@ -1071,28 +963,20 @@ app.patch(
       !isUnitUpdated &&
       !isUniqueIdUpdated &&
       !isAuditDateUpdated &&
-      !isStarredUpdated
+      !isStarredUpdated &&
+      !isItemNameUpdated &&
+      !isModelUpdated &&
+      !isCategoryUpdated &&
+      !isLocationUpdated
     ) {
       return res.json({ message: 'No changes detected.', item: currentItem });
     }
 
-    // ---------------------------------------------------------------------
-    // Build change summary
-    // ---------------------------------------------------------------------
     const changeSummary = changeLogs.join('. ');
-
-    // ---------------------------------------------------------------------
-    // Determine transaction type
-    // ---------------------------------------------------------------------
     const changesCount = [
-      isQuantityUpdated,
-      isPriceUpdated,
-      isSiteUpdated,
-      isRemarksUpdated,
-      isUnitUpdated,
-      isUniqueIdUpdated,
-      isAuditDateUpdated,
-      isStarredUpdated
+      isQuantityUpdated, isPriceUpdated, isSiteUpdated, isRemarksUpdated,
+      isUnitUpdated, isUniqueIdUpdated, isAuditDateUpdated, isStarredUpdated,
+      isItemNameUpdated, isModelUpdated, isCategoryUpdated, isLocationUpdated
     ].filter(Boolean).length;
 
     let transactionType;
@@ -1118,13 +1002,14 @@ app.patch(
       transactionType = 'Audit Date Update';
     } else if (isStarredUpdated) {
       transactionType = 'Starred Update';
+    } else if (isLocationUpdated) {
+      transactionType = 'Location Update';
+    } else if (isItemNameUpdated || isModelUpdated || isCategoryUpdated) {
+      transactionType = 'Description Update';
     } else {
       transactionType = 'Inventory Update';
     }
 
-    // ---------------------------------------------------------------------
-    // Update the item in "items" table
-    // ---------------------------------------------------------------------
     const updateQuery = `
       UPDATE items
       SET
@@ -1136,8 +1021,12 @@ app.patch(
         item_unique_id = $6,
         audit_date = $7,
         starred = $8,
+        item_name = $9,
+        model = $10,
+        category = $11,
+        location = $12,
         updated_at = NOW()
-      WHERE item_id = $9
+      WHERE item_id = $13
       RETURNING *;
     `;
     const { rows: updatedRows } = await pool.query(updateQuery, [
@@ -1149,47 +1038,40 @@ app.patch(
       updatedUniqueId,
       updatedAuditDate,
       updatedStarred,
+      updatedItemName,
+      updatedModel,
+      updatedCategory,
+      updatedLocation,
       itemId
     ]);
     const updatedItem = updatedRows[0];
 
-    // ---------------------------------------------------------------------
-    // Insert transaction into "inventory_transactions"
-    // (Storing numeric-only price in "price_update")
-    // ---------------------------------------------------------------------
-    const keyInDateOldValue = isAuditDateUpdated ? currentItem.audit_date : null;
-    let quantityToLog = 0;
-    if (isQuantityUpdated) {
-      quantityToLog = req.body.hasOwnProperty('newQuantity')
-        ? updatedQuantity - currentItem.quantity
-        : parseInt(quantityChange, 10);
-    }
-
     await pool.query(`
-  INSERT INTO inventory_transactions
-    (item_id, user_id, transaction_type, quantity_change, timestamp,
-     key_in_date, key_in_date_old, remarks, status, price_update,
-     site_name, unit, change_summary)
-  VALUES
-    ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
-`, [
-  itemId,
-  req.user.user_id,
-  transactionType,
-  quantityToLog,
-  updatedAuditDate,
-  keyInDateOldValue,
-  updatedRemarks,
-  isPriceUpdated ? updatedPrice : null,  // Ensure only numeric value is stored
-  updatedSiteName,
-  updatedUnit,
-  changeSummary
-]);
+      INSERT INTO inventory_transactions
+        (item_id, user_id, transaction_type, quantity_change, timestamp,
+         key_in_date, key_in_date_old, remarks, status, price_update,
+         site_name, unit, change_summary)
+      VALUES
+        ($1, $2, $3, $4, NOW(), $5, $6, $7, 'Approved', $8, $9, $10, $11)
+    `, [
+      itemId,
+      req.user.user_id,
+      transactionType,
+      isQuantityUpdated
+        ? (req.body.hasOwnProperty('newQuantity') ? updatedQuantity - currentItem.quantity : parseInt(quantityChange, 10))
+        : 0,
+      updatedAuditDate,
+      isAuditDateUpdated ? currentItem.audit_date : null,
+      updatedRemarks,
+      isPriceUpdated ? updatedPrice : null,
+      updatedSiteName,
+      updatedUnit,
+      changeSummary
+    ]);
 
+    // Automatically resequence display_order for all active items
+    await resequenceDisplayOrder();
 
-    // ---------------------------------------------------------------------
-    // Return response
-    // ---------------------------------------------------------------------
     return res.json({
       message: 'Item updated successfully.',
       item: updatedItem,
@@ -1197,7 +1079,6 @@ app.patch(
     });
   })
 );
-
 
 
 // Reserve an item: update stock, log transaction, and create a reservation record
@@ -1567,7 +1448,14 @@ app.patch(
     }
   })
 );
-
+app.patch(
+  '/admin-dashboard/items/fix-item-ids',
+  authenticateAdmin,
+  asyncHandler(async (req, res) => {
+    await resequenceDisplayOrder();
+    res.status(200).json({ message: 'Display order updated successfully.' });
+  })
+);
 // ---------------------------------------------------------------------
 // 10) Logs & Pending Transactions
 // ---------------------------------------------------------------------
@@ -1576,9 +1464,11 @@ app.get(
   authenticateJWT,
   asyncHandler(async (req, res) => {
     const query = `
-      (
+      SELECT * FROM (
         -- 1) Inventory Transactions
         SELECT
+          it.transaction_id AS id,
+          'transaction' AS source,
           it.transaction_id,
           it.item_id,
           COALESCE(it.category, i.category) AS category,
@@ -1590,20 +1480,23 @@ app.get(
           it.transaction_type,
           it.quantity_change,
           it.unit,
-          COALESCE(it.price_update::text, 'N/A') AS price_update,  -- ✅ No "RM", only numeric or "N/A"
+          COALESCE(it.price_update::text, 'N/A') AS price_update,
           it.timestamp,
           it.key_in_date,
           COALESCE(it.remarks, 'N/A') AS remarks,
           it.status,
-          it.change_summary
+          COALESCE(it.change_summary, 'N/A') AS change_summary
+
         FROM inventory_transactions it
         LEFT JOIN items i ON it.item_id = i.item_id
         LEFT JOIN users u ON it.user_id = u.user_id
-      )
-      UNION ALL
-      (
+
+        UNION ALL
+
         -- 2) Site History
         SELECT
+          sh.id AS id,  -- ✅ FIXED HERE
+          'site_history' AS source,
           NULL AS transaction_id,
           NULL AS item_id,
           NULL AS category,
@@ -1626,11 +1519,13 @@ app.get(
             ' on ', TO_CHAR(sh.created_at, 'DD-Mon-YYYY HH24:MI')
           ) AS change_summary
         FROM site_history sh
-      )
-      UNION ALL
-      (
+
+        UNION ALL
+
         -- 3) Remarks History
         SELECT
+          rh.id AS id,  -- ✅ FIXED HERE TOO
+          'remarks_history' AS source,
           NULL AS transaction_id,
           NULL AS item_id,
           NULL AS category,
@@ -1653,7 +1548,7 @@ app.get(
             ' on ', TO_CHAR(rh.created_at, 'DD-Mon-YYYY HH24:MI')
           ) AS change_summary
         FROM remarks_history rh
-      )
+      ) AS combined_logs
       ORDER BY timestamp DESC;
     `;
 
@@ -1661,12 +1556,196 @@ app.get(
     res.json({ logs: rows });
   })
 );
+app.put('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
+  const { source, id } = req.params;
+  let { updated_by, quantity_change, site_name, remarks, key_in_date } = req.body;
+
+  // Convert empty date to null and quantity_change to a number
+  key_in_date = key_in_date === '' ? null : key_in_date;
+  quantity_change = Number(quantity_change);
+
+  let query, values;
+
+  if (source === 'transaction') {
+    // Ensure updated_by is set
+    if (!updated_by && req.user && req.user.username) {
+      updated_by = req.user.username;
+    }
+    if (!updated_by) {
+      return res.status(400).json({ error: 'updated_by is required' });
+    }
+    // Fetch the original transaction to know the old quantity_change
+    const origResult = await pool.query(
+      'SELECT * FROM inventory_transactions WHERE transaction_id = $1',
+      [id]
+    );
+    if (origResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Original transaction not found' });
+    }
+    const originalLog = origResult.rows[0];
+    const oldChange = Number(originalLog.quantity_change);
+
+    // Now update the transaction record
+    query = `
+      UPDATE inventory_transactions
+      SET user_id = (SELECT user_id FROM users WHERE username = $1),
+          quantity_change = $2,
+          site_name = $3,
+          remarks = $4,
+          key_in_date = $5
+      WHERE transaction_id = $6
+      RETURNING *;
+    `;
+    values = [updated_by, quantity_change, site_name, remarks, key_in_date, id];
+    const { rows } = await pool.query(query, values);
+    const updatedLog = rows[0];
+    const newChange = Number(updatedLog.quantity_change);
+
+    // Now update the items table using the differential change.
+    await pool.query(
+      'UPDATE items SET quantity = quantity + $1 WHERE item_id = $2',
+      [newChange - oldChange, originalLog.item_id]
+    );
+
+    // Set id field and return updated log.
+    updatedLog.id = updatedLog.transaction_id.toString();
+    updatedLog.updated_by = updated_by;
+    updatedLog.source = source;
+    return res.json({ log: updatedLog });
+  } else if (source === 'site_history') {
+    query = `
+      UPDATE site_history
+      SET new_value = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    values = [site_name, id];
+  } else if (source === 'remarks_history') {
+    query = `
+      UPDATE remarks_history
+      SET new_value = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    values = [remarks, id];
+  } else {
+    return res.status(400).json({ error: 'Invalid source type' });
+  }
+
+  // For non-transaction sources, simply update and return.
+  const { rows } = await pool.query(query, values);
+  const updatedLog = rows[0];
+  if (source !== 'transaction') {
+    updatedLog.id = updatedLog.id.toString();
+    updatedLog.source = source;
+  }
+  res.json({ log: updatedLog });
+}));
 
 
+app.delete('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
+  const { source, id } = req.params;
+  let query;
+
+  switch (source) {
+    case 'transaction':
+      query = 'DELETE FROM inventory_transactions WHERE transaction_id = $1';
+      break;
+    case 'site_history':
+      query = 'DELETE FROM site_history WHERE id = $1'; // ✅ fixed column name
+      break;
+    case 'remarks_history':
+      query = 'DELETE FROM remarks_history WHERE id = $1'; // ✅ fixed column name
+      break;
+    default:
+      return res.status(400).json({ error: 'Invalid source type' });
+  }
+
+  await pool.query(query, [id]);
+  res.sendStatus(204);
+}));
+
+
+let transactionExpiryInterval = '24 hour'; // Default to 24 hours
+
+// GET the current transaction expiry interval
+app.get(
+  '/get-transaction-expiry',
+  authenticateAdmin,
+  asyncHandler(async (req, res) => {
+    res.json({ expiry: transactionExpiryInterval });
+  })
+);
+
+// POST to set transaction expiry (e.g., "none", "24 hour", "1 week")
+app.post(
+  '/set-transaction-expiry',
+  authenticateAdmin,
+  asyncHandler(async (req, res) => {
+    const { expiry } = req.body;
+    if (!expiry) {
+      return res.status(400).json({ message: 'Expiry interval is required.' });
+    }
+    // If admin wants to disable auto-approval
+    if (expiry.toLowerCase() === 'none') {
+      transactionExpiryInterval = 'none';
+      return res.json({ message: 'Auto-approval disabled (No Auto-Approve).' });
+    }
+    // Otherwise, set the interval
+    transactionExpiryInterval = expiry;
+    res.json({ message: `Transaction auto-approve interval set to ${expiry}.` });
+  })
+);
+
+// GET pending transactions with auto-approval
 app.get(
   '/pending-transactions',
   authenticateAdmin,
   asyncHandler(async (req, res) => {
+    // Only auto-approve if transactionExpiryInterval != 'none'
+    if (transactionExpiryInterval !== 'none') {
+      // 1) Find all old pending transactions
+      const oldTx = await pool.query(`
+        SELECT transaction_id, item_id, transaction_type, quantity_change
+        FROM inventory_transactions
+        WHERE status = 'Pending'
+          AND timestamp < NOW() - INTERVAL '${transactionExpiryInterval}'
+      `);
+
+      // 2) For each, update item inventory and approve the transaction
+      for (const row of oldTx.rows) {
+        // Update inventory if needed
+        if (row.transaction_type === 'IN') {
+          await pool.query(
+            'UPDATE items SET quantity = quantity + $1 WHERE item_id = $2',
+            [row.quantity_change, row.item_id]
+          );
+        } else if (row.transaction_type === 'OUT') {
+          await pool.query(
+            'UPDATE items SET quantity = quantity - $1 WHERE item_id = $2',
+            [row.quantity_change, row.item_id]
+          );
+        }
+        // Approve the transaction
+        await pool.query(
+          `
+            UPDATE inventory_transactions
+            SET status = 'Approved'
+            WHERE transaction_id = $1
+          `,
+          [row.transaction_id]
+        );
+      }
+    }
+
+    // Optional: Pagination & Sorting
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const sortField = req.query.sortField || 'timestamp';
+    const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const offset = (page - 1) * pageSize;
+
+    // Return what's still Pending
     const query = `
       SELECT
         it.transaction_id,
@@ -1684,61 +1763,109 @@ app.get(
       FROM inventory_transactions it
       JOIN items i ON it.item_id = i.item_id
       WHERE it.status = 'Pending'
-      ORDER BY it.timestamp DESC;
+      ORDER BY ${sortField} ${sortOrder}
+      LIMIT $1 OFFSET $2
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, [pageSize, offset]);
     res.json({ pendingTransactions: rows });
   })
 );
 
+// Approve a transaction manually
 app.patch(
   '/approve-transaction/:transactionId',
   authenticateAdmin,
   asyncHandler(async (req, res) => {
     const { transactionId } = req.params;
+
+    // Find the transaction
+    const txQuery = `
+      SELECT item_id, quantity_change, transaction_type
+      FROM inventory_transactions
+      WHERE transaction_id = $1 AND status = 'Pending'
+    `;
+    const txResult = await pool.query(txQuery, [transactionId]);
+    if (txResult.rowCount === 0) {
+      return res.status(404).json({ message: 'Transaction not found or already processed.' });
+    }
+
+    const { item_id, quantity_change, transaction_type } = txResult.rows[0];
+
+    // Update inventory
+    if (transaction_type === 'IN') {
+      await pool.query(
+        'UPDATE items SET quantity = quantity + $1 WHERE item_id = $2',
+        [quantity_change, item_id]
+      );
+    } else if (transaction_type === 'OUT') {
+      await pool.query(
+        'UPDATE items SET quantity = quantity - $1 WHERE item_id = $2',
+        [quantity_change, item_id]
+      );
+    }
+
+    // Approve
     const result = await pool.query(
-      `UPDATE inventory_transactions
-       SET status = 'Approved'
-       WHERE transaction_id = $1 AND status = 'Pending'
-       RETURNING *`,
+      `
+        UPDATE inventory_transactions
+        SET status = 'Approved'
+        WHERE transaction_id = $1 AND status = 'Pending'
+        RETURNING *
+      `,
       [transactionId]
     );
-    if (result.rowCount === 0) {
-      return res
-        .status(404)
-        .json({ message: 'Transaction not found or already approved.' });
-    }
+
     res.json({
-      message: 'Transaction approved successfully.',
+      message: 'Transaction approved and inventory updated.',
       transaction: result.rows[0],
     });
   })
 );
 
+// Cancel a transaction with logging
 app.patch(
   '/cancel-transaction/:transactionId',
   authenticateAdmin,
   asyncHandler(async (req, res) => {
     const { transactionId } = req.params;
+
+    // Find the transaction
+    const txQuery = `
+      SELECT *
+      FROM inventory_transactions
+      WHERE transaction_id = $1 AND status = 'Pending'
+    `;
+    const txResult = await pool.query(txQuery, [transactionId]);
+    if (txResult.rowCount === 0) {
+      return res.status(404).json({ message: 'Transaction not found or already processed.' });
+    }
+
+    // Log cancellation (assumes a "transaction_history" table exists)
+    await pool.query(
+      `
+        INSERT INTO transaction_history (transaction_id, action_type, details, timestamp)
+        VALUES ($1, 'Cancel', $2, NOW())
+      `,
+      [transactionId, `Transaction ${transactionId} cancelled by admin`]
+    );
+
+    // Cancel
     const result = await pool.query(
-      `UPDATE inventory_transactions
-       SET status = 'Cancelled'
-       WHERE transaction_id = $1 AND status = 'Pending'
-       RETURNING *`,
+      `
+        UPDATE inventory_transactions
+        SET status = 'Cancelled'
+        WHERE transaction_id = $1 AND status = 'Pending'
+        RETURNING *
+      `,
       [transactionId]
     );
-    if (result.rowCount === 0) {
-      return res
-        .status(404)
-        .json({ message: 'Transaction not found or already processed.' });
-    }
+
     res.json({
-      message: 'Transaction cancelled successfully.',
+      message: 'Transaction cancelled successfully and logged.',
       transaction: result.rows[0],
     });
   })
 );
-
 // ---------------------------------------------------------------------
 // 11) File Upload & OCR Placeholder
 // ---------------------------------------------------------------------

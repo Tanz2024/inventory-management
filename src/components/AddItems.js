@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AddItems.css';
 
 const predefinedCategories = [
@@ -12,29 +12,99 @@ const predefinedCategories = [
   "Documentation & Miscellaneous"
 ];
 
+const predefinedLocations = [
+  "Aisle 1",
+  "Aisle 2",
+  "Aisle 3",
+  "Aisle 4",
+  "Grey Cupboard"
+];
+
 const AddItems = ({ onClose, onAddItem }) => {
+  // Basic item fields
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('');
   const [model, setModel] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [location, setLocation] = useState('');
   const [unique, setUnique] = useState('');
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState('');
+  const [date, setDate] = useState(''); // "Key in Date" used in payload
+
+  // Dropdown options
   const [categories, setCategories] = useState(predefinedCategories);
-  const [customCategory, setCustomCategory] = useState('');
-  const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [locations, setLocations] = useState(predefinedLocations);
+  const [siteOptions, setSiteOptions] = useState([]);
+  const [remarkOptions, setRemarkOptions] = useState([]);
+
+  // Current selections
+  const [location, setLocation] = useState('');
+  const [site, setSite] = useState('');
+  const [remark, setRemark] = useState('');
+
+  // State to handle toggling custom input for each field
+  const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+
+  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
+
+  const [showSiteInput, setShowSiteInput] = useState(false);
+  const [newSite, setNewSite] = useState('');
+
+  const [showRemarkInput, setShowRemarkInput] = useState(false);
+  const [newRemark, setNewRemark] = useState('');
+
+  // Fetch Site options from backend
+  useEffect(() => {
+    const fetchSiteOptions = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/dropdown-options/sites', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSiteOptions(data.sites || []);
+        }
+      } catch (error) {
+        console.error('Error fetching site options:', error);
+      }
+    };
+    fetchSiteOptions();
+  }, []);
+
+  // Fetch Remark options from backend
+  useEffect(() => {
+    const fetchRemarkOptions = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRemarkOptions(data.remarks || []);
+        }
+      } catch (error) {
+        console.error('Error fetching remark options:', error);
+      }
+    };
+    fetchRemarkOptions();
+  }, []);
 
   // Check if the Unique ID already exists
   const checkDuplicateUniqueId = async (uniqueId) => {
     try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items/', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
-        credentials: 'include',
         headers: {
           'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
+        credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
@@ -47,13 +117,113 @@ const AddItems = ({ onClose, onAddItem }) => {
     return false;
   };
 
+  // --- Handlers for adding new custom values ---
+
+  // Category (local only)
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) {
+      alert('Please enter a category name.');
+      return;
+    }
+    // Add to local array if not already present
+    if (!categories.includes(newCategory.trim())) {
+      setCategories(prev => [...prev, newCategory.trim()]);
+    }
+    // Select it immediately
+    setCategory(newCategory.trim());
+    // Reset
+    setNewCategory('');
+    setShowCategoryInput(false);
+  };
+
+  // Location (local only)
+  const handleAddLocation = () => {
+    if (!newLocation.trim()) {
+      alert('Please enter a location.');
+      return;
+    }
+    if (!locations.includes(newLocation.trim())) {
+      setLocations(prev => [...prev, newLocation.trim()]);
+    }
+    setLocation(newLocation.trim());
+    setNewLocation('');
+    setShowLocationInput(false);
+  };
+
+  // Site (POST to backend so it’s immediately in the dropdown)
+  const handleAddSite = async () => {
+    if (!newSite.trim()) {
+      alert('Please enter a site name.');
+      return;
+    }
+    // Only add to backend if it doesn't already exist
+    if (!siteOptions.includes(newSite.trim())) {
+      try {
+        const response = await fetch('http://localhost:5000/dropdown-options/sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ option: newSite.trim() })
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          alert(`Failed to add new site: ${errData.message}`);
+          return;
+        }
+        setSiteOptions(prev => [...prev, newSite.trim()]);
+        window.dispatchEvent(new CustomEvent('dropdownOptionsUpdated', { detail: { type: 'site' } }));
+      } catch (error) {
+        console.error('Error adding new site:', error);
+        alert('An error occurred while adding the new site.');
+        return;
+      }
+    }
+    setSite(newSite.trim());
+    setNewSite('');
+    setShowSiteInput(false);
+  };
+
+  // Remark (POST to backend so it’s immediately in the dropdown)
+  const handleAddRemark = async () => {
+    if (!newRemark.trim()) {
+      alert('Please enter a remark.');
+      return;
+    }
+    if (!remarkOptions.includes(newRemark.trim())) {
+      try {
+        const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ option: newRemark.trim() })
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          alert(`Failed to add new remark: ${errData.message}`);
+          return;
+        }
+        setRemarkOptions(prev => [...prev, newRemark.trim()]);
+        window.dispatchEvent(new CustomEvent('dropdownOptionsUpdated', { detail: { type: 'remark' } }));
+      } catch (error) {
+        console.error('Error adding new remark:', error);
+        alert('An error occurred while adding the new remark.');
+        return;
+      }
+    }
+    setRemark(newRemark.trim());
+    setNewRemark('');
+    setShowRemarkInput(false);
+  };
+
+  // --- Form submission ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const selectedCategory = useCustomCategory ? customCategory : category;
 
-    // Validate form fields
-    if (!itemName || !selectedCategory || !model || !unique || !quantity || !location || !price || !unit) {
-      alert('All fields are required');
+    // Validate required fields
+    if (
+      ![itemName, category, model, unique, quantity, date, price, unit, location].every(Boolean)
+    ) {
+      alert('All fields except Site and Remark are required.');
       return;
     }
 
@@ -64,53 +234,58 @@ const AddItems = ({ onClose, onAddItem }) => {
       return;
     }
 
-    // Add new category if custom and not already in the list
-    if (useCustomCategory && !categories.includes(customCategory)) {
-      setCategories([...categories, customCategory]);
-    }
+    // Build the payload
+    const payload = {
+      item_name: itemName.trim(),
+      category: category.trim(),
+      model: model.trim(),
+      item_unique_id: unique.trim(),
+      quantity: parseInt(quantity, 10),
+      date, // "Key in Date"
+      price: parseFloat(price),
+      unit: unit.trim(),
+      location: location.trim(),
+      site: site.trim() || '',    // optional
+      remark: remark.trim() || '' // optional
+    };
 
     try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items/', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({
-          item_name: itemName,
-          category: selectedCategory,
-          model,
-          item_unique_id: unique,
-          quantity,
-          location,
-          price,
-          unit
-        }),
+        body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        // Immediately update the parent's state with the new item.
-        onAddItem(result.item);
-        onClose();
-        alert('Item added successfully');
-
-        // Reset form fields
-        setItemName('');
-        setCategory('');
-        setModel('');
-        setUnique('');
-        setQuantity('');
-        setLocation('');
-        setPrice('');
-        setUnit('');
-        setCustomCategory('');
-        setUseCustomCategory(false);
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to add item: ${errorData.message}`);
+      if (!response.ok) {
+        const err = await response.json();
+        alert(`Failed to add item: ${err.message}`);
+        return;
       }
+
+      const { item } = await response.json();
+      // If backend doesn't return price, ensure we keep the submitted price
+      const newItem = { ...item, price: item.price ?? payload.price };
+
+      onAddItem(newItem);
+      alert('Item added successfully');
+      onClose();
+
+      // Reset form fields
+      setItemName('');
+      setCategory('');
+      setModel('');
+      setUnique('');
+      setQuantity('');
+      setPrice('');
+      setUnit('');
+      setDate('');
+      setLocation('');
+      setSite('');
+      setRemark('');
     } catch (error) {
       console.error('Error adding item:', error);
       alert('An error occurred while adding the item.');
@@ -122,6 +297,7 @@ const AddItems = ({ onClose, onAddItem }) => {
       <div className="dialog-content">
         <h2>Add New Item</h2>
         <form onSubmit={handleSubmit}>
+          {/* Item Name */}
           <label>
             Item Name:
             <input
@@ -132,40 +308,57 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
+          {/* Category */}
           <label>
             Category:
-            <div>
+            {!showCategoryInput ? (
               <select
+                className="dialog-select"
                 value={category}
                 onChange={(e) => {
-                  setCategory(e.target.value);
-                  setUseCustomCategory(false);
+                  if (e.target.value === 'ADD_NEW_CATEGORY') {
+                    setShowCategoryInput(true);
+                  } else {
+                    setCategory(e.target.value);
+                  }
                 }}
-                required={!useCustomCategory}
-                disabled={useCustomCategory}
-                className="category-select"
+                required
               >
                 <option value="">Select a Category</option>
-                {categories.map((cat, index) => (
-                  <option key={index} value={cat}>
+                {categories.map((cat, idx) => (
+                  <option key={idx} value={cat}>
                     {cat}
                   </option>
                 ))}
+                <option value="ADD_NEW_CATEGORY">Add New Category...</option>
               </select>
-              <input
-                type="text"
-                placeholder="Or enter a new category"
-                value={customCategory}
-                onChange={(e) => {
-                  setCustomCategory(e.target.value);
-                  setUseCustomCategory(true);
-                  setCategory('');
-                }}
-                className="custom-category-input"
-              />
-            </div>
+            ) : (
+              <div className="custom-input-wrap">
+                <input
+                  type="text"
+                  placeholder="Enter new category"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="dialog-input"
+                />
+                <button type="button" onClick={handleAddCategory} className="confirm-btn">
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryInput(false);
+                    setNewCategory('');
+                  }}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </label>
 
+          {/* Model */}
           <label>
             Model:
             <input
@@ -176,6 +369,7 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
+          {/* Unique ID */}
           <label>
             Unique ID:
             <input
@@ -186,6 +380,7 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
+          {/* Quantity */}
           <label>
             Quantity:
             <input
@@ -197,6 +392,7 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
+          {/* Unit */}
           <label>
             Unit:
             <input
@@ -209,16 +405,7 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
-          <label>
-            Location:
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </label>
-
+          {/* Price */}
           <label>
             Price (RM):
             <input
@@ -231,9 +418,172 @@ const AddItems = ({ onClose, onAddItem }) => {
             />
           </label>
 
+          {/* Key in Date */}
+          <label>
+            Key in Date:
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </label>
+
+          {/* Location */}
+          <label>
+            Location:
+            {!showLocationInput ? (
+              <select
+                className="dialog-select"
+                value={location}
+                onChange={(e) => {
+                  if (e.target.value === 'ADD_NEW_LOCATION') {
+                    setShowLocationInput(true);
+                  } else {
+                    setLocation(e.target.value);
+                  }
+                }}
+                required
+              >
+                <option value="">Select a Location</option>
+                {locations.map((loc, idx) => (
+                  <option key={idx} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+                <option value="ADD_NEW_LOCATION">Add New Location...</option>
+              </select>
+            ) : (
+              <div className="custom-input-wrap">
+                <input
+                  type="text"
+                  placeholder="Enter new location"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  className="dialog-input"
+                />
+                <button type="button" onClick={handleAddLocation} className="confirm-btn">
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLocationInput(false);
+                    setNewLocation('');
+                  }}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </label>
+
+          {/* Site (optional) */}
+          <label>
+            Site:
+            {!showSiteInput ? (
+              <select
+                className="dialog-select"
+                value={site}
+                onChange={(e) => {
+                  if (e.target.value === 'ADD_NEW_SITE') {
+                    setShowSiteInput(true);
+                  } else {
+                    setSite(e.target.value);
+                  }
+                }}
+              >
+                <option value="">Select a Site (optional)</option>
+                {siteOptions.map((s, idx) => (
+                  <option key={idx} value={s}>
+                    {s}
+                  </option>
+                ))}
+                <option value="ADD_NEW_SITE">Add New Site...</option>
+              </select>
+            ) : (
+              <div className="custom-input-wrap">
+                <input
+                  type="text"
+                  placeholder="Enter new site"
+                  value={newSite}
+                  onChange={(e) => setNewSite(e.target.value)}
+                  className="dialog-input"
+                />
+                <button type="button" onClick={handleAddSite} className="confirm-btn">
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSiteInput(false);
+                    setNewSite('');
+                  }}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </label>
+
+          {/* Remark (optional) */}
+          <label>
+            Remark:
+            {!showRemarkInput ? (
+              <select
+                className="dialog-select"
+                value={remark}
+                onChange={(e) => {
+                  if (e.target.value === 'ADD_NEW_REMARK') {
+                    setShowRemarkInput(true);
+                  } else {
+                    setRemark(e.target.value);
+                  }
+                }}
+              >
+                <option value="">Select a Remark (optional)</option>
+                {remarkOptions.map((rmk, idx) => (
+                  <option key={idx} value={rmk}>
+                    {rmk}
+                  </option>
+                ))}
+                <option value="ADD_NEW_REMARK">Add New Remark...</option>
+              </select>
+            ) : (
+              <div className="custom-input-wrap">
+                <input
+                  type="text"
+                  placeholder="Enter new remark"
+                  value={newRemark}
+                  onChange={(e) => setNewRemark(e.target.value)}
+                  className="dialog-input"
+                />
+                <button type="button" onClick={handleAddRemark} className="confirm-btn">
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRemarkInput(false);
+                    setNewRemark('');
+                  }}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </label>
+
           <div className="buttons">
-            <button type="submit" className="primary">Add Item</button>
-            <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="primary">
+              Add Item
+            </button>
+            <button type="button" className="secondary" onClick={onClose}>
+              Cancel
+            </button>
           </div>
         </form>
       </div>

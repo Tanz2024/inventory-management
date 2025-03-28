@@ -7,7 +7,9 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const [localSites, setLocalSites] = useState([]);
   const [newSite, setNewSite] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [renameValue, setRenameValue] = useState({});
+  // For renaming: which site is in edit mode and its new value
+  const [editingSite, setEditingSite] = useState(null);
+  const [renameInput, setRenameInput] = useState('');
 
   // Fetch sites from backend
   const fetchSites = async () => {
@@ -95,10 +97,25 @@ const ManageSites = ({ onClose, onUpdate }) => {
     }
   };
 
-  // Rename a site with duplicate check
+  // Start editing a site's name
+  const startEditing = (site) => {
+    setEditingSite(site);
+    setRenameInput(site);
+  };
+
+  // Cancel rename editing
+  const cancelEditing = () => {
+    setEditingSite(null);
+    setRenameInput('');
+  };
+
+  // Confirm rename changes and call the backend
   const handleRenameSiteLocal = async (oldName) => {
-    const newName = renameValue[oldName]?.trim();
-    if (!newName || newName === oldName) return;
+    const newName = renameInput.trim();
+    if (!newName || newName === oldName) {
+      cancelEditing();
+      return;
+    }
     try {
       const resp = await fetch('http://localhost:5000/dropdown-options/sites/rename', {
         method: 'PATCH',
@@ -116,6 +133,7 @@ const ManageSites = ({ onClose, onUpdate }) => {
         return;
       }
       alert(`Site "${oldName}" renamed to "${newName}" successfully.`);
+      cancelEditing();
       await fetchSites();
     } catch (error) {
       console.error('Error renaming site:', error);
@@ -162,15 +180,48 @@ const ManageSites = ({ onClose, onUpdate }) => {
             <ul className="sites-list">
               {filteredSites.map((site) => (
                 <li key={site} className="site-item">
-                  <div className="site-name">{site}</div>
-                  <div className="actions-row">
-                    <button className="rename-icon" onClick={() => handleRenameSiteLocal(site)} title="Rename">
-                      ✎
-                    </button>
-                    <button className="delete-icon" onClick={() => handleDeleteSiteLocal(site)} title="Delete">
-                      &#x2715;
-                    </button>
-                  </div>
+                  {editingSite === site ? (
+                    <div className="rename-container">
+                      <input
+                        type="text"
+                        value={renameInput}
+                        onChange={(e) => setRenameInput(e.target.value)}
+                        className="rename-input"
+                      />
+                      <button
+                        className="primary confirm-rename-button"
+                        onClick={() => handleRenameSiteLocal(site)}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        className="secondary cancel-rename-button"
+                        onClick={cancelEditing}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="site-name">{site}</div>
+                      <div className="actions-row">
+                        <button
+                          className="rename-icon"
+                          onClick={() => startEditing(site)}
+                          title="Rename"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          className="delete-icon"
+                          onClick={() => handleDeleteSiteLocal(site)}
+                          title="Delete"
+                        >
+                          &#x2715;
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

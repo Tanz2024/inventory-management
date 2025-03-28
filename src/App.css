@@ -1,16 +1,24 @@
-/* App.css */
+:root {
+  --primary-color: #0077A1;
+  --primary-hover: #005F80;
+  --background-color: #ffffff;
+  --text-color: #333;
+  --transition-duration: 0.3s;
+  --sidebar-width: 12vw;
+}
+
+/* App Root */
 .App {
   text-align: center;
 }
 
 /* Main App Container */
-.app-container {
+/* .app-container {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  width: 100vw;
-  background-color: #ffffff;
-}
+  width: auto;
+  background-color: var(--background-color);
+} */
 
 /* Main Section (Sidebar + Content) */
 .main-section {
@@ -22,14 +30,14 @@
 /* Content Area */
 .content-area {
   flex-grow: 1;
-  padding: 20px;
-  transition: all 0.3s ease;
+  /* padding: 20px; */
+  transition: all var(--transition-duration) ease;
 }
 
 /* When sidebar is visible */
 .content-area.sidebar-open {
-  margin-left: 12vw;
-  width: calc(100% - 12vw);
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
 }
 
 /* When sidebar is hidden */

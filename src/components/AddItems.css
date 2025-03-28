@@ -1,5 +1,5 @@
 /* ==========================================================================
-   1. Overlay & Dialog Container
+   1. Overlay & Dialog Container (Base)
    ========================================================================== */
    .add-item-dialog {
     position: fixed;
@@ -31,17 +31,16 @@
   }
   
   /* ==========================================================================
-     2. Dialog Content: fluid, centered, scrollable
+     2. Dialog Content (Base)
      ========================================================================== */
   .dialog-content {
     /* Fluid width: clamp between 300px min, 90vw mid-range, 500px max */
     width: clamp(300px, 90vw, 500px);
-  
-    /* If content is too tall, allow vertical scroll inside the box */
+    /* Allow vertical scroll if content is too tall */
     max-height: 90vh;
     overflow-y: auto;
   
-    /* Blue gradient background */
+    /* Professional gradient background */
     background: linear-gradient(135deg, #455883, #43abc1);
     padding: 30px;
     border-radius: 12px;
@@ -55,7 +54,7 @@
   
     /* Slight scale-up animation for a more professional entrance */
     animation: scaleUpDialog 0.3s ease forwards;
-    transform-origin: center; /* Scale from center */
+    transform-origin: center;
   }
   
   @keyframes scaleUpDialog {
@@ -70,17 +69,17 @@
   }
   
   /* ==========================================================================
-     3. Dialog Title
+     3. Dialog Title (Base)
      ========================================================================== */
   .dialog-content h2 {
     font-size: 2rem;
-    margin: 0 0 20px 0; /* Top margin 0, bottom margin 20px */
+    margin: 0 0 20px 0; /* 0 top, 20px bottom */
     text-align: center;
     font-weight: bold;
   }
   
   /* ==========================================================================
-     4. Form Layout
+     4. Form Layout (Base)
      ========================================================================== */
   .dialog-content form {
     width: 100%;
@@ -90,14 +89,13 @@
   
   .dialog-content label {
     font-weight: 600;
-    margin-bottom: 5px;
+    margin: 10px 0 5px 0; /* space above and below */
     display: block;
     color: #fff;
-    margin-top: 10px; /* Space between fields */
   }
   
   .dialog-content input,
-  .category-select {
+  .dialog-select {
     width: 100%;
     padding: 12px 14px;
     margin-bottom: 10px;
@@ -110,8 +108,8 @@
     color: #fff;
   }
   
-  /* For the category select arrow style */
-  .category-select {
+  /* Shared select arrow style for Category, Location, Site, Remark */
+  .dialog-select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -126,32 +124,79 @@
   }
   
   .dialog-content input:focus,
-  .category-select:focus {
+  .dialog-select:focus {
     border-color: #fff;
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
     outline: none;
   }
   
-  /* Larger text inside the select's dropdown options */
-  .category-select option {
+  /* Larger text inside the select dropdown options */
+  .dialog-select option {
     font-size: 1.1rem;
     color: #455883;
   }
   
-  /* For the custom category input */
-  .custom-category-input {
-    margin-top: 10px;
-    width: 100%;
+  /* ==========================================================================
+     5. Custom Input Wrappers for "Add New..." fields
+     ========================================================================== */
+  .custom-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px; /* spacing below */
+  }
+  
+  .dialog-input {
+    flex: 1;
     background-color: rgba(255, 255, 255, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 6px;
     padding: 12px 14px;
     font-size: 1rem;
     color: #fff;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .dialog-input:focus {
+    border-color: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    outline: none;
+  }
+  
+  /* Buttons for Confirm/Cancel in custom input wraps */
+  .confirm-btn,
+  .cancel-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .confirm-btn {
+    background: linear-gradient(135deg, #43abc1, #455883);
+    color: #fff;
+  }
+  
+  .confirm-btn:hover {
+    background: linear-gradient(135deg, #455883, #43abc1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .cancel-btn {
+    background: linear-gradient(135deg, #f44336, #e91e63);
+    color: #fff;
+  }
+  
+  .cancel-btn:hover {
+    background: linear-gradient(135deg, #e91e63, #f44336);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
   
   /* ==========================================================================
-     5. Dialog Buttons
+     6. Dialog Buttons (Base)
      ========================================================================== */
   .dialog-content .buttons {
     display: flex;
@@ -176,7 +221,6 @@
     background: linear-gradient(135deg, #43abc1, #455883);
     color: #fff;
   }
-  
   .dialog-content button.primary:hover {
     background: linear-gradient(135deg, #455883, #43abc1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -187,9 +231,66 @@
     background: linear-gradient(135deg, #f44336, #e91e63);
     color: #fff;
   }
-  
   .dialog-content button.secondary:hover {
     background: linear-gradient(135deg, #e91e63, #f44336);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* ==========================================================================
+     7. Responsive: Tablet & Mobile
+     ========================================================================== */
+  
+  /* Tablet styles: Up to 768px wide */
+  @media only screen and (max-width: 768px) {
+    .dialog-content {
+      width: 85vw;
+      padding: 25px;
+      max-height: 80vh;
+    }
+    .dialog-content h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+    .dialog-content input,
+    .dialog-select {
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    .dialog-input {
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+    .dialog-content button {
+      padding: 10px;
+      font-size: 0.95rem;
+    }
+  }
+  
+  /* Mobile styles: Up to 600px wide */
+  @media only screen and (max-width: 600px) {
+    .dialog-content {
+      width: 90vw;
+      padding: 20px;
+      max-height: 75vh;
+    }
+    .dialog-content h2 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+    }
+    .dialog-content input,
+    .dialog-select,
+    .dialog-input {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+    .dialog-content button {
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+    /* Stack buttons vertically for easier tapping */
+    .dialog-content .buttons {
+      flex-direction: column;
+      gap: 8px;
+    }
   }
   

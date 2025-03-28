@@ -1,57 +1,55 @@
-import React, { useState } from 'react';
-import './Login.css'; // Your CSS file for styling
+import React, { useState, useEffect } from 'react';
+import './Login.css';
+import { FaUser, FaLock } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const Login = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false); // Remember Me state
-  const [loading, setLoading] = useState(false); // Loading state
+  const navigate = useNavigate();
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const navigate = useNavigate();
+  // On mount, load saved credentials if any
+  useEffect(() => {
+    const saved = localStorage.getItem('savedCredentials');
+    if (saved) {
+      const { username, password } = JSON.parse(saved);
+      setCredentials({ username, password });
+      setRememberMe(true);
+    }
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const handleChange = e => {
+    setCredentials(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const requestBody = { username, password };
-
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
-        body: JSON.stringify(requestBody),
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
       });
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
 
-      if (response.ok) {
-        onLogin(username, data.role_id, data.user_id);
-
-        // Save or remove the username based on the "Remember Me" selection
-        if (rememberMe) {
-          localStorage.setItem('rememberedUsername', username);
-        } else {
-          localStorage.removeItem('rememberedUsername');
-        }
-
-        if (data.role_id === 1) {
-          navigate('/Admin-dashboard');
-        } else {
-          navigate('/user-dashboard');
-        }
+      // Save or clear stored creds
+      if (rememberMe) {
+        localStorage.setItem('savedCredentials', JSON.stringify(credentials));
       } else {
-        setError(data.message);
+        localStorage.removeItem('savedCredentials');
       }
+
+      onLogin(credentials.username, data.role_id, data.user_id);
+      navigate(data.role_id === 1 ? '/Admin-dashboard' : '/user-dashboard');
     } catch (err) {
-      console.error('Login error:', err);
-      setError('An error occurred during login. Please try again later.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -59,46 +57,53 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      <h2 className="text-header">Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <label htmlFor="username">Username</label>
-          <input
-            className="loginInput"
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+      <div className="login-left">
+        <div className="overlay">
+          <h1>SquareCloud Inventory System</h1>
         </div>
-        <div className="input-group">
-          <label htmlFor="password">Password</label>
-          <input
-            className="loginInput"
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="input-group">
-          <input 
-            type="checkbox" 
-            id="rememberMe" 
-            checked={rememberMe} 
-            onChange={(e) => setRememberMe(e.target.checked)} 
-          />
-          <label htmlFor="rememberMe">Remember Me</label>
-        </div>
+      </div>
+      <div className="login-right">
+        <h2>Welcome to SquareCloud Inventory System</h2>
+        <p>Access your inventory dashboard — manage stock, track usage, and optimize operations.</p>
         {error && <p className="error-message">{error}</p>}
-        <div className="button-container">
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <FaUser className="icon" />
+            <input
+              name="username"
+              type="text"
+              placeholder="Username"
+              value={credentials.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <FaLock className="icon" />
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              value={credentials.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="remember">
+            <label>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+              /> Remember Me
+            </label>
+          </div>
           <button className="login-button" type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Logging In…' : 'Login'}
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

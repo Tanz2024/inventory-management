@@ -1,54 +1,71 @@
-
-.reserve-container {
-  max-width: 100%; /* Full width */
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 600px;  /* Set the maximum height of the table */
-  overflow-y: auto;  /* Enable vertical scrolling when content overflows */
+:root {
+  --primary-color: #008cba;       /* Vibrant blue */
+  --primary-hover: #006b96;
+  --accent-color: #ff9800;        /* Bold accent orange */
+  --text-color: #333;
+  --background-color: #fff;
+  --card-background: #fdfdfd;     /* Clean card background */
+  --border-color: #e0e0e0;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --font-family: 'Arial', sans-serif;
+  --base-spacing: 1rem;
+  --small-spacing: 0.5rem;
+  --transition-duration: 0.3s;
 }
 
-/* Header */
+/* Reserve Container & Base Styles */
+.reserve-container {
+  max-width: 100%;
+  margin: 50px auto;
+  padding: var(--base-spacing);
+  background-color: var(--background-color);
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Header Section */
 .reserve-container .header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--base-spacing);
 }
 
 .reserve-container .header-container .add-item-button,
 .reserve-container .header-container .delete-item-button {
   padding: 10px 15px;
-  font-size: 20px;
-  background-color: #0077a1; /* Updated button color */
-  color: white;
+  font-size: 1.25rem;
+  background-color: var(--primary-color);
+  color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  width: 100px;
-  margin-right: 10px;
+  width: 120px;
+  margin-right: var(--small-spacing);
+  transition: background-color var(--transition-duration) ease;
 }
 
 .reserve-container .header-container .add-item-button:hover,
 .reserve-container .header-container .delete-item-button:hover {
-  background-color: #005f80; /* Slightly darker blue on hover */
+  background-color: var(--primary-hover);
 }
 
 .reserve-container .header-container .header-admin-dashboard {
   font-size: 2rem;
-  margin-bottom: 20px;
+  margin-bottom: var(--small-spacing);
   text-align: left;
-  color: #333;
+  color: var(--text-color);
+  font-weight: bold;
 }
 
 /* Table Styling */
 .reserve-container table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 0.8rem;
+  margin-top: var(--base-spacing);
+  font-size: 0.9rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -56,27 +73,30 @@
 .reserve-container table td {
   padding: 12px 15px;
   text-align: left;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
 }
 
-/* Table Header */
 .reserve-container table th {
-  background-color: #0077a1; /* Updated header color */
-  color: white;
+  background-color: var(--primary-color);
+  color: #fff;
   font-weight: bold;
+  transition: background-color var(--transition-duration) ease;
 }
 
-/* Table Data */
+.reserve-container table th:hover {
+  background-color: var(--primary-hover);
+}
+
 .reserve-container table td {
-  background-color: #f9f9f9;
+  background-color: var(--card-background);
 }
 
 .reserve-container table tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
+  background-color: #f7f7f7;
 }
 
 .reserve-container table tbody tr:hover {
-  background-color: #e2e2e2;
+  background-color: var(--accent-color);
   cursor: pointer;
 }
 
@@ -94,30 +114,30 @@
   padding: 5px;
   margin: 0 10px;
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   margin-top: 5px;
 }
 
-/* Buttons */
+/* Table Buttons */
 .reserve-container table td button {
   padding: 5px 10px;
-  margin: 0 5px;
-  margin-top: 5px;
-  background-color: #0077a1; /* Updated button color */
-  color: white;
+  margin: 5px;
+  background-color: var(--primary-color);
+  color: #fff;
   border: none;
   border-radius: 4px;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-duration) ease;
 }
 
 .reserve-container table td button:hover {
-  background-color: #005f80;
+  background-color: var(--primary-hover);
 }
 
 .reserve-container table .confirmButton {
   width: 100%;
 }
 
+/* Additional Dashboard Text */
 .reserve-container table .dashboard-C,
 .reserve-container table .dashboard-D {
   font-size: 0.8rem;
@@ -131,16 +151,16 @@
   padding: 5px;
   margin: 0 10px;
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   margin-top: 5px;
 }
 
 /* Error Message */
 .reserve-container .error-message {
-  color: red;
+  color: #e53935;
   font-weight: bold;
   text-align: center;
-  margin-top: 20px;
+  margin-top: var(--base-spacing);
 }
 
 /* OCR Section */
@@ -151,37 +171,25 @@
 .ocr-submit-btn {
   padding: 10px 20px;
   font-size: 1rem;
-  background-color: #0077a1; /* Updated button color */
-  color: white;
+  background-color: var(--primary-color);
+  color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color var(--transition-duration) ease;
   width: 20%;
   margin-top: 1vh;
 }
 
 .ocr-submit-btn:hover {
-  background-color: #005f80;
+  background-color: var(--primary-hover);
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive Styles */
 @media screen and (max-width: 768px) {
   .reserve-container {
-    padding: 10px;
+    padding: var(--small-spacing);
     max-height: none;
-  }
-
-  .reserve-container table {
-    font-size: 0.7rem;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .reserve-container table th,
-  .reserve-container table td {
-    padding: 10px;
   }
 
   .reserve-container .header-container {
@@ -192,11 +200,23 @@
   .reserve-container .header-container .add-item-button,
   .reserve-container .header-container .delete-item-button {
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: var(--small-spacing);
   }
 
   .reserve-container .header-container .header-admin-dashboard {
     font-size: 1.5rem;
+  }
+
+  .reserve-container table {
+    font-size: 0.8rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .reserve-container table th,
+  .reserve-container table td {
+    padding: 10px;
   }
 
   .ocr-submit-btn {

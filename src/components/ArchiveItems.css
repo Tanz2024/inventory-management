@@ -1,114 +1,187 @@
-.archived-items-container {
-  max-width: 100%;
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-.archived-items-container h2 {
-  text-align: left;
-  font-size: 2rem;
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.archived-items-container table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 0.8rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.archived-items-container th,
-.archived-items-container td {
-  padding: 12px 15px;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-.archived-items-container th {
-  background-color: #0077a1;
-  color: #fff;
-  font-weight: bold;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-.archived-items-container td {
-  background-color: #f9f9f9;
-}
-
-.archived-items-container tr:nth-child(even) td {
-  background-color: #f2f2f2;
-}
-
-.archived-items-container tr:hover td {
-  background-color: #e2e2e2;
-  cursor: pointer;
-}
-
-.error-message {
-  color: red;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 20px;
-}
-
-.restore-button,
-.delete-button {
-  padding: 6px 12px;
-  margin: 0 4px;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.restore-button {
-  background-color: #28a745;
-  color: #fff;
-}
-
-.restore-button:hover {
-  background-color: #218838;
-  transform: scale(1.05);
-}
-
-.delete-button {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-.delete-button:hover {
-  background-color: #c82333;
-  transform: scale(1.05);
-}
-
-/* Permanent green background for restored items */
-.green-row {
-  background-color: #ccffcc;
-}
-
-/* Temporary highlight animation (if desired) */
-.highlight {
-  animation: fadeOut 3s forwards;
-}
-
-@keyframes fadeOut {
-  0% {
+/* ==========================================================================
+   1. Container & Base Styles (Common)
+   ========================================================================== */
+   .archived-items-container {
+    max-width: 100%;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+  }
+  
+  /* Headings */
+  .archived-items-container h2 {
+    text-align: left;
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  /* ==========================================================================
+     2. Desktop Styles
+     ========================================================================== */
+  @media screen and (min-width: 577px) {
+    .archived-items-container {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    /* Table Styles */
+    .archived-items-container table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.8rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Table Head & Body Cells */
+    .archived-items-container th,
+    .archived-items-container td {
+      padding: 12px 15px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    
+    /* Sticky Header */
+    .archived-items-container th {
+      background-color: #0077a1;
+      color: #fff;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    
+    /* Row Coloring & Hover Effects */
+    .archived-items-container td {
+      background-color: #f9f9f9;
+    }
+    .archived-items-container tr:nth-child(even) td {
+      background-color: #f2f2f2;
+    }
+    .archived-items-container tr:hover td {
+      background-color: #e2e2e2;
+      cursor: pointer;
+    }
+  }
+  
+  /* ==========================================================================
+     3. Mobile Styles (Optimized for Touch & Readability)
+     ========================================================================== */
+  @media screen and (max-width: 576px) {
+    .archived-items-container {
+      margin: 20px 1rem;
+      padding: 16px;
+      max-height: 60vh;
+      overflow-x: auto;
+    }
+    
+    .archived-items-container h2 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    
+    /* Mobile Table: transform table into a block layout for better scrolling */
+    .archived-items-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    
+    .archived-items-container th,
+    .archived-items-container td {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    
+    /* For mobile, remove sticky headers to avoid visual clutter */
+    .archived-items-container th {
+      background-color: #0077a1;
+      color: #fff;
+      font-weight: bold;
+      position: relative;
+      z-index: auto;
+    }
+    
+    /* Optional: If you prefer a card-like layout, you can adjust table rows further */
+    .archived-items-container tr {
+      display: table-row;
+    }
+  }
+  
+  /* ==========================================================================
+     4. Error Message
+     ========================================================================== */
+  .error-message {
+    color: red;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  /* ==========================================================================
+     5. Buttons
+     ========================================================================== */
+  .restore-button,
+  .delete-button {
+    padding: 6px 12px;
+    margin: 0 4px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  /* Restore Button: Green */
+  .restore-button {
+    background-color: #28a745;
+    color: #fff;
+  }
+  .restore-button:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+  }
+  
+  /* Delete Button: Red */
+  .delete-button {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  .delete-button:hover {
+    background-color: #c82333;
+    transform: scale(1.05);
+  }
+  
+  /* ==========================================================================
+     6. Highlighting & Animations
+     ========================================================================== */
+  /* Permanent green background for restored items */
+  .green-row {
     background-color: #ccffcc;
   }
-  90% {
-    background-color: #ccffcc;
+  
+  /* Temporary highlight animation */
+  .highlight {
+    animation: fadeOut 3s forwards;
   }
-  100% {
-    background-color: transparent;
+  
+  @keyframes fadeOut {
+    0% {
+      background-color: #ccffcc;
+    }
+    90% {
+      background-color: #ccffcc;
+    }
+    100% {
+      background-color: transparent;
+    }
   }
-}
+  

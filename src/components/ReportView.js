@@ -8,30 +8,23 @@ function highlightText(text = '', searchTerm = '') {
   if (!searchTerm) return text;
   const regex = new RegExp(`(${searchTerm})`, 'gi');
   return text.split(regex).map((part, idx) =>
-    regex.test(part) ? (
-      <span key={idx} className="highlight">
-        {part}
-      </span>
-    ) : (
-      part
-    )
+    regex.test(part) ? <span key={idx} className="highlight">{part}</span> : part
   );
 }
 
-function maybeHighlight(content, condition) {
-  return condition ? <span className="highlight">{content}</span> : content;
-}
-
-function convertToMYTDisplay(dateString) {
+function formatKeyInDateCustom(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
+  const day = date.getDate();
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const month = date.toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
+  const year = date.getFullYear();
+  return `${day} ${weekday} ${month} ${year}`;
 }
 
-function formatLocalDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-CA');
+function isValidDate(d) {
+  const date = new Date(d);
+  return date instanceof Date && !isNaN(date);
 }
 
 /* ------------------ FilterForm Component ------------------ */
@@ -76,6 +69,7 @@ function FilterForm({
 
   return (
     <div className="report-form">
+      {/* Admin & Recipient Filters */}
       <div className="filters-row">
         <div className="filter-group">
           <label htmlFor="adminName">Admin Name:</label>
@@ -98,8 +92,7 @@ function FilterForm({
           />
         </div>
       </div>
-
-      {/* Log Date Range */}
+      {/* Date Filters */}
       <div className="filters-row">
         <div className="filter-group">
           <label htmlFor="startDate">Log Start Date:</label>
@@ -120,7 +113,6 @@ function FilterForm({
           />
         </div>
       </div>
-
       {/* Single Key‑in Date */}
       <div className="filters-row">
         <div className="filter-group">
@@ -133,7 +125,7 @@ function FilterForm({
           />
         </div>
       </div>
-
+      {/* Report Type & Specific Items */}
       <div className="filters-row">
         <div className="filter-group">
           <label htmlFor="reportType">Report Type:</label>
@@ -165,6 +157,7 @@ function FilterForm({
           </div>
         </div>
       )}
+      {/* Filter by Location */}
       <div className="filters-row">
         <div className="filter-group">
           <label>
@@ -190,6 +183,7 @@ function FilterForm({
           )}
         </div>
       </div>
+      {/* Additional Search Fields */}
       <div className="filters-row">
         <div className="filter-group">
           <label htmlFor="changedBy">Search Changed By:</label>
@@ -222,6 +216,7 @@ function FilterForm({
           />
         </div>
       </div>
+      {/* Action Buttons */}
       <div className="filter-actions">
         <button onClick={handleFetchLogs} className="apply-button">
           Refresh Logs
@@ -255,236 +250,320 @@ function ItemLogs({
   startDate,
   endDate,
   keyInDate,
+  updateLog,
+  deleteLog,
+  refreshItems,
 }) {
   const [sortConfig, setSortConfig] = useState({ column: 'timestamp', direction: 'desc' });
   const [collapsed, setCollapsed] = useState(false);
+  const [editedLogs, setEditedLogs] = useState({});
 
   useEffect(() => {
     setCollapsed(globalCollapse);
   }, [globalCollapse]);
 
   const handleSortToggle = (column) => {
-    setSortConfig((prev) => {
-      if (prev.column === column) {
-        return { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
-      } else {
-        return { column, direction: 'asc' };
+    setSortConfig((prev) =>
+      prev.column === column
+        ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { column, direction: 'asc' }
+    );
+  };
+
+  // Compute logs with "Previous Stock" and "Current Stock" (formerly Stock Before/After)
+  const logsWithStock = useMemo(() => {
+    const itemLogs = logs
+      .filter((log) => log.item_id === item.item_id)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // Oldest first
+
+    if (itemLogs.length === 0) return [];
+
+    const totalChange = itemLogs.reduce(
+      (sum, log) => sum + (Number(log.quantity_change) || 0),
+      0
+    );
+
+    const initialStock = item.quantity - totalChange;
+    let running = initialStock;
+
+    // Create a virtual starting log (non-editable)
+    const virtualStartingLog = {
+      timestamp: itemLogs[0]?.timestamp || new Date().toISOString(),
+      quantity_change: 0,
+      stockBefore: initialStock,
+      stockAfter: initialStock,
+      updated_by: 'System',
+      remarks: 'Initial stock before logs',
+      site_name: item.site_name || '',
+      key_in_date: '',
+      source: 'virtual',
+      id: `start-${item.item_id}`,
+    };
+
+    const logsCalculated = itemLogs.map((log) => {
+      const stockBefore = running;
+      running += Number(log.quantity_change) || 0;
+      const stockAfter = running;
+      return { ...log, stockBefore, stockAfter };
+    });
+
+    return [virtualStartingLog, ...logsCalculated];
+  }, [logs, item.item_id, item.quantity, item.site_name]);
+
+  // Allow editing for non-virtual logs, including Qty In/Out, Changed By, Site and Remarks.
+  const handleEdit = (index, log) => {
+    if (log.source === 'virtual') return; // Virtual row is not editable.
+    setEditedLogs((prev) => ({
+      ...prev,
+      [index]: {
+        ...log,
+        qtyIn: log.quantity_change > 0 ? log.quantity_change.toString() : '',
+        qtyOut: log.quantity_change < 0 ? Math.abs(log.quantity_change).toString() : '',
+        updated_by: log.updated_by,
+        site_name: log.site_name,
+        remarks: log.remarks,
       }
+    }));
+  };
+
+  const cancelEdit = (index) => {
+    setEditedLogs((prev) => {
+      const newState = { ...prev };
+      delete newState[index];
+      return newState;
     });
   };
 
-  // 1) Filter to logs for this item, then sort
-  const sortedLogs = useMemo(() => {
-    const filtered = logs.filter((log) => log.item_id === item.item_id);
-    const sorted = filtered.sort((a, b) => {
-      let aValue, bValue;
-      switch (sortConfig.column) {
-        case 'timestamp':
-          aValue = new Date(a.timestamp).getTime();
-          bValue = new Date(b.timestamp).getTime();
-          break;
-        case 'audit_date':
-          aValue = new Date(item.audit_date || 0).getTime();
-          bValue = new Date(item.audit_date || 0).getTime();
-          break;
-        case 'updated_by':
-          aValue = (a.updated_by || '').toLowerCase();
-          bValue = (b.updated_by || '').toLowerCase();
-          break;
-        case 'qty_in':
-          aValue = a.quantity_change > 0 ? a.quantity_change : 0;
-          bValue = b.quantity_change > 0 ? b.quantity_change : 0;
-          break;
-        case 'qty_out':
-          aValue = a.quantity_change < 0 ? a.quantity_change : 0;
-          bValue = b.quantity_change < 0 ? b.quantity_change : 0;
-          break;
-        case 'site_name':
-          aValue = (a.site_name || '').toLowerCase();
-          bValue = (b.site_name || '').toLowerCase();
-          break;
-        case 'remarks':
-          aValue = (a.remarks || '').toLowerCase();
-          bValue = (b.remarks || '').toLowerCase();
-          break;
-        default:
-          aValue = new Date(a.timestamp).getTime();
-          bValue = new Date(b.timestamp).getTime();
-          break;
+  const handleInputChange = (index, field, value) => {
+    setEditedLogs((prev) => ({
+      ...prev,
+      [index]: { ...prev[index], [field]: value },
+    }));
+  };
+
+  const handleSaveEdit = async (index) => {
+    const currentEdit = editedLogs[index];
+    if (!currentEdit || !currentEdit.source || !currentEdit.id) {
+      console.error('Missing source or id in edited log:', currentEdit);
+      return;
+    }
+    let newQtyChange;
+    // Determine new quantity_change:
+    if (currentEdit.qtyIn !== undefined && currentEdit.qtyIn !== '') {
+      let val = parseInt(currentEdit.qtyIn, 10);
+      newQtyChange = val < 0 ? -Math.abs(val) : Math.abs(val);
+    } else if (currentEdit.qtyOut !== undefined && currentEdit.qtyOut !== '') {
+      let val = parseInt(currentEdit.qtyOut, 10);
+      // If originally negative but the user enters a positive number, switch to a positive quantity.
+      if (currentEdit.quantity_change < 0 && val > 0) {
+        newQtyChange = Math.abs(val);
+      } else {
+        newQtyChange = -Math.abs(val);
       }
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [logs, item.item_id, sortConfig, item.audit_date]);
+    } else {
+      newQtyChange = currentEdit.quantity_change;
+    }
 
-  // 2) Compute running stock cumulatively
-  let cumulativeChange = 0;
-  const logsWithStock = sortedLogs.map((log) => {
-    const qtyChange = parseInt(log.quantity_change, 10) || 0;
-    cumulativeChange += qtyChange;
-    return {
-      ...log,
-      runningStock: Math.max(item.quantity - cumulativeChange, 0),
-    };
-  });
+    try {
+      const response = await fetch(
+        `http://localhost:5000/logs/${currentEdit.source}/${currentEdit.id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            updated_by: currentEdit.updated_by,
+            key_in_date: currentEdit.key_in_date,
+            quantity_change: newQtyChange,
+            site_name: currentEdit.site_name,
+            remarks: currentEdit.remarks,
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to save log');
+      }
+      const data = await response.json();
+      updateLog(data.log);
+      cancelEdit(index);
+      await refreshItems();
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  };
 
-  // 3) Utility for highlight
-  function highlightText(text = '', searchTerm = '') {
-    if (!searchTerm) return text;
-    const regex = new RegExp(`(${searchTerm})`, 'gi');
-    return text.split(regex).map((part, idx) =>
-      regex.test(part) ? (
-        <span key={idx} className="highlight">
-          {part}
-        </span>
-      ) : (
-        part
-      )
-    );
-  }
-
-  // 4) Convert timestamp for display (with full date & time)
-  function convertToMYTDisplay(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' });
-  }
-
-  // New function: Format key‑in date into custom format like "6 thursday june 2025"
-  function formatKeyInDateCustom(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    const month = date.toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
-    const year = date.getFullYear();
-    return `${day} ${weekday} ${month} ${year}`;
-  }
+  const handleDelete = async (log) => {
+    if (!log || !log.source || !log.id) {
+      console.error('Missing source or id in log:', log);
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this log?')) return;
+    try {
+      const response = await fetch(`http://localhost:5000/logs/${log.source}/${log.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Delete failed');
+      deleteLog(log.id);
+      await refreshItems();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
 
   return (
     <div className="item-card">
       <div className="item-card-header">
         <h3>
-          {item.item_name} (Current Stock: {Math.max(item.quantity, 0)})
+          {item.item_name} (Current Stock: {item.quantity})
         </h3>
         <button className="collapse-button" onClick={() => setCollapsed((prev) => !prev)}>
           {collapsed ? 'Show Logs' : 'Hide Logs'}
         </button>
       </div>
-
       {!collapsed && (
         <table className="item-logs-table">
           <thead>
             <tr>
-              <th onClick={() => handleSortToggle('timestamp')}>
-                Timestamp{' '}
-                {sortConfig.column === 'timestamp' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-              </th>
               <th onClick={() => handleSortToggle('audit_date')}>
-                Date &amp; Time{' '}
-                {sortConfig.column === 'audit_date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                Date &amp; Time {sortConfig.column === 'audit_date' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('updated_by')}>
-                Changed By{' '}
-                {sortConfig.column === 'updated_by' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+                Changed By {sortConfig.column === 'updated_by' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th onClick={() => handleSortToggle('qty_in')}>
-                Qty In {sortConfig.column === 'qty_in' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+              <th>Qty In</th>
+              <th>Qty Out</th>
+              <th onClick={() => handleSortToggle('stockBefore')}>
+                Previous Stock {sortConfig.column === 'stockBefore' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th onClick={() => handleSortToggle('qty_out')}>
-                Qty Out {sortConfig.column === 'qty_out' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
+              <th onClick={() => handleSortToggle('stockAfter')}>
+                Current Stock {sortConfig.column === 'stockAfter' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
-              <th>Stock</th>
               <th onClick={() => handleSortToggle('site_name')}>
                 Site {sortConfig.column === 'site_name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th onClick={() => handleSortToggle('remarks')}>
                 Remarks {sortConfig.column === 'remarks' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
               </th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {logsWithStock.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center' }}>
-                  No logs found
-                </td>
+                <td colSpan="9" style={{ textAlign: 'center' }}>No logs found</td>
               </tr>
             ) : (
               logsWithStock.map((log, idx) => {
-                // 1) Basic info
-                const qtyChange = parseInt(log.quantity_change, 10) || 0;
+                // Filter logs by date range.
                 const logDate = new Date(log.timestamp);
-                const logDateStr = logDate.toLocaleString();
+                const logISO = logDate.toLocaleDateString('en-CA');
+                const startISO = startDate ? new Date(startDate).toLocaleDateString('en-CA') : null;
+                const endISO = endDate ? new Date(endDate).toLocaleDateString('en-CA') : null;
+                if ((startISO && logISO < startISO) || (endISO && logISO > endISO)) return null;
+                const logDateStr = new Date(log.key_in_date).toLocaleString();
+                const isEditing = Object.prototype.hasOwnProperty.call(editedLogs, idx);
+                const currentEdit = editedLogs[idx] || {};
 
-                // 2) Check if key‑in date changed
-                const dateChanged = log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
-
-                // 3) Skip rows that have NEITHER quantity change nor date change
-                if (qtyChange === 0 && !dateChanged) {
-                  return null;
-                }
-
-                // 4) Check if within start/end date range
-                let showLog = true;
-                if (startDate) {
-                  const startISO = new Date(startDate).toLocaleDateString('en-CA');
-                  const logISO = logDate.toLocaleDateString('en-CA');
-                  if (logISO < startISO) showLog = false;
-                }
-                if (endDate) {
-                  const endISO = new Date(endDate).toLocaleDateString('en-CA');
-                  const logISO = logDate.toLocaleDateString('en-CA');
-                  if (logISO > endISO) showLog = false;
-                }
-                if (!showLog) return null;
-
-                // 5) Highlight fields if they match searches
-                const changedByHighlighted = highlightText(log.updated_by || '', changedBySearch);
-                const siteHighlighted = highlightText(log.site_name || '', siteSearch);
-                const remarksHighlighted = highlightText(log.remarks || '', remarksSearch);
-
-                // 6) If both quantity and date changed, render the "old/new" row pattern
-                if (qtyChange !== 0 && dateChanged) {
-                  return (
-                    <React.Fragment key={idx}>
-                      <tr className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}>
-                        <td>{logDateStr}</td>
-                        <td>{formatKeyInDateCustom(log.key_in_date_old)}</td>
-                        <td>{changedByHighlighted}</td>
-                        <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
-                        <td>{qtyChange < 0 ? qtyChange : ''}</td>
-                        <td>{log.runningStock}</td>
-                        <td>{siteHighlighted}</td>
-                        <td>{remarksHighlighted}</td>
-                      </tr>
-                      <tr className="sub-row" key={`${idx}-new`}>
-                        <td colSpan="8">
-                          New Date &amp; Time: {formatKeyInDateCustom(log.key_in_date)}
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  );
-                } else {
-                  // 7) Single row otherwise
-                  return (
-                    <tr
-                      key={idx}
-                      className={qtyChange > 0 ? 'row-positive' : qtyChange < 0 ? 'row-negative' : ''}
-                    >
-                      <td>{logDateStr}</td>
-                      <td>{formatKeyInDateCustom(log.key_in_date)}</td>
-                      <td>{changedByHighlighted}</td>
-                      <td>{qtyChange > 0 ? `+${qtyChange}` : ''}</td>
-                      <td>{qtyChange < 0 ? qtyChange : ''}</td>
-                      <td>{log.runningStock}</td>
-                      <td>{siteHighlighted}</td>
-                      <td>{remarksHighlighted}</td>
-                    </tr>
-                  );
-                }
+                return (
+                  <tr
+                    key={idx}
+                    className={
+                      log.source === 'virtual'
+                        ? 'initial-stock-row'
+                        : Number(log.quantity_change) > 0
+                        ? 'row-positive'
+                        : Number(log.quantity_change) < 0
+                        ? 'row-negative'
+                        : ''
+                    }
+                  >
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="datetime-local"
+                          value={currentEdit.key_in_date || ''}
+                          onChange={(e) => handleInputChange(idx, 'key_in_date', e.target.value)}
+                        />
+                      ) : (
+                        formatKeyInDateCustom(log.key_in_date)
+                      )}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={currentEdit.updated_by || log.updated_by}
+                          onChange={(e) => handleInputChange(idx, 'updated_by', e.target.value)}
+                        />
+                      ) : (
+                        log.updated_by === 'System' ? 'n/a' : highlightText(log.updated_by || '', changedBySearch)
+                      )}
+                    </td>
+                    <td>
+                      {isEditing && log.quantity_change >= 0 ? (
+                        <input
+                          type="number"
+                          value={currentEdit.qtyIn !== undefined ? currentEdit.qtyIn : (log.quantity_change > 0 ? log.quantity_change : '')}
+                          onChange={(e) => handleInputChange(idx, 'qtyIn', e.target.value)}
+                        />
+                      ) : (
+                        log.quantity_change > 0 && `+${log.quantity_change}`
+                      )}
+                    </td>
+                    <td>
+                      {isEditing && log.quantity_change < 0 ? (
+                        <input
+                          type="number"
+                          value={currentEdit.qtyOut !== undefined ? currentEdit.qtyOut : (log.quantity_change < 0 ? Math.abs(log.quantity_change) : '')}
+                          onChange={(e) => handleInputChange(idx, 'qtyOut', e.target.value)}
+                        />
+                      ) : (
+                        log.quantity_change < 0 && `-${Math.abs(log.quantity_change)}`
+                      )}
+                    </td>
+                    <td>{log.stockBefore !== undefined ? log.stockBefore : 'N/A'}</td>
+                    <td>{log.stockAfter !== undefined ? log.stockAfter : 'N/A'}</td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={currentEdit.site_name || log.site_name}
+                          onChange={(e) => handleInputChange(idx, 'site_name', e.target.value)}
+                        />
+                      ) : (
+                        // Do not display a site name for virtual logs
+                        log.source === 'virtual' ? '' : ((log.site_name === 'System' || !log.site_name) ? 'n/a' : highlightText(log.site_name || '', siteSearch))
+                      )}
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={currentEdit.remarks || log.remarks}
+                          onChange={(e) => handleInputChange(idx, 'remarks', e.target.value)}
+                        />
+                      ) : (
+                        highlightText(log.remarks || '', remarksSearch)
+                      )}
+                    </td>
+                    <td>
+                      {log.source === 'virtual' ? (
+                        'N/A'
+                      ) : isEditing ? (
+                        <>
+                          <button onClick={() => handleSaveEdit(idx)}>Save</button>
+                          <button onClick={() => cancelEdit(idx)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => handleEdit(idx, log)}>Edit</button>
+                          <button onClick={() => handleDelete(log)}>Delete</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
               })
             )}
           </tbody>
@@ -494,31 +573,24 @@ function ItemLogs({
   );
 }
 
+
 /* ------------------ ReportView Component ------------------ */
 export default function ReportView() {
   const navigate = useNavigate();
-
-  // ------------------ Form Fields ------------------
   const [adminName, setAdminName] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [keyInDate, setKeyInDate] = useState('');
-  const [reportType, setReportType] = useState('all'); // "all" or "specific"
+  const [reportType, setReportType] = useState('all');
   const [selectedItems, setSelectedItems] = useState([]);
   const [filterByLocation, setFilterByLocation] = useState(false);
   const [location, setLocation] = useState('');
-
-  // ------------------ Additional Search Fields ------------------
   const [changedBySearch, setChangedBySearch] = useState('');
   const [siteSearch, setSiteSearch] = useState('');
   const [remarksSearch, setRemarksSearch] = useState('');
-
-  // ------------------ Data from Server ------------------
   const [items, setItems] = useState([]);
   const [logs, setLogs] = useState([]);
-
-  // ------------------ UI States ------------------
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(true);
   const [globalCollapse, setGlobalCollapse] = useState(false);
@@ -529,7 +601,6 @@ export default function ReportView() {
     fetchItems();
   }, []);
 
-  // 1) Fetch Items from Server
   const fetchItems = async () => {
     try {
       setError(null);
@@ -537,10 +608,7 @@ export default function ReportView() {
       const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
       });
       if (!response.ok) throw new Error('Failed to fetch items');
       const data = await response.json();
@@ -553,7 +621,6 @@ export default function ReportView() {
     }
   };
 
-  // 2) Fetch All Logs from Server
   const fetchLogsRaw = async () => {
     try {
       setError(null);
@@ -561,10 +628,7 @@ export default function ReportView() {
       const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
       });
       if (!response.ok) throw new Error('Failed to fetch logs');
       const data = await response.json();
@@ -578,14 +642,12 @@ export default function ReportView() {
     }
   };
 
-  // 3) Filter Logs Based on Form Inputs.
   const handleFetchLogs = async () => {
     const allLogs = await fetchLogsRaw();
     if (!allLogs.length && !error) {
       setLogs([]);
       return;
     }
-
     let startObj, endObj;
     if (!startDate && !endDate) {
       const now = new Date();
@@ -600,39 +662,25 @@ export default function ReportView() {
 
     let workingItems = [...items];
     if (filterByLocation && location) {
-      const locLower = location.toLowerCase();
       workingItems = workingItems.filter(
-        (it) => it.location && it.location.toLowerCase() === locLower
+        (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
       );
     }
-
-    const itemIdsToInclude =
-      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
+    const itemIdsToInclude = reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
 
     const filteredLogs = allLogs.filter((log) => {
+      const hasQuantityChange = Number(log.quantity_change) !== 0;
+      const hasKeyInDate = isValidDate(log.key_in_date);
+      if (!hasQuantityChange || !hasKeyInDate) return false;
+
       const logDate = new Date(log.timestamp);
-      const inDateRange =
-        (!startObj || logDate >= startObj) && (!endObj || logDate <= endObj);
+      const inDateRange = (!startObj || logDate >= startObj) && (!endObj || logDate <= endObj);
       const inSelectedItems = itemIdsToInclude.includes(log.item_id);
 
       let matchesLocation = true;
       if (filterByLocation && location) {
         const logItem = items.find((i) => i.item_id === log.item_id);
-        matchesLocation =
-          logItem &&
-          logItem.location &&
-          logItem.location.toLowerCase() === location.toLowerCase();
-      }
-
-      let matchesKeyInDate = true;
-      if (keyInDate) {
-        const logItem = items.find((i) => i.item_id === log.item_id);
-        if (logItem && logItem.audit_date) {
-          const auditLocal = formatLocalDate(logItem.audit_date);
-          matchesKeyInDate = auditLocal === keyInDate;
-        } else {
-          matchesKeyInDate = false;
-        }
+        matchesLocation = logItem && logItem.location && logItem.location.toLowerCase() === location.toLowerCase();
       }
 
       const matchesChangedBy = changedBySearch
@@ -645,21 +693,24 @@ export default function ReportView() {
         ? (log.remarks || '').toLowerCase().includes(remarksSearch.toLowerCase())
         : true;
 
-      return (
-        inDateRange &&
-        inSelectedItems &&
-        matchesLocation &&
-        matchesKeyInDate &&
-        matchesChangedBy &&
-        matchesSite &&
-        matchesRemarks
-      );
+      return inDateRange && inSelectedItems && matchesLocation && matchesChangedBy && matchesSite && matchesRemarks;
     });
 
     setLogs(filteredLogs);
   };
 
-  // 4) Export PDF with Current Filter Settings.
+  const updateLog = (updatedLog) => {
+    setLogs((prevLogs) =>
+      prevLogs.map((log) =>
+        log.id.toString() === updatedLog.id.toString() && log.source === updatedLog.source ? updatedLog : log
+      )
+    );
+  };
+
+  const deleteLog = (id) => {
+    setLogs((prevLogs) => prevLogs.filter((log) => log.id !== id));
+  };
+
   const handleExportPDF = () => {
     let startObj, endObj;
     if (!startDate && !endDate) {
@@ -672,49 +723,36 @@ export default function ReportView() {
       if (startObj) startObj.setHours(0, 0, 0, 0);
       if (endObj) endObj.setHours(23, 59, 59, 999);
     }
-
     let workingItems = [...items];
     if (filterByLocation && location) {
-      const locLower = location.toLowerCase();
-      workingItems = workingItems.filter(
-        (it) => it.location && it.location.toLowerCase() === locLower
-      );
+      workingItems = workingItems.filter((it) => it.location && it.location.toLowerCase() === location.toLowerCase());
     }
-    const finalSelectedIds =
-      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
-
-    // Determine if any log has BOTH a quantity change and a key‑in date change
+    const finalSelectedIds = reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
     const showKeyInDateColumn = logs.some((log) => {
-      const qtyChange = parseInt(log.quantity_change, 10) || 0;
+      const qtyChange = Number(log.quantity_change) || 0;
       return qtyChange !== 0 && log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
     });
-
     const config = {
       adminName,
       recipientName,
       startDate: startObj,
       endDate: endObj,
       reportType,
-      selectedItems: items
-        .filter((it) => finalSelectedIds.includes(it.item_id))
-        .map((it) => ({ ...it })),
+      selectedItems: items.filter((it) => finalSelectedIds.includes(it.item_id)).map((it) => ({ ...it })),
       logs,
       includePrice: true,
       locationFilter: filterByLocation ? location.toLowerCase() : null,
       showLocation: filterByLocation,
       showSite: false,
-      showKeyInDate: showKeyInDateColumn, // Only show key‑in date column if there's a combined change
+      showKeyInDate: showKeyInDateColumn,
     };
-
     generateReportPDF(config);
   };
 
-  // 5) Navigate Back
   const handleBack = () => {
     navigate('/admin-dashboard');
   };
 
-  // Clear all filter fields
   const handleClearAllFields = () => {
     setAdminName('');
     setRecipientName('');
@@ -731,28 +769,18 @@ export default function ReportView() {
     setLogs([]);
   };
 
-  // Compute unique locations for the filter dropdown
   const uniqueLocations = useMemo(() => {
     return Array.from(
-      new Set(
-        items
-          .map((it) => it.location)
-          .filter(Boolean)
-          .map((loc) => loc.toLowerCase())
-      )
+      new Set(items.map((it) => it.location).filter(Boolean).map((loc) => loc.toLowerCase()))
     ).sort();
   }, [items]);
 
-  // Filter items by location (if needed)
   const filteredItems = useMemo(() => {
     return filterByLocation && location
-      ? items.filter(
-          (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
-        )
+      ? items.filter((it) => it.location && it.location.toLowerCase() === location.toLowerCase())
       : items;
   }, [items, filterByLocation, location]);
 
-  // If "specific" report, only show selected items
   const displayItems = useMemo(() => {
     return reportType === 'specific'
       ? filteredItems.filter((it) => selectedItems.includes(it.item_id))
@@ -761,18 +789,13 @@ export default function ReportView() {
 
   return (
     <div className="report-container">
-   <div className="report-header">
-  
-  <h1>Inventory Management Report</h1>
-</div>
-
-
+      <div className="report-header">
+        <h1>Inventory Management Report</h1>
+      </div>
       {error && <div className="error-message">{error}</div>}
-
       <button className="toggle-filters-button" onClick={() => setShowFilters((prev) => !prev)}>
         {showFilters ? 'Hide Filters' : 'Show Filters'}
       </button>
-
       {showFilters && (
         <FilterForm
           adminName={adminName}
@@ -805,16 +828,13 @@ export default function ReportView() {
           handleClearAllFields={handleClearAllFields}
         />
       )}
-
       <div className="global-collapse-container">
         <button className="collapse-button" onClick={() => setGlobalCollapse((prev) => !prev)}>
           {globalCollapse ? 'Expand All Logs' : 'Collapse All Logs'}
         </button>
       </div>
-
       {loadingItems && <p>Loading items...</p>}
       {loadingLogs && <p>Loading logs...</p>}
-
       <div className="items-section">
         {displayItems.map((item) => (
           <ItemLogs
@@ -828,10 +848,12 @@ export default function ReportView() {
             startDate={startDate}
             endDate={endDate}
             keyInDate={keyInDate}
+            updateLog={updateLog}
+            deleteLog={deleteLog}
+            refreshItems={fetchItems}
           />
         ))}
       </div>
-
       <div className="export-section">
         <button className="export-button" onClick={handleExportPDF}>
           Export PDF

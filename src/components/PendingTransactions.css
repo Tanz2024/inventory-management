@@ -1,123 +1,174 @@
-.pending-transactions-container {
-  max-width: 100%; /* Full width */
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Header style */
-.pending-transactions-title {
-  text-align: center;
-  color: #333;
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-/* Table styling */
-.transactions-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  font-size: 0.8rem;
-}
-
-.transactions-table th,
-.transactions-table td {
-  padding: 12px;
-  text-align: center;
-  border: 1px solid #e0e0e0;
-  font-size: 14px;
-}
-
-/* Table headers */
-.transactions-table th {
-  background-color: #0077a1; /* Updated header color */
-  color: white;
-  font-weight: bold;
-}
-
-/* Table rows alternate color */
-.transactions-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-/* Highlight a row on hover */
-.transactions-table tbody tr:hover {
-  background-color: #f1f1f1;
-}
-
-/* Approve button styling (blue) */
-.approve-button {
-  background-color: #0077a1; /* Blue */
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-  width: 100%;
-}
-
-/* Approve button hover effect */
-.approve-button:hover {
-  background-color: #005f80; /* Darker blue on hover */
-}
-
-/* Cancel button styling (red) */
-.cancel-button {
-  background-color: #dc3545; /* Red */
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-  width: 100%;
-  margin-top: 8px;
-}
-
-/* Cancel button hover effect */
-.cancel-button:hover {
-  background-color: #b02a37; /* Darker red on hover */
-}
-
-/* Add margin to the right of the action column */
-.transactions-table td:last-child {
-  text-align: center;
-}
-
-.transactions-table td.no-transactions-message {
-  color: #ff6347; /* Red color for emphasis */
-  text-align: center;
-  font-size: 18px;
-  padding: 30px;
-  font-weight: bold;
-}
-
-/* Mobile Responsive */
-@media screen and (max-width: 768px) {
-  .pending-transactions-container {
-    padding: 10px; /* Reduce padding for smaller screens */
+/* ========================================================================== 
+   Pending Transactions Container & Base Styles
+   ========================================================================== */
+   .pending-transactions-container {
+    max-width: 100%;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-
+  
+  /* Header style */
+  .pending-transactions-title {
+    text-align: center;
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  /* Controls Row (Flex Layout) */
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: flex-end;
+  }
+  
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    font-size: 0.9rem;
+  }
+  
+  .control-group label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .control-group select,
+  .control-group input {
+    padding: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  
+  .control-group select:focus,
+  .control-group input:focus {
+    border-color: #0077a1;
+  }
+  
+  /* ========================================================================== 
+     Transactions Table (Desktop)
+     ========================================================================== */
   .transactions-table {
-    font-size: 0.7rem; /* Reduce font size for better fit */
-    display: block;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    white-space: nowrap;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-size: 0.8rem;
   }
-
+  
   .transactions-table th,
   .transactions-table td {
-    padding: 10px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    font-size: 14px;
   }
-
-  .pending-transactions-title {
-    font-size: 1.5rem; /* Reduce heading size */
+  
+  .transactions-table th {
+    background-color: #0077a1;
+    color: white;
+    font-weight: bold;
   }
-}
+  
+  .transactions-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .transactions-table tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  /* ========================================================================== 
+     Buttons
+     ========================================================================== */
+  /* Approve button styling (blue) */
+  .approve-button {
+    background-color: #0077a1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  
+  .approve-button:hover {
+    background-color: #005f80;
+  }
+  
+  /* Cancel button styling (red) */
+  .cancel-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+  
+  .cancel-button:hover {
+    background-color: #b02a37;
+  }
+  
+  /* ========================================================================== 
+     Additional Styles
+     ========================================================================== */
+  .no-transactions-message {
+    color: #ff6347;
+    text-align: center;
+    font-size: 18px;
+    padding: 30px;
+    font-weight: bold;
+  }
+  
+  .search-highlight {
+    background-color: #fffb91;
+    font-weight: bold;
+  }
+  
+  .time-expiring {
+    color: #dc3545;
+    font-weight: bold;
+  }
+  
+  /* ========================================================================== 
+     Mobile Responsive Styles
+     ========================================================================== */
+  @media screen and (max-width: 768px) {
+    .pending-transactions-container {
+      padding: 10px;
+    }
+    
+    .pending-transactions-title {
+      font-size: 1.5rem;
+    }
+    
+    .transactions-table {
+      font-size: 0.7rem;
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    
+    .transactions-table th,
+    .transactions-table td {
+      padding: 10px;
+    }
+  }
+  

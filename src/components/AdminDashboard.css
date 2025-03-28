@@ -1,23 +1,18 @@
-/* ==========================================================================
-   1. Global Reset & Base Settings
+/* ========================================================================== 
+   1. Global Reset & Base Settings 
    ========================================================================== */
    html,
    body {
      margin: 0;
      padding: 0;
-     /* Allow extremely narrow screens if needed */
      min-width: 0;
-     /* Let the body grow vertically as content grows */
    }
    
-   *,
-   *::before,
-   *::after {
+   *, *::before, *::after {
      box-sizing: border-box;
    }
    
-   /* Base font-size scales between 0.85rem and 1rem,
-      ensuring readability at 100% zoom on all devices */
+   /* Base font-size scales between 0.85rem and 1rem */
    :root {
      font-size: clamp(0.85rem, 1.25vw, 1rem);
    
@@ -45,118 +40,189 @@
      /* Layout */
      --input-bg: #f9f9f9;
    
-     /* Animation Speed */
+     /* Animation */
      --transition-speed: 0.3s;
    }
    
-   /* ==========================================================================
-      2. Admin Dashboard Container (Fluid Layout)
+   /* ========================================================================== 
+      2. Admin Dashboard Container 
       ========================================================================== */
    .admin-dashboard-container {
-     width: 100%; /* Ensure it doesn't exceed parent */
-     max-width: 1700px;
-     margin: 2rem auto;
-     padding: 1rem;
+     width: 100%;
+     margin-top: 90px;
+     padding: 20px;
      background-color: var(--background-color);
      border-radius: 0.5rem;
-     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-     overflow: hidden; /* Prevent content from spilling out */
+     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+     font-family: var(--font-family);
    }
    
-   .table-container {
-     width: 100%;
-     overflow-x: auto; /* Enables horizontal scrolling if needed */
-     padding-bottom: 1rem;
-   }
-   
+   /* ========================================================================== 
+      3. Base Table Styling 
+      ========================================================================== */
    .admin-dashboard-table {
      width: 100%;
+     table-layout: auto;
+     max-width: 100%;
      border-collapse: collapse;
-     font-size: 0.9rem;
-     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
    }
    
-   @keyframes fadeIn {
-     from {
-       opacity: 0;
-       transform: translateY(20px);
-     }
-     to {
-       opacity: 1;
-       transform: translateY(0);
-     }
+   .admin-dashboard-table th,
+   .admin-dashboard-table td {
+     padding: 5px 8px;
+     border: 1px solid var(--light-border);
+     white-space: normal;
+     overflow-wrap: break-word;
+     hyphens: auto;
    }
    
-   /* ==========================================================================
-      3. Header & Action Buttons
-      ========================================================================== */
-   .header-container {
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
-     border-bottom: 2px solid #f0f0f0;
-     padding-bottom: 0.5rem;
-     margin-bottom: 1rem;
-   }
-   
-   .header-admin-dashboard {
-     font-size: 1.8rem; /* Slightly smaller than 2rem for better fit on all screens */
-     font-weight: bold;
-     color: var(--header-font-color);
-     margin: 0;
-   }
-   
-   .action-buttons {
-     display: flex;
-     gap: 0.5rem;
-     margin-top: 0.5rem;
-   }
-   
-   .action-buttons button {
+   .admin-dashboard-table th {
      background-color: var(--primary-color);
      color: #fff;
-     border: none;
-     border-radius: 0.25rem;
-     padding: 0.75rem 1rem;
-     font-size: 1rem;
+     font-weight: bold;
      cursor: pointer;
-     transition: background-color var(--transition-speed), transform 0.2s;
+     transition: background var(--transition-speed);
    }
    
-   .action-buttons button:hover {
+   .admin-dashboard-table th:hover {
      background-color: var(--primary-hover);
-     transform: scale(1.02);
    }
    
-   /* ==========================================================================
-      4. Search Bar
+   .admin-dashboard-table td {
+     background-color: #f9f9f9;
+   }
+   
+   .admin-dashboard-table tr:nth-child(even) {
+     background-color: #f2f2f2;
+   }
+   
+   .admin-dashboard-table tr:hover {
+     background-color: #e2e2e2;
+     cursor: pointer;
+   }
+   
+   /* ========================================================================== 
+      4. Notification Styling 
+      ========================================================================== */
+   .notification {
+     position: fixed;
+     top: 10px;
+     right: 10px;
+     padding: 1rem 1.5rem;
+     border-radius: 0.5rem;
+     font-family: var(--font-family);
+     font-size: 1rem;
+     z-index: 1000;
+     opacity: 0.97;
+     transition: opacity var(--transition-speed);
+   }
+   
+   .professional-notification {
+     background-color: var(--light-bg);
+     border: 1px solid var(--light-border);
+     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+   }
+   
+   /* ========================================================================== 
+      5. Reusable Button Styles 
+      ========================================================================== */
+   .btn {
+     display: inline-block;
+     padding: 0.75rem 1.25rem;
+     font-size: 1rem;
+     font-weight: 600;
+     text-align: center;
+     text-decoration: none;
+     color: #fff;
+     border: none;
+     border-radius: 0.3rem;
+     background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+     cursor: pointer;
+     transition: background var(--transition-speed), transform 0.2s, box-shadow 0.2s;
+   }
+   
+   .btn:hover {
+     background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+     transform: scale(1.03) translateY(-2px);
+     box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+   }
+   
+   .btn:focus {
+     outline: 2px solid var(--primary-hover);
+     outline-offset: 2px;
+   }
+   
+   .btn-danger {
+     background: linear-gradient(135deg, var(--danger-color), #b52b3a);
+   }
+   
+   .btn-danger:hover {
+     background: linear-gradient(135deg, var(--danger-hover), var(--danger-color));
+     transform: scale(1.03) translateY(-2px);
+     box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+   }
+   
+   .btn-success {
+     background: linear-gradient(135deg, var(--secondary-color), #1f7f2f);
+   }
+   
+   .btn-success:hover {
+     background: linear-gradient(135deg, var(--secondary-hover), var(--secondary-color));
+     transform: scale(1.03) translateY(-2px);
+     box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+   }
+   
+   .btn-warning {
+     background: linear-gradient(135deg, var(--warning-color), #e0a800);
+   }
+   
+   .btn-warning:hover {
+     background: linear-gradient(135deg, var(--warning-hover), var(--warning-color));
+     transform: scale(1.03) translateY(-2px);
+     box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+   }
+   
+   /* ========================================================================== 
+      6. Search Bar 
       ========================================================================== */
    .search-container {
      margin-bottom: 1rem;
+     display: flex;
+     align-items: center;
    }
    
    .search-input {
-     width: 100%;
+     width: 50%;
      padding: 0.75rem 1rem;
+     margin-right: 20px;
+     margin-top: 20px;
      font-size: 1rem;
      border: 1px solid var(--border-color);
      border-radius: 0.25rem;
+     background-color: var(--input-bg);
+     color: #000;
+     caret-color: var(--primary-color);
      transition: border-color var(--transition-speed);
+   }
+   
+   .search-input::placeholder {
+     color: #888;
    }
    
    .search-input:focus {
      border-color: var(--primary-color);
+     outline: none;
    }
    
-   /* ==========================================================================
-      5. Report Dropdown & Form
+   /* ========================================================================== 
+      7. Report Dropdown & Form 
       ========================================================================== */
    .report-dropdown {
      background-color: var(--light-bg);
      border: 1px solid var(--border-color);
      padding: 1rem;
-     margin: 1rem 0; /* Slight vertical margin */
+     margin: 1rem 0;
      border-radius: 0.5rem;
      animation: fadeIn 0.3s ease-in-out;
    }
@@ -193,8 +259,8 @@
      display: block;
    }
    
-   .report-form input[type='text'],
-   .report-form input[type='date'],
+   .report-form input[type="text"],
+   .report-form input[type="date"],
    .report-form select {
      width: 100%;
      padding: 0.5rem;
@@ -218,80 +284,68 @@
      margin-top: 1rem;
    }
    
-   .report-form .btn-generate,
-   .report-form .btn-close,
-   .report-form .btn-clear {
-     padding: 0.5rem 1rem;
-     font-size: 1rem;
-     border: none;
-     border-radius: 0.25rem;
-     cursor: pointer;
-     transition: background-color var(--transition-speed), transform 0.2s;
-   }
-   
-   /* Generate Button */
-   .report-form .btn-generate {
-     background-color: var(--secondary-color);
-     color: #fff;
-   }
-   .report-form .btn-generate:hover {
-     background-color: var(--secondary-hover);
-     transform: scale(1.02);
-   }
-   
-   /* Close Button */
-   .report-form .btn-close {
-     background-color: var(--danger-color);
-     color: #fff;
-   }
-   .report-form .btn-close:hover {
-     background-color: var(--danger-hover);
-     transform: scale(1.02);
-   }
-   
-   /* Clear Button */
-   .report-form .btn-clear {
-     background-color: var(--warning-color);
-     color: #fff;
-   }
-   .report-form .btn-clear:hover {
-     background-color: var(--warning-hover);
-     transform: scale(1.02);
-   }
-   
-   /* ==========================================================================
-      6. Admin Dashboard Table
+   /* ========================================================================== 
+      8. Column Filter Dropdown 
       ========================================================================== */
-   .admin-dashboard-table th,
-   .admin-dashboard-table td {
-     padding: 0.75rem 1rem;
-     text-align: center;
-     border: 1px solid var(--light-border);
-     vertical-align: middle;
+   .dropdown-container {
+     position: relative;
+     margin-bottom: 1rem;
    }
    
-   .admin-dashboard-table th {
+   .dropdown-toggle {
+     padding: 0.6rem 1rem;
      background-color: var(--primary-color);
      color: #fff;
-     font-weight: bold;
+     border: none;
+     border-radius: 0.3rem;
      cursor: pointer;
+     font-size: 1rem;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     transition: background-color var(--transition-speed);
    }
    
-   .admin-dashboard-table td {
-     background-color: #f9f9f9;
+   .dropdown-toggle:hover {
+     background-color: var(--primary-hover);
    }
    
-   .admin-dashboard-table tr:nth-child(even) {
-     background-color: #f2f2f2;
+   .dropdown-menu {
+     position: absolute;
+     top: 110%;
+     left: 0;
+     z-index: 10;
+     background-color: #fff;
+     border: 1px solid var(--light-border);
+     border-radius: 0.3rem;
+     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+     padding: 0.75rem;
+     min-width: 220px;
+     animation: fadeIn 0.3s ease-in-out;
    }
    
-   .admin-dashboard-table tr:hover {
-     background-color: #e2e2e2;
+   .dropdown-item {
+     margin-bottom: 0.5rem;
+     font-size: 0.9rem;
+   }
+   
+   .reset-columns-button {
+     padding: 0.4rem 0.8rem;
+     background-color: var(--warning-color);
+     border: none;
+     border-radius: 0.3rem;
+     color: #fff;
      cursor: pointer;
+     transition: background-color var(--transition-speed);
+     font-size: 0.9rem;
    }
    
-   /* ==========================================================================
-      7. Highlighting & Specific Options
+   .reset-columns-button:hover {
+     background-color: var(--warning-hover);
+   }
+   
+   /* ========================================================================== 
+      9. Highlighting & Specific Options 
       ========================================================================== */
    .highlight {
      background-color: var(--highlight-color);
@@ -315,6 +369,9 @@
      color: var(--header-font-color);
    }
    
+   /* ========================================================================== 
+      10. Items List & Tags 
+      ========================================================================== */
    .items-list {
      display: flex;
      flex-wrap: wrap;
@@ -328,8 +385,7 @@
      border-radius: 1.25rem;
      cursor: pointer;
      font-size: 0.9rem;
-     transition: background-color var(--transition-speed),
-       border-color var(--transition-speed);
+     transition: background-color var(--transition-speed), border-color var(--transition-speed);
    }
    
    .item-tag:hover {
@@ -344,22 +400,27 @@
      border-color: var(--primary-color);
    }
    
+   /* ========================================================================== 
+      11. Close Specific Option Button 
+      ========================================================================== */
    .close-specific {
-     background-color: var(--warning-color);
+     display: inline-block;
+     padding: 0.5rem 0.75rem;
+     font-size: 0.85rem;
+     font-weight: 600;
+     text-align: center;
+     text-decoration: none;
      color: #fff;
      border: none;
-     padding: 0.5rem 0.75rem;
-     border-radius: 0.25rem;
+     border-radius: 0.3rem;
+     background: linear-gradient(135deg, var(--warning-color), #e0a800);
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
      cursor: pointer;
-     transition: background-color var(--transition-speed), transform 0.2s;
-   }
-   .close-specific:hover {
-     background-color: var(--warning-hover);
-     transform: scale(1.02);
+     transition: background var(--transition-speed), transform 0.2s, box-shadow 0.2s;
    }
    
-   /* ==========================================================================
-      7.1. Edit/Save Buttons for Inline Editing
+   /* ========================================================================== 
+      12. Edit/Save Buttons for Inline Editing 
       ========================================================================== */
    .edit-button,
    .save-button {
@@ -379,8 +440,8 @@
      background-color: var(--light-border);
    }
    
-   /* ==========================================================================
-      8. Bulk Actions
+   /* ========================================================================== 
+      13. Bulk Actions 
       ========================================================================== */
    .bulk-actions {
      margin-top: 1rem;
@@ -388,21 +449,24 @@
    }
    
    .confirm-all-button {
-     background: linear-gradient(45deg, var(--primary-color), var(--primary-hover));
-     color: #fff;
-     border: none;
-     padding: 0.5rem 1rem;
+     padding: 0.75rem 1.25rem;
      font-size: 1rem;
-     border-radius: 0.25rem;
+     font-weight: 600;
+     color: #fff;
+     background: linear-gradient(45deg, var(--primary-color), var(--primary-hover));
+     border: none;
+     border-radius: 0.3rem;
      cursor: pointer;
      transition: transform 0.2s, background-color var(--transition-speed);
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
    }
+   
    .confirm-all-button:hover {
      transform: scale(1.05);
    }
    
-   /* ==========================================================================
-      9. Stepper (Horizontal Quantity Control)
+   /* ========================================================================== 
+      14. Stepper (Horizontal Quantity Control) 
       ========================================================================== */
    .stepper-container {
      display: inline-flex;
@@ -423,6 +487,9 @@
      border: none;
      cursor: pointer;
      transition: background-color var(--transition-speed);
+     display: flex;
+     align-items: center;
+     justify-content: center;
    }
    
    .stepper-btn:hover {
@@ -437,105 +504,116 @@
      outline: none;
      font-size: 1rem;
      font-family: inherit;
-     /* Removes spinner in Chrome/Safari/Edge */
+     -webkit-appearance: none;
      appearance: textfield;
-     /* Removes spinner in Firefox */
      -moz-appearance: textfield;
    }
+   
    .stepper-input::-webkit-inner-spin-button,
    .stepper-input::-webkit-outer-spin-button {
      -webkit-appearance: none;
      margin: 0;
    }
    
-   /* ==========================================================================
-      9.1. Quantity Input Without Spinner
+   /* ========================================================================== 
+      15. Responsive Design 
       ========================================================================== */
-   /* If you have a .quantity-input field that you also want spinner-less, use: */
-   .quantity-input {
-     appearance: textfield; /* Standard property */
-     -moz-appearance: textfield; /* For Firefox */
-   }
-   .quantity-input::-webkit-inner-spin-button,
-   .quantity-input::-webkit-outer-spin-button {
-     -webkit-appearance: none;
-     margin: 0;
-   }
-   
-   /* ==========================================================================
-      10. Responsive Design
-      ========================================================================== */
-   
-   /* Medium screens (~992px and below) */
    @media screen and (max-width: 992px) {
      .admin-dashboard-table {
        font-size: 0.85rem;
-       display: block;
-       overflow-x: auto;
-       white-space: nowrap;
      }
-   
      .header-admin-dashboard {
        font-size: 1.5rem;
      }
    }
    
-   /* Small screens (~576px and below) */
    @media screen and (max-width: 576px) {
      .admin-dashboard-table th,
      .admin-dashboard-table td {
        font-size: 0.75rem;
        padding: 0.5rem;
      }
-   
      .header-admin-dashboard {
        font-size: 1.2rem;
      }
-   
-     .action-buttons button {
+     .action-buttons {
+       flex-wrap: nowrap;
+       overflow-x: auto;
+       -webkit-overflow-scrolling: touch;
+       gap: 0.5rem;
+     }
+     .action-buttons .btn {
+       flex: 0 0 auto;
        font-size: 0.9rem;
        padding: 0.5rem 0.75rem;
+       min-width: 80px;
+       white-space: nowrap;
      }
    }
-   .admin-dashboard-container {
-    font-family: 'Arial', sans-serif;
-    padding: 20px;
-  }
-  
-  /* Header & Action Buttons */
-  .header-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  
-  .action-buttons button {
-    margin: 0 5px;
-    padding: 8px 12px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
-  /* Star Icon Styles */
-  .star-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    outline: none;
-  }
-  
-  .star-icon {
-    transition: transform 0.3s, filter 0.3s;
-  }
-  
-  .star-icon:hover {
-    transform: scale(1.3);
-    filter: drop-shadow(0 0 5px #f1c40f);
-  }
-  
-  /* Highlight for starred rows */
-  .starred-row {
-    background-color: #fff9e6; /* soft yellow background */
-  }
-  
-  
+   
+   /* ========================================================================== 
+      16. Star Icon & Row Highlight 
+      ========================================================================== */
+   .star-button {
+     background: transparent;
+     border: none;
+     cursor: pointer;
+     outline: none;
+   }
+   
+   .star-icon {
+     transition: transform 0.3s, filter 0.3s;
+   }
+   
+   .star-icon:hover {
+     transform: scale(1.3);
+     filter: drop-shadow(0 0 5px #f1c40f);
+   }
+   
+   .starred-row {
+     background-color: #fff9e6;
+   }
+   
+   /* ========================================================================== 
+      17. Button Active State 
+      ========================================================================== */
+   .btn:active {
+     transform: scale(0.95) translateY(2px);
+     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+     background: linear-gradient(135deg, var(--primary-hover), var(--primary-color));
+   }
+   
+   /* ========================================================================== 
+      18. Fade In Animation 
+      ========================================================================== */
+   @keyframes fadeIn {
+     from {
+       opacity: 0;
+       transform: translateY(20px);
+     }
+     to {
+       opacity: 1;
+       transform: translateY(0);
+     }
+   }
+   /* Notification styles for addition (green) and subtraction (red) */
+.notification {
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.notification.green {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.notification.red {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
