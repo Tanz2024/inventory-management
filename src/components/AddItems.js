@@ -54,8 +54,6 @@ const AddItems = ({ onClose, onAddItem }) => {
 
   const [showRemarkInput, setShowRemarkInput] = useState(false);
   const [newRemark, setNewRemark] = useState('');
-
-  // Fetch Site options from backend
   useEffect(() => {
     const fetchSiteOptions = async () => {
       try {
@@ -72,10 +70,20 @@ const AddItems = ({ onClose, onAddItem }) => {
         console.error('Error fetching site options:', error);
       }
     };
+  
+    // Initial fetch
     fetchSiteOptions();
+  
+    // Listen to custom event
+    const handleUpdate = (e) => {
+      if (e.detail?.type === 'site') {
+        fetchSiteOptions();
+      }
+    };
+  
+    window.addEventListener('dropdownOptionsUpdated', handleUpdate);
+    return () => window.removeEventListener('dropdownOptionsUpdated', handleUpdate);
   }, []);
-
-  // Fetch Remark options from backend
   useEffect(() => {
     const fetchRemarkOptions = async () => {
       try {
@@ -92,9 +100,21 @@ const AddItems = ({ onClose, onAddItem }) => {
         console.error('Error fetching remark options:', error);
       }
     };
+  
+    // Initial fetch
     fetchRemarkOptions();
+  
+    // Listen to custom event
+    const handleUpdate = (e) => {
+      if (e.detail?.type === 'remark') {
+        fetchRemarkOptions();
+      }
+    };
+  
+    window.addEventListener('dropdownOptionsUpdated', handleUpdate);
+    return () => window.removeEventListener('dropdownOptionsUpdated', handleUpdate);
   }, []);
-
+    
   // Check if the Unique ID already exists
   const checkDuplicateUniqueId = async (uniqueId) => {
     try {
@@ -150,70 +170,97 @@ const AddItems = ({ onClose, onAddItem }) => {
     setShowLocationInput(false);
   };
 
-  // Site (POST to backend so it’s immediately in the dropdown)
-  const handleAddSite = async () => {
-    if (!newSite.trim()) {
-      alert('Please enter a site name.');
-      return;
-    }
-    // Only add to backend if it doesn't already exist
-    if (!siteOptions.includes(newSite.trim())) {
-      try {
-        const response = await fetch('http://localhost:5000/dropdown-options/sites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ option: newSite.trim() })
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          alert(`Failed to add new site: ${errData.message}`);
-          return;
-        }
-        setSiteOptions(prev => [...prev, newSite.trim()]);
-        window.dispatchEvent(new CustomEvent('dropdownOptionsUpdated', { detail: { type: 'site' } }));
-      } catch (error) {
-        console.error('Error adding new site:', error);
-        alert('An error occurred while adding the new site.');
-        return;
-      }
-    }
-    setSite(newSite.trim());
-    setNewSite('');
-    setShowSiteInput(false);
-  };
+  // Generic helper to refresh options
+const refreshOptions = async (url, setter) => {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
 
-  // Remark (POST to backend so it’s immediately in the dropdown)
-  const handleAddRemark = async () => {
-    if (!newRemark.trim()) {
-      alert('Please enter a remark.');
-      return;
+    if (response.ok) {
+      const data = await response.json();
+      setter(data?.sites || data?.remarks || []);
     }
-    if (!remarkOptions.includes(newRemark.trim())) {
-      try {
-        const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ option: newRemark.trim() })
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          alert(`Failed to add new remark: ${errData.message}`);
-          return;
-        }
-        setRemarkOptions(prev => [...prev, newRemark.trim()]);
-        window.dispatchEvent(new CustomEvent('dropdownOptionsUpdated', { detail: { type: 'remark' } }));
-      } catch (error) {
-        console.error('Error adding new remark:', error);
-        alert('An error occurred while adding the new remark.');
+  } catch (error) {
+    console.error('Error refreshing options:', error);
+  }
+};
+
+// ✅ Site (POST to backend then refresh dropdown)
+const handleAddSite = async () => {
+  const siteToAdd = newSite.trim();
+  if (!siteToAdd) {
+    alert('Please enter a site name.');
+    return;
+  }
+
+  if (!siteOptions.includes(siteToAdd)) {
+    try {
+      const response = await fetch('http://localhost:5000/dropdown-options/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ option: siteToAdd }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        alert(`Failed to add new site: ${errData.message}`);
         return;
       }
+
+      await refreshOptions('http://localhost:5000/dropdown-options/sites', setSiteOptions);
+    } catch (error) {
+      console.error('Error adding new site:', error);
+      alert('An error occurred while adding the new site.');
+      return;
     }
-    setRemark(newRemark.trim());
-    setNewRemark('');
-    setShowRemarkInput(false);
-  };
+  }
+
+  setSite(siteToAdd);
+  setNewSite('');
+  setShowSiteInput(false);
+};
+
+// ✅ Remark (POST to backend then refresh dropdown)
+const handleAddRemark = async () => {
+  const remarkToAdd = newRemark.trim();
+  if (!remarkToAdd) {
+    alert('Please enter a remark.');
+    return;
+  }
+
+  if (!remarkOptions.includes(remarkToAdd)) {
+    try {
+      const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ option: remarkToAdd }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        alert(`Failed to add new remark: ${errData.message}`);
+        return;
+      }
+
+      await refreshOptions('http://localhost:5000/dropdown-options/remarks', setRemarkOptions);
+    } catch (error) {
+      console.error('Error adding new remark:', error);
+      alert('An error occurred while adding the new remark.');
+      return;
+    }
+  }
+
+  setRemark(remarkToAdd);
+  setNewRemark('');
+  setShowRemarkInput(false);
+};
+
+  
 
   // --- Form submission ---
   const handleSubmit = async (e) => {

@@ -22,10 +22,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     { key: "reserved_quantity", label: "Reservation", sortable: true },
     { key: "remarks", label: "Remarks", sortable: true },
     { key: "audit_date", label: "Key‑in Date", sortable: true, adminOnly: true },
-    { key: "action", label: "Action", sortable: false }
   ];
 
-  // Set default visible columns based on user type.
+  // Set default visible columns (hide adminOnly for non-admin users)
   const initialVisible = {};
   columns.forEach(col => {
     initialVisible[col.key] = col.adminOnly && userId !== 2 ? false : true;
@@ -56,18 +55,17 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [openManageRemarks, setOpenManageRemarks] = useState(false);
   const [openManageSites, setOpenManageSites] = useState(false);
 
-  // Other fields as per original code
+  // Other fields
   const [inputValue, setInputValue] = useState({});
   const [remarks, setRemarks] = useState({});
   const [prices, setPrices] = useState({});
   const [siteNames, setSiteNames] = useState({});
   const [units, setUnits] = useState({});
   const [uniqueIds, setUniqueIds] = useState({});
-  // quantityValue is used as the editable quantity value.
   const [quantityValue, setQuantityValue] = useState({});
   const [auditDates, setAuditDates] = useState({});
 
-  // Editable fields for admin – including new location
+  // Editable fields for admin
   const [editableItemNames, setEditableItemNames] = useState({});
   const [editableCategories, setEditableCategories] = useState({});
   const [editableModels, setEditableModels] = useState({});
@@ -80,8 +78,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [siteNamesOptions, setSiteNamesOptions] = useState([]);
 
   // ------------------------------ Notification ------------------------------
-  // Notification now shows quantity change above the table.
-  // type: "green" for positive/increase; "red" for negative/decrease; "info" for no change.
   const [notification, setNotification] = useState(null);
   const showNotification = (message, type) => {
     setNotification({ message, type });
@@ -118,8 +114,20 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   useEffect(() => {
     fetchRemarksOptions();
     fetchSiteOptions();
+  
+    const handleDropdownUpdate = (e) => {
+      const { type } = e.detail;
+      if (type === 'site') {
+        fetchSiteOptions();
+      } else if (type === 'remark') {
+        fetchRemarksOptions();
+      }
+    };
+  
+    window.addEventListener('dropdownOptionsUpdated', handleDropdownUpdate);
+    return () => window.removeEventListener('dropdownOptionsUpdated', handleDropdownUpdate);
   }, []);
-
+  
   const fetchRemarksOptions = async () => {
     try {
       const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
@@ -140,7 +148,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       console.error('Error fetching remarks options:', error);
     }
   };
-
+  
   const fetchSiteOptions = async () => {
     try {
       const response = await fetch('http://localhost:5000/dropdown-options/sites', {
@@ -161,7 +169,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       console.error('Error fetching site options:', error);
     }
   };
-
+  
   // ------------------------------ Data Fetching & Initialization ------------------------------
   const fetchItems = async () => {
     try {
@@ -196,7 +204,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Initialize state. For non-admin users, quantity is persisted in localStorage.
   const initializeStates = (fetchedItems) => {
     const initInput = {};
     const initRemarks = {};
@@ -213,7 +220,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     const initRowStatus = {};
     const initFullEditMode = {};
 
-    // For non-admins, retrieve stored quantities.
     const storedQuantities = JSON.parse(localStorage.getItem("userQuantities") || "{}");
 
     fetchedItems.forEach(item => {
@@ -222,10 +228,8 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       initPrices[item.item_id] = item.price ?? 0;
       initSiteNames[item.item_id] = item.site_name || '';
       initUnits[item.item_id] = item.unit || '';
-      initQuantity[item.item_id] =
-        userId !== 2 && storedQuantities[item.item_id] !== undefined
-          ? storedQuantities[item.item_id]
-          : item.quantity;
+      initQuantity[item.item_id] = item.quantity;
+
       initUniqueIds[item.item_id] = item.item_unique_id || '';
       initAuditDates[item.item_id] = item.audit_date || '';
       initItemNames[item.item_id] = item.item_name || '';
@@ -270,7 +274,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     );
   });
 
-  // ------------------------------ Sorting ------------------------------
   const sortedItems = [...filteredItems].sort((a, b) => a.display_order - b.display_order);
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
@@ -310,6 +313,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         alert(`Failed to update star: ${errorData.message}`);
         return;
       }
+      showNotification("Star updated successfully.", "green");
       fetchItems();
     } catch (err) {
       console.error('Error updating star:', err);
@@ -344,19 +348,17 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setAuditDates(prev => ({ ...prev, [itemId]: new Date(newDate).toISOString() }));
   };
 
-  // ------------------------------ Handle Unit Change (New) ------------------------------
   const handleUnitChange = (itemId, newUnit) => {
     if (userId !== 2) return;
     setUnits(prev => ({ ...prev, [itemId]: newUnit }));
   };
 
   // ------------------------------ Unified Quantity Management ------------------------------
-  // Updated quantity function now **only updates local state**.
   const quanitty = (itemId, delta) => {
     setQuantityValue(prev => {
       const current = parseInt(prev[itemId]) || 0;
-      const newQuantity = Math.max(0, current + delta);
-      // Persist for non-admins in localStorage.
+      const newQuantity = current + delta;
+      if (newQuantity < 0) return prev;
       if (userId !== 2) {
         const storedQuantities = JSON.parse(localStorage.getItem("userQuantities") || "{}");
         storedQuantities[itemId] = newQuantity;
@@ -366,7 +368,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     });
   };
 
-  // ------------------------------ Missing Editable Field Handlers ------------------------------
+  // ------------------------------ Editable Field Handlers ------------------------------
   const handleCategoryChange = (itemId, newCategory) => {
     setEditableCategories(prev => ({ ...prev, [itemId]: newCategory }));
   };
@@ -384,16 +386,26 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   };
 
   // ------------------------------ Action Buttons ------------------------------
-  // Confirm button: sends a single PATCH for the accumulated change.
+  // Enable full edit mode for admin
+  const enableFullEditMode = (itemId) => {
+    setFullEditMode(prev => ({ ...prev, [itemId]: true }));
+    setRowStatus(prev => ({ ...prev, [itemId]: "editing" }));
+  };
+
+  // For non-admin quantity update
   const handleConfirm = async (itemId) => {
     const item = items.find(it => it.item_id === itemId);
     if (!item) return;
     const oldQuantity = item.quantity;
     const newQuantity = quantityValue[itemId];
+    if (oldQuantity === newQuantity)
+      return showNotification('No change', 'info');
+  
     const diff = newQuantity - oldQuantity;
-    if (diff === 0) return showNotification('No change', 'info');
-
-    // Build payload.
+    const diffValue = Math.abs(diff);
+    const changeText = diff > 0 ? `${diffValue} added` : `${diffValue} removed`;
+    const notifType = diff > 0 ? 'green' : 'red';
+  
     const payload = { newQuantity };
     if (userId === 2) {
       Object.assign(payload, {
@@ -408,8 +420,13 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         remarks: remarks[itemId],
         audit_date: auditDates[itemId]
       });
+    } else {
+      Object.assign(payload, {
+        site_name: siteNames[itemId],
+        remarks: remarks[itemId]
+      });
     }
-
+  
     try {
       const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
@@ -423,59 +440,21 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         return;
       }
       const result = await response.json();
-      setItems(prev => prev.map(it => it.item_id === itemId ? result.item : it));
-      const actionText = diff > 0 ? 'added' : 'subtracted';
-      const notifType = diff > 0 ? 'green' : 'red';
-      const message = `${userId === 2 ? "Admin" : "User"} changed quantity of "${result.item.item_name}": ${actionText} ${Math.abs(diff)} (new quantity: ${newQuantity})`;
+      setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
+      const message = `${userId === 2 ? "Admin" : "User"} updated "${result.item.item_name}" (Site: ${siteNames[itemId]}, Remarks: ${remarks[itemId]}): quantity changed from ${oldQuantity} to ${newQuantity} (${changeText})`;
       showNotification(message, notifType);
     } catch (err) {
       console.error(err);
       showNotification('Error updating quantity — please try again', 'red');
     }
   };
-
-  // Edit button toggles edit mode (shows "Save Changes" in edit mode)
-  const handleActionEdit = (itemId) => {
-    if (!fullEditMode[itemId]) {
-      setFullEditMode(prev => ({ ...prev, [itemId]: true }));
-      setRowStatus(prev => ({ ...prev, [itemId]: "editing" }));
-    } else {
-      handleSaveFullEdit(itemId);
-    }
-  };
-
-  const handleDelete = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
-    try {
-      const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
-        method: 'PATCH',
-        headers: {
-          'ngrok-skip-browser-warning': '1',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ itemIds: [itemId] })
-      });
-      if (!response.ok) {
-        const errText = await response.text();
-        alert(`Failed to delete item: ${errText}`);
-        return;
-      }
-      alert('Item archived (deleted) successfully.');
-      setItems(prev => prev.filter(it => it.item_id !== itemId));
-    } catch (err) {
-      console.error('Error deleting item:', err);
-      alert('An error occurred while deleting the item.');
-    }
-  };
-
-  // ------------------------------ Full Row Edit Mode Save ------------------------------
   const handleSaveFullEdit = async (itemId) => {
+    const oldItem = items.find(it => it.item_id === itemId);
     const payload = {
       item_unique_id: uniqueIds[itemId],
       unit: units[itemId],
       price: prices[itemId],
-      audit_date: auditDates[itemId],
+      audit_date: auditDates[itemId] || null,
       remarks: remarks[itemId],
       site_name: siteNames[itemId],
       item_name: editableItemNames[itemId],
@@ -484,9 +463,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       location: editableLocations[itemId],
       newQuantity: quantityValue[itemId]
     };
-    if (!payload.audit_date) {
-      payload.audit_date = null;
-    }
+  
     if (payload.item_unique_id) {
       const duplicate = items.find(it => it.item_id !== itemId && it.item_unique_id === payload.item_unique_id);
       if (duplicate) {
@@ -494,6 +471,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         return;
       }
     }
+  
     try {
       const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
@@ -510,7 +488,9 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         return;
       }
       const result = await response.json();
-      setItems(prev => prev.map(it => it.item_id === itemId ? result.item : it));
+      setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
+      // Update the quantity state for admin to reflect the exact new value
+      setQuantityValue(prev => ({ ...prev, [itemId]: result.item.quantity }));
       setUniqueIds(prev => ({ ...prev, [itemId]: result.item.item_unique_id }));
       setUnits(prev => ({ ...prev, [itemId]: result.item.unit }));
       setPrices(prev => ({ ...prev, [itemId]: result.item.price }));
@@ -523,13 +503,21 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       setEditableLocations(prev => ({ ...prev, [itemId]: result.item.location }));
       setFullEditMode(prev => ({ ...prev, [itemId]: false }));
       setRowStatus(prev => ({ ...prev, [itemId]: "saved" }));
-      alert(`Item ${itemId} updated successfully.`);
+  
+      const oldQuantity = oldItem.quantity;
+      const newQuantity = result.item.quantity;
+      const diff = newQuantity - oldQuantity;
+      const diffValue = Math.abs(diff);
+      const changeText = diff > 0 ? `${diffValue} added` : `${diffValue} removed`;
+      const notifType = diff > 0 ? 'green' : (diff < 0 ? 'red' : 'info');
+      const message = `Admin updated "${result.item.item_name}" (Site: ${result.item.site_name}, Remarks: ${result.item.remarks}): quantity changed from ${oldQuantity} to ${newQuantity} (${changeText})`;
+      showNotification(message, notifType);
     } catch (err) {
       console.error('Error updating item in full edit mode:', err);
       alert('An error occurred while updating the item.');
     }
   };
-
+  
   const cancelFullEditMode = (itemId) => {
     setFullEditMode(prev => ({ ...prev, [itemId]: false }));
     const item = items.find(it => it.item_id === itemId);
@@ -545,11 +533,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       setEditableModels(prev => ({ ...prev, [itemId]: item.model || '' }));
       setEditableLocations(prev => ({ ...prev, [itemId]: item.location || '' }));
       setRowStatus(prev => ({ ...prev, [itemId]: "default" }));
-      setQuantityValue(prev => ({ ...prev, [itemId]: item.quantity }));
+      setQuantityValue(prev => ({ ...prev, [item.item_id]: item.quantity }));
     }
   };
 
-  // ------------------------------ "Edit All" Handlers ------------------------------
   const handleEditAll = () => {
     const newFullEditMode = {};
     const newRowStatus = {};
@@ -638,7 +625,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
   };
 
-  // ------------------------------ Handle Confirm All Updates ------------------------------
   const handleConfirmAll = async () => {
     try {
       const updatePromises = items.map(item => {
@@ -671,16 +657,33 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
             return res.json();
           });
       });
-  
+
       const results = await Promise.all(updatePromises);
       setItems(results.map(r => r.item));
-      alert("All items confirmed successfully.");
+      showNotification("All items confirmed successfully.", "green");
     } catch (err) {
       console.error("Error confirming all items:", err);
       alert(err.message || "An error occurred while confirming all items.");
     }
   };
-  
+
+  const columnWidths = {
+    display_order: '4%',
+    item_unique_id: '5%',
+    category: '25%',
+    item_name: '15%',
+    model: '8%',
+    location: '8%',
+    site_name: '8%',
+    quantity: '7%',
+    price: '7%',
+    unit: '5%',
+    reserved_quantity: '8%',
+    remarks: '6%',
+    audit_date: '10%',
+    actions: '5%',
+  };
+
   // ------------------------------ Render Component ------------------------------
   return (
     <div className="admin-dashboard-container">
@@ -689,10 +692,6 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
           {notification.message}
         </div>
       )}
-
-      <div className="header-container">
-        {/* Header content */}
-      </div>
 
       {openAddDialog && (
         <AddItems open={openAddDialog} onClose={handleCloseAddDialog} onAddItem={handleAddItem} />
@@ -732,53 +731,25 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
           onChange={e => setSearchQuery(e.target.value)}
         />
         {userId === 2 && (
-          <div className="action-buttons">
+          <div className="top-buttons">
             <button className="btn" onClick={handleOpenAddDialog}>Add Item</button>
-            <button className="btn btn-danger" onClick={() => setOpenDeleteDialog(true)}>Delete Item</button>
+            <button className="btn" onClick={() => setOpenDeleteDialog(true)}>Delete Item</button>
             <button className="btn" onClick={handleOpenReportTab}>Generate Report</button>
-            <button className="btn btn-warning" onClick={() => setOpenManageRemarks(true)}>Manage Remarks</button>
-            <button className="btn btn-success" onClick={() => setOpenManageSites(true)}>Manage Sites</button>
+            <button className="btn" onClick={() => setOpenManageRemarks(true)}>Manage Remarks</button>
+            <button className="btn" onClick={() => setOpenManageSites(true)}>Manage Sites</button>
           </div>
         )}
       </div>
 
-      <div className="filter-row">
-        <select value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
-          <option value="">All Models</option>
-          {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+      <div className="dropdown-toggle">
         <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-          <option value="">All Categories</option>
+          <option value="">Filter With Categories</option>
           {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <button className="dropdown-toggle" onClick={toggleColumnDropdown}>
-          Filter Columns {showColumnDropdown ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
-      </div>
-
-      <div className="dropdown-container" ref={dropdownRef}>
-        {showColumnDropdown && (
-          <div className="dropdown-menu">
-            {columns.map(col => {
-              if (col.adminOnly && userId !== 2) return null;
-              return (
-                <div key={col.key} className="dropdown-item">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns[col.key]}
-                      onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
-                    />
-                    {col.label}
-                  </label>
-                </div>
-              );
-            })}
-            <button className="reset-columns-button" onClick={handleResetColumns}>
-              Reset to Default
-            </button>
-          </div>
-        )}
+        <select value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+          <option value="">Filter With Models</option>
+          {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
       </div>
 
       <datalist id="categoryOptions">
@@ -798,21 +769,20 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         <table className="admin-dashboard-table">
           <thead>
             <tr>
-              {columns.map(col => {
-                if (col.adminOnly && userId !== 2) return null;
-                if (!visibleColumns[col.key]) return null;
-                return (
+              {columns.map(col => (
+                (!col.adminOnly || userId === 2) && visibleColumns[col.key] && (
                   <th
                     key={col.key}
-                    style={{ cursor: col.sortable ? 'pointer' : 'default' }}
+                    style={{ width: columnWidths[col.key], cursor: col.sortable ? 'pointer' : 'default' }}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
-                    {col.label}{' '}
+                    {col.label}
                     {sortConfig.key === col.key &&
                       (sortConfig.direction === 'ascending' ? <FaChevronUp /> : <FaChevronDown />)}
                   </th>
-                );
-              })}
+                )
+              ))}
+              <th style={{ width: columnWidths.actions }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -825,53 +795,49 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
               return (
                 <tr key={item.item_id} className={rowClasses}>
                   {visibleColumns.display_order && (
-                    <td>
-                      {item.display_order}{' '}
+                    <td style={{ width: columnWidths.display_order }}>
+                      {item.display_order}
                       <button className="star-button" onClick={() => handleToggleStar(item.item_id)}>
-                        <FaStar className="star-icon" color={item.starred ? '#f1c40f' : '#ccc'} />
+                        <FaStar color={item.starred ? '#f1c40f' : '#ccc'} />
                       </button>
                     </td>
                   )}
                   {visibleColumns.item_unique_id && (
-                    <td>
+                    <td style={{ width: columnWidths.item_unique_id }}>
                       {userId === 2 && fullEditMode[item.item_id] ? (
                         <input
                           type="text"
                           value={uniqueIds[item.item_id] || ''}
                           onChange={e => setUniqueIds(prev => ({ ...prev, [item.item_id]: e.target.value }))}
-                          placeholder="Unique ID"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
-                        <span>{uniqueIds[item.item_id] || ''}</span>
+                        <span>{uniqueIds[item.item_id]}</span>
                       )}
                     </td>
                   )}
                   {visibleColumns.category && (
-                    <td>
-                      {userId === 2 ? (
+                    <td style={{ width: columnWidths.category }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
                         <select
                           value={editableCategories[item.item_id] || ''}
                           onChange={e => handleCategoryChange(item.item_id, e.target.value)}
                         >
-                          {uniqueCategories.length > 0 ? uniqueCategories.map(opt => (
+                          {uniqueCategories.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
-                          )) : <option value="">No options</option>}
+                          ))}
                         </select>
                       ) : (
-                        highlightSearchText(item.category, debouncedSearchQuery)
+                        <span>{editableCategories[item.item_id]}</span>
                       )}
                     </td>
                   )}
                   {visibleColumns.item_name && (
-                    <td>
+                    <td style={{ width: columnWidths.item_name }}>
                       {userId === 2 && fullEditMode[item.item_id] ? (
                         <input
                           type="text"
                           value={editableItemNames[item.item_id] || ''}
                           onChange={e => handleItemNameChange(item.item_id, e.target.value)}
-                          placeholder="Item Name"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
                         highlightSearchText(item.item_name, debouncedSearchQuery)
@@ -879,141 +845,146 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     </td>
                   )}
                   {visibleColumns.model && (
-                    <td>
+                    <td style={{ width: columnWidths.model }}>
                       {userId === 2 && fullEditMode[item.item_id] ? (
                         <input
                           type="text"
                           value={editableModels[item.item_id] || ''}
                           onChange={e => handleModelChange(item.item_id, e.target.value)}
-                          placeholder="Model"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
-                        item.model ? highlightSearchText(item.model, debouncedSearchQuery) : ''
+                        <span>{item.model}</span>
                       )}
                     </td>
                   )}
                   {visibleColumns.site_name && (
-                    <td>
-                      <select
-                        value={siteNames[item.item_id] || ''}
-                        onChange={e => handleSiteNameChange(item.item_id, e.target.value)}
-                      >
-                        {siteNamesOptions.length > 0 ? siteNamesOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        )) : <option value="">No options</option>}
-                      </select>
+                    <td style={{ width: columnWidths.site_name }}>
+                      {(userId !== 2) || (userId === 2 && fullEditMode[item.item_id]) ? (
+                        <select
+                          value={siteNames[item.item_id] || ''}
+                          onChange={e => handleSiteNameChange(item.item_id, e.target.value)}
+                        >
+                          {siteNamesOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span>{siteNames[item.item_id]}</span>
+                      )}
                     </td>
                   )}
                   {visibleColumns.unit && (
-                    <td>
+                    <td style={{ width: columnWidths.unit }}>
                       {userId === 2 && fullEditMode[item.item_id] ? (
                         <input
                           type="text"
                           value={units[item.item_id] || ''}
                           onChange={e => handleUnitChange(item.item_id, e.target.value)}
                           placeholder="Unit"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
-                        <span>{units[item.item_id] || ''}</span>
+                        <span>{units[item.item_id]}</span>
                       )}
                     </td>
                   )}
                   {visibleColumns.location && (
-                    <td>
-                      {userId === 2 ? (
+                    <td style={{ width: columnWidths.location }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
                         <select
                           value={editableLocations[item.item_id] || ''}
                           onChange={e => handleLocationChange(item.item_id, e.target.value)}
                         >
-                          {uniqueLocations.length > 0 ? uniqueLocations.map(opt => (
+                          {uniqueLocations.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
-                          )) : <option value="">No options</option>}
+                          ))}
                         </select>
                       ) : (
-                        <span>{item.location}</span>
+                        <span>{editableLocations[item.item_id]}</span>
                       )}
                     </td>
                   )}
-                  {visibleColumns.quantity && (
-                    <td>
-                      <div className="quantity-edit">
-                        <button onClick={() => quanitty(item.item_id, -1)}>-</button>
-                        <input
-                          type="number"
-                          value={quantityValue[item.item_id] === 0 ? "" : quantityValue[item.item_id]}
-                          onChange={e => {
-                            const newValue = e.target.value === "" ? 0 : Number(e.target.value);
-                            setQuantityValue(prev => ({
-                              ...prev,
-                              [item.item_id]: newValue
-                            }));
-                          }}
-                        />
-                        <button onClick={() => quanitty(item.item_id, 1)}>+</button>
-                      </div>
-                    </td>
-                  )}
+                  <td style={{ width: columnWidths.quantity }}>
+                    <div className="quantity-edit">
+                      <button onClick={() => quanitty(item.item_id, -1)}>-</button>
+                      <input
+                        type="number"
+                        value={quantityValue[item.item_id] || ''}
+                        onChange={e => {
+                          const newValue = e.target.value === "" ? 0 : Number(e.target.value);
+                          setQuantityValue(prev => ({ ...prev, [item.item_id]: newValue }));
+                        }}
+                      />
+                      <button onClick={() => quanitty(item.item_id, 1)}>+</button>
+                    </div>
+                  </td>
                   {visibleColumns.price && (
-                    <td>
+                    <td style={{ width: columnWidths.price }}>
                       {userId === 2 && fullEditMode[item.item_id] ? (
                         <input
                           type="text"
                           value={prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
                           onChange={e => {
                             let val = e.target.value;
-                            if (val.toUpperCase().startsWith('RM ')) {
-                              val = val.slice(3);
-                            }
-                            const newPrice = parseFloat(val) || 0;
-                            handlePriceChange(item.item_id, newPrice);
+                            if (val.toUpperCase().startsWith('RM ')) val = val.slice(3);
+                            handlePriceChange(item.item_id, parseFloat(val) || 0);
                           }}
                           className="price-input"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
                         <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
                       )}
                     </td>
                   )}
-                  {visibleColumns.reserved_quantity && <td>{item.reserved_quantity}</td>}
+                  {visibleColumns.reserved_quantity && (
+                    <td style={{ width: columnWidths.reserved_quantity }}>
+                      {item.reserved_quantity}
+                    </td>
+                  )}
                   {visibleColumns.remarks && (
-                    <td>
-                      <select
-                        value={remarks[item.item_id] || ''}
-                        onChange={e => handleRemarksChange(item.item_id, e.target.value)}
-                      >
-                        {remarksOptions.length > 0 ? remarksOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        )) : <option value="">No options</option>}
-                      </select>
+                    <td style={{ width: columnWidths.remarks }}>
+                      {(userId !== 2) || (userId === 2 && fullEditMode[item.item_id]) ? (
+                        <select
+                          value={remarks[item.item_id] || ''}
+                          onChange={e => handleRemarksChange(item.item_id, e.target.value)}
+                        >
+                          {remarksOptions.length > 0
+                            ? remarksOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                            : <option value="">No options</option>}
+                        </select>
+                      ) : (
+                        <span>{remarks[item.item_id]}</span>
+                      )}
                     </td>
                   )}
                   {userId === 2 && visibleColumns.audit_date && (
-                    <td>
+                    <td style={{ width: columnWidths.audit_date }}>
                       {fullEditMode[item.item_id] ? (
                         <input
                           type="datetime-local"
                           value={formatForInput(auditDates[item.item_id])}
                           onChange={e => handleAuditDateChange(item.item_id, e.target.value)}
-                          placeholder="Key‑in Date"
-                          onMouseDown={e => e.stopPropagation()}
                         />
                       ) : (
                         <span>{convertToMYTDisplay(auditDates[item.item_id])}</span>
                       )}
                     </td>
                   )}
-                  <td className="action-cell">
-                    <button onClick={() => handleConfirm(item.item_id)}>Confirm</button>
-                    {userId === 2 && (
-                      <>
-                        <button onClick={() => handleActionEdit(item.item_id)}>
-                          {fullEditMode[item.item_id] ? 'Save Changes' : 'Edit'}
-                        </button>
-                        <button onClick={() => handleDelete(item.item_id)}>Delete</button>
-                      </>
+                  <td style={{ width: columnWidths.actions }}>
+                    {userId === 2 ? (
+                      fullEditMode[item.item_id] ? (
+                        <div className="action-buttons">
+                          <button onClick={() => handleSaveFullEdit(item.item_id)} className="action-button">Save</button>
+                          <button onClick={() => cancelFullEditMode(item.item_id)} className="action-button">Cancel</button>
+                        </div>
+                      ) : (
+                        <div className="action-buttons">
+                          <button onClick={() => enableFullEditMode(item.item_id)} className="action-button">Edit</button>
+                        </div>
+                      )
+                    ) : (
+                      <div className="action-buttons">
+                        <button onClick={() => handleConfirm(item.item_id)} className="action-button">Save</button>
+                      </div>
                     )}
                   </td>
                 </tr>

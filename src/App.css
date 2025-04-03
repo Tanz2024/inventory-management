@@ -21,11 +21,11 @@
 } */
 
 /* Main Section (Sidebar + Content) */
-.main-section {
+/* .main-section {
   display: flex;
   flex-grow: 1;
   padding: 0;
-}
+} */
 
 /* Content Area */
 .content-area {
@@ -39,6 +39,16 @@
   margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
 }
+.sidebar-overlay {
+  position: fixed;
+  top: 65px;                   /* match your header height */
+  left: var(--sidebar-width);  /* start just after the sidebar */
+  right: 0;
+  bottom: 0;
+  /* background: rgba(0,0,0,0.1);  */
+  z-index: 800;                /* below sidebar (9000) but above content */
+}
+
 
 /* When sidebar is hidden */
 .content-area.sidebar-closed {
@@ -63,4 +73,11 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* FORCE login view to ignore sidebar offsets */
+.login-page .content-area {
+  margin-left: 0 !important;
+  width: 100% !important;
+  padding: 0 !important;
 }

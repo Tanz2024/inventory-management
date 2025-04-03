@@ -1,5 +1,5 @@
 :root {
-  --sidebar-width: 250px;
+  --sidebar-width: 170px;
   --sidebar-bg-start: #2c3035;
   --sidebar-bg-end: #282c34;
   --sidebar-text: #ffffff;
@@ -17,6 +17,7 @@
   top: 0;
   left: 0;
   width: var(--sidebar-width);
+  margin-top: 65px;
   height: 100vh;
   background: linear-gradient(135deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
   color: var(--sidebar-text);
@@ -25,7 +26,7 @@
   flex-direction: column;
   padding: var(--padding);
   box-sizing: border-box;
-  z-index: 9999;
+  z-index: 9000;
   font-family: var(--font-family-sans);
   transform: translateX(-100%); /* Hidden by default */
   transition: transform var(--transition-duration) ease;

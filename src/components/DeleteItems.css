@@ -1,31 +1,43 @@
-/* ==========================================================================
-   Delete Dialog Styles with Blue Color Pattern
-   ========================================================================== */
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4); /* Dim background */
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Dialog Container: fluid & centered */
 .delete-dialog {
   position: fixed;
   top: 50%;                  /* Center vertically */
   left: 50%;                 /* Center horizontally */
-  transform: translate(-50%, -50%); /* Perfect center */
+  transform: translate(-60%, -50%); /* Perfect center */
 
   /* Fluid width: clamp between 300px and 600px, or 80% of viewport width */
   width: clamp(300px, 80vw, 600px);
 
   /* Limit height to 80% of viewport, allow scrolling if exceeded */
-  max-height: 80vh;
+  max-height: 100vh;
   overflow-y: auto;
-
   background-color: #fff;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   z-index: 1000; /* On top of other elements */
   box-sizing: border-box;
-
-  /* Optional: smooth fade-in animation */
-  animation: fadeInDialog 0.3s ease;
+  border-color:#fff;
+  
 }
+.delete-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4); /* Semi-transparent dark background */
+}
+
 
 /* Fade-in keyframes */
 @keyframes fadeInDialog {
@@ -51,7 +63,7 @@
 .delete-items-table {
   width: 100%;
   margin-bottom: 20px;
-  max-height: 300px; /* Fixed max height for the table area */
+  max-height: 500px; /* Fixed max height for the table area */
   overflow-y: auto;  /* Enable vertical scrolling */
   box-sizing: border-box;
 }
@@ -99,13 +111,8 @@
 }
 
 
-/* Confirm Button (Blue) */
-.delete-dialog button.confirm-button {
-  background-color: #43abc1;
-}
-.delete-dialog button.confirm-button:hover {
-  background-color: #455883; /* Darker blue on hover */
-  transform: scale(1.05);
+.delete-dialog button:hover {
+  background-color: #2a6f97; /* Darker blue on hover */
 }
 
 /* Cancel Button (Red) */

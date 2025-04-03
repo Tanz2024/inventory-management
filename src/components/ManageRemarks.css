@@ -1,271 +1,199 @@
-/* ==========================================================================
-   1. Overlay & Dialog Container
-   ========================================================================== */
-   .manage-sites-dialog {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    box-sizing: border-box;
-    animation: fadeOverlay 0.3s ease forwards;
-  }
+/* Overlay background */
+.MR-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Popup dialog container */
+.MR-popup-dialog {
+  background: #ffffff;
+  width: 600px;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+.MR-popup-dialog {
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.remarks-list {
+  overflow-y: auto;
+  overscroll-behavior: contain; /* improve scroll perf */
+}
+
+/* Popup title */
+.MR-dialog-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #2a6f97;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+/* Content Area */
+.MR-dialog-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+/* Total remarks label */
+.total-remarks-label {
+  color: black;
+  text-align: left;
+  font-size: 1rem;
+  margin-bottom: -15px;
+  margin-left: 15px;
+}
+.add-remark-container input[type="text"]::placeholder,
+.dialog-content > input[type="text"]::placeholder {
+  color: #999; /* adjust color to your preference */
+  opacity: 1;  /* Ensures consistent opacity across browsers */
+}
+
+/* Add remark section */
+.add-remark-container {
+
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-remark-container input[type="text"] {
+  flex: 1;
+  color: black;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  background-color: #43abc1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #2a6f97;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background-color: #db5757;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #b84a4a;
+}
+
+/* Search Input */
+.dialog-content > input[type="text"] {
+  padding: 8px 12px;
+  color: black;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* Remarks list styling */
+.remarks-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  padding-left: 16px;
+}
+
+.remark-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f7f9fc;
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.remark-name {
+  color: black;
+  flex: 1;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+/* Edit remark section */
+
+.remark-edit-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  align-items: center;
+}
+
+.remark-edit-row input {
+  flex: 1;
+  color: black;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+/* Actions buttons */
+.remark-actions {
+  display: flex;
+  gap: 6px;
   
-  @keyframes fadeOverlay {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  /* ==========================================================================
-     2. Dialog Content: Fluid, Centered, Scrollable
-     ========================================================================== */
-  .dialog-content {
-    width: clamp(300px, 90vw, 500px);
-    max-height: 90vh;
-    overflow-y: auto;
-    background: linear-gradient(135deg, #455883, #43abc1);
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    color: #fff;
-    box-sizing: border-box;
-    animation: scaleUpDialog 0.3s ease forwards;
-    transform-origin: center;
-  }
-  
-  @keyframes scaleUpDialog {
-    0% {
-      opacity: 0;
-      transform: scale(0.9) translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-  
-  .dialog-content h2 {
-    font-size: 2rem;
-    margin: 0 0 20px;
-    text-align: center;
-    font-weight: bold;
-  }
-  
-  /* ==========================================================================
-     3. Search Bar
-     ========================================================================== */
-  .search-container {
-    margin-bottom: 20px;
-  }
-  
-  .search-input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.8);
-  }
-  
-  .search-input:focus {
-    border-color: #fff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-    outline: none;
-  }
-  
-  /* ==========================================================================
-     4. List Container (Sites or Remarks)
-     ========================================================================== */
-  .sites-list-container {
-    max-height: 250px;
-    overflow-y: auto;
-    margin-bottom: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-radius: 6px;
-    padding: 10px;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .sites-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .sites-list li {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  /* ==========================================================================
-     5. Input & Button Styles for Adding New Options
-     ========================================================================== */
-  .sites-input,
-  .new-site-input,
-  .new-remark-input {
-    width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .sites-input::placeholder,
-  .new-site-input::placeholder,
-  .new-remark-input::placeholder {
-    color: rgba(255, 255, 255, 0.8);
-  }
-  
-  .sites-input:focus,
-  .new-site-input:focus,
-  .new-remark-input:focus {
-    border-color: #fff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-    outline: none;
-  }
-  
-  .add-button {
-    margin-bottom: 20px;
-  }
-  
-  /* ==========================================================================
-     6. Action Buttons (Save, Cancel, etc.)
-     ========================================================================== */
-  .buttons {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  
-  .buttons button {
-    flex: 1;
-    padding: 12px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    font-weight: bold;
-  }
-  
-  button.primary {
-    background: linear-gradient(135deg, #43abc1, #455883);
-    color: #fff;
-  }
-  
-  button.primary:hover {
-    background: linear-gradient(135deg, #455883, #43abc1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  button.secondary {
-    background: linear-gradient(135deg, #f44336, #e91e63);
-    color: #fff;
-  }
-  
-  button.secondary:hover {
-    background: linear-gradient(135deg, #e91e63, #f44336);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* ==========================================================================
-     7. Inline Action Icons (Rename, Delete)
-     ========================================================================== */
-  .actions-row {
-    display: flex;
-    gap: 10px;
-  }
-  
-  .rename-icon,
-  .delete-icon {
-    background: none;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    font-size: 1.2rem;
-    transition: color 0.3s ease;
-  }
-  
-  .rename-icon:hover,
-  .delete-icon:hover {
-    color: #ffeb3b;
-  }
-  
-  /* ==========================================================================
-     8. Rename Input Row
-     ========================================================================== */
-  .rename-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .rename-input {
-    flex: 1;
-    padding: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-  }
-  
-  .rename-input:focus {
-    border-color: #fff;
-    outline: none;
-  }
-  
-  .rename-save-btn,
-  .rename-cancel-btn {
-    padding: 6px 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .rename-save-btn {
-    background-color: #43abc1;
-    color: #fff;
-  }
-  
-  .rename-save-btn:hover {
-    background-color: #455883;
-  }
-  
-  .rename-cancel-btn {
-    background-color: #f44336;
-    color: #fff;
-  }
-  
-  .rename-cancel-btn:hover {
-    background-color: #e91e63;
-  }
-  
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+/* No matching remarks message */
+.dialog-content p {
+  text-align: center;
+  color: #888;
+}
+
+/* Scrollbar styling (for aesthetic) */
+.remarks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.remarks-list::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 10px;
+}
+
+.remarks-list::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+  border-radius: 10px;
+}

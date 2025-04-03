@@ -177,15 +177,19 @@ function AppContent() {
       />
 
       {/* Wrap main container with swipe handlers for open/close */}
-      <div {...swipeHandlers} className={`app-container ${isLoggedIn ? '' : 'login-page'}`}>
+      <div className={`app-container ${isLoggedIn ? '' : 'login-page'}`} {...(isLoggedIn ? swipeHandlers : {})}>
+
         <div className="main-section">
           {/* Only show sidebar if logged in and isSidebarOpen */}
           {isLoggedIn && isSidebarOpen && (
-            <SideNav
-              userId={userId}
-              isSidebarOpen={isSidebarOpen}
-              onToggleSidebar={handleToggleSidebar}
-            />
+            <>
+                          <div className="sidebar-overlay" onClick={handleToggleSidebar} />
+                          <SideNav
+                            userId={userId}
+                            isSidebarOpen={isSidebarOpen}
+                            onToggleSidebar={handleToggleSidebar}
+                          />
+                        </>
           )}
 
           <div
