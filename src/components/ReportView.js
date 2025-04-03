@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import generateReportPDF from './GenerateReport';
 import './ReportView.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 /* ------------------ Utility Functions ------------------ */
 function highlightText(text = '', searchTerm = '') {
@@ -253,7 +255,6 @@ function ItemLogs({
   updateLog,
   deleteLog,
   refreshItems,
-  handleFetchLogs, 
 }) {
   const [sortConfig, setSortConfig] = useState({ column: 'timestamp', direction: 'desc' });
   const [collapsed, setCollapsed] = useState(false);
@@ -271,7 +272,7 @@ function ItemLogs({
     );
   };
 
-  // Compute logs with Previous Stock and Current Stock
+  // Compute logs with "Previous Stock" and "Current Stock"
   const logsWithStock = useMemo(() => {
     const itemLogs = logs
       .filter((log) => log.item_id === item.item_id)
@@ -287,7 +288,7 @@ function ItemLogs({
     const initialStock = item.quantity - totalChange;
     let running = initialStock;
 
-    // Virtual starting log (non-editable)
+    // Create a virtual starting log (non-editable)
     const virtualStartingLog = {
       timestamp: itemLogs[0]?.timestamp || new Date().toISOString(),
       quantity_change: 0,
@@ -311,9 +312,9 @@ function ItemLogs({
     return [virtualStartingLog, ...logsCalculated];
   }, [logs, item.item_id, item.quantity, item.site_name]);
 
-  // Allow editing for non-virtual logs
+  // Handle editing for logs (non-virtual only)
   const handleEdit = (index, log) => {
-    if (log.source === 'virtual') return;
+    if (log.source === 'virtual') return; // Skip virtual log
     setEditedLogs((prev) => ({
       ...prev,
       [index]: {
@@ -342,23 +343,38 @@ function ItemLogs({
     }));
   };
 
-  // UPDATED: Immediately update logs state using the passed updateLog function
   const handleSaveEdit = async (index) => {
     const currentEdit = editedLogs[index];
     if (!currentEdit || !currentEdit.source || !currentEdit.id) {
       console.error('Missing source or id in edited log:', currentEdit);
       return;
     }
-  
     let newQtyChange;
-    if (currentEdit.qtyIn !== '') {
-      newQtyChange = Math.abs(parseInt(currentEdit.qtyIn, 10));
-    } else if (currentEdit.qtyOut !== '') {
-      newQtyChange = -Math.abs(parseInt(currentEdit.qtyOut, 10));
+    // Determine new quantity_change based on Qty In/Out inputs
+    if (currentEdit.qtyIn !== undefined && currentEdit.qtyIn !== '') {
+      let val = parseInt(currentEdit.qtyIn, 10);
+      newQtyChange = val < 0 ? -Math.abs(val) : Math.abs(val);
+    } else if (currentEdit.qtyOut !== undefined && currentEdit.qtyOut !== '') {
+      let val = parseInt(currentEdit.qtyOut, 10);
+      if (currentEdit.quantity_change < 0 && val > 0) {
+        newQtyChange = Math.abs(val);
+      } else {
+        newQtyChange = -Math.abs(val);
+      }
     } else {
       newQtyChange = currentEdit.quantity_change;
     }
-  
+
+    // If required fields are missing, show a toast notification and exit
+    if (!currentEdit.site_name || currentEdit.site_name.trim() === '') {
+      toast.error("Site not available. Please add it first.");
+      return;
+    }
+    if (!currentEdit.remarks || currentEdit.remarks.trim() === '') {
+      toast.error("Remarks not available. Please add them first.");
+      return;
+    }
+
     try {
       const response = await fetch(
         `http://localhost:5000/logs/${currentEdit.source}/${currentEdit.id}`,
@@ -375,19 +391,20 @@ function ItemLogs({
           }),
         }
       );
-      if (!response.ok) throw new Error('Failed to save log');
-      // Get the updated log from the server
-      const updatedLog = await response.json();
-      // Use the updateLog prop to update the parent logs state
-      updateLog(updatedLog);
+      if (!response.ok) {
+        throw new Error('Failed to save log');
+      }
+      const data = await response.json();
+      updateLog(data.log);
       cancelEdit(index);
-      refreshItems();
+      await refreshItems();
+      toast.success("Log updated successfully.");
     } catch (err) {
       console.error('Save failed:', err);
+      toast.error("Failed to save changes. Please try again.");
     }
   };
 
-  // UPDATED: Immediately remove log via the deleteLog prop
   const handleDelete = async (log) => {
     if (!log || !log.source || !log.id) {
       console.error('Missing source or id in log:', log);
@@ -400,11 +417,12 @@ function ItemLogs({
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Delete failed');
-      // Call the deleteLog prop to update parent logs state
       deleteLog(log.id);
-      refreshItems();
+      await refreshItems();
+      toast.success("Log deleted successfully.");
     } catch (err) {
       console.error('Delete failed:', err);
+      toast.error("Failed to delete log. Please try again.");
     }
   };
 
@@ -452,7 +470,6 @@ function ItemLogs({
               </tr>
             ) : (
               logsWithStock.map((log, idx) => {
-                // Filter logs by date range.
                 const logDate = new Date(log.timestamp);
                 const logISO = logDate.toLocaleDateString('en-CA');
                 const startISO = startDate ? new Date(startDate).toLocaleDateString('en-CA') : null;
@@ -530,9 +547,7 @@ function ItemLogs({
                       ) : (
                         log.source === 'virtual'
                           ? ''
-                          : ((log.site_name === 'System' || !log.site_name)
-                              ? 'n/a'
-                              : highlightText(log.site_name || '', siteSearch))
+                          : ((log.site_name === 'System' || !log.site_name) ? 'n/a' : highlightText(log.site_name || '', siteSearch))
                       )}
                     </td>
                     <td>
@@ -606,11 +621,7 @@ export default function ReportView() {
       const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
-        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
       });
       if (!response.ok) throw new Error('Failed to fetch items');
       const data = await response.json();
@@ -630,11 +641,7 @@ export default function ReportView() {
       const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
-        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
       });
       if (!response.ok) throw new Error('Failed to fetch logs');
       const data = await response.json();
@@ -672,8 +679,7 @@ export default function ReportView() {
         (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
       );
     }
-    const itemIdsToInclude =
-      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
+    const itemIdsToInclude = reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
 
     const filteredLogs = allLogs.filter((log) => {
       const hasQuantityChange = Number(log.quantity_change) !== 0;
@@ -681,17 +687,13 @@ export default function ReportView() {
       if (!hasQuantityChange || !hasKeyInDate) return false;
 
       const logDate = new Date(log.timestamp);
-      const inDateRange =
-        (!startObj || logDate >= startObj) && (!endObj || logDate <= endObj);
+      const inDateRange = (!startObj || logDate >= startObj) && (!endObj || logDate <= endObj);
       const inSelectedItems = itemIdsToInclude.includes(log.item_id);
 
       let matchesLocation = true;
       if (filterByLocation && location) {
         const logItem = items.find((i) => i.item_id === log.item_id);
-        matchesLocation =
-          logItem &&
-          logItem.location &&
-          logItem.location.toLowerCase() === location.toLowerCase();
+        matchesLocation = logItem && logItem.location && logItem.location.toLowerCase() === location.toLowerCase();
       }
 
       const matchesChangedBy = changedBySearch
@@ -704,14 +706,7 @@ export default function ReportView() {
         ? (log.remarks || '').toLowerCase().includes(remarksSearch.toLowerCase())
         : true;
 
-      return (
-        inDateRange &&
-        inSelectedItems &&
-        matchesLocation &&
-        matchesChangedBy &&
-        matchesSite &&
-        matchesRemarks
-      );
+      return inDateRange && inSelectedItems && matchesLocation && matchesChangedBy && matchesSite && matchesRemarks;
     });
 
     setLogs(filteredLogs);
@@ -720,9 +715,7 @@ export default function ReportView() {
   const updateLog = (updatedLog) => {
     setLogs((prevLogs) =>
       prevLogs.map((log) =>
-        log.id.toString() === updatedLog.id.toString() && log.source === updatedLog.source
-          ? updatedLog
-          : log
+        log.id.toString() === updatedLog.id.toString() && log.source === updatedLog.source ? updatedLog : log
       )
     );
   };
@@ -745,12 +738,9 @@ export default function ReportView() {
     }
     let workingItems = [...items];
     if (filterByLocation && location) {
-      workingItems = workingItems.filter(
-        (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
-      );
+      workingItems = workingItems.filter((it) => it.location && it.location.toLowerCase() === location.toLowerCase());
     }
-    const finalSelectedIds =
-      reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
+    const finalSelectedIds = reportType === 'all' ? workingItems.map((it) => it.item_id) : selectedItems;
     const showKeyInDateColumn = logs.some((log) => {
       const qtyChange = Number(log.quantity_change) || 0;
       return qtyChange !== 0 && log.key_in_date_old && log.key_in_date_old !== log.key_in_date;
@@ -761,9 +751,7 @@ export default function ReportView() {
       startDate: startObj,
       endDate: endObj,
       reportType,
-      selectedItems: items
-        .filter((it) => finalSelectedIds.includes(it.item_id))
-        .map((it) => ({ ...it })),
+      selectedItems: items.filter((it) => finalSelectedIds.includes(it.item_id)).map((it) => ({ ...it })),
       logs,
       includePrice: true,
       locationFilter: filterByLocation ? location.toLowerCase() : null,
@@ -802,9 +790,7 @@ export default function ReportView() {
 
   const filteredItems = useMemo(() => {
     return filterByLocation && location
-      ? items.filter(
-          (it) => it.location && it.location.toLowerCase() === location.toLowerCase()
-        )
+      ? items.filter((it) => it.location && it.location.toLowerCase() === location.toLowerCase())
       : items;
   }, [items, filterByLocation, location]);
 
@@ -820,10 +806,7 @@ export default function ReportView() {
         <h1>Inventory Management Report</h1>
       </div>
       {error && <div className="error-message">{error}</div>}
-      <button
-        className="toggle-filters-button"
-        onClick={() => setShowFilters((prev) => !prev)}
-      >
+      <button className="toggle-filters-button" onClick={() => setShowFilters((prev) => !prev)}>
         {showFilters ? 'Hide Filters' : 'Show Filters'}
       </button>
       {showFilters && (
@@ -881,7 +864,6 @@ export default function ReportView() {
             updateLog={updateLog}
             deleteLog={deleteLog}
             refreshItems={fetchItems}
-            handleFetchLogs={handleFetchLogs}
           />
         ))}
       </div>
@@ -890,6 +872,8 @@ export default function ReportView() {
           Export PDF
         </button>
       </div>
+      {/* ToastContainer renders the toasts */}
+      <ToastContainer />
     </div>
   );
 }
