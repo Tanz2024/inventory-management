@@ -1560,6 +1560,8 @@ app.put('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
   const { source, id } = req.params;
   let { updated_by, quantity_change, site_name, remarks, key_in_date } = req.body;
 
+  console.log('Incoming request:', { source, id, updated_by, quantity_change, site_name, remarks, key_in_date });
+
   // Convert empty date to null and quantity_change to a number
   key_in_date = key_in_date === '' ? null : key_in_date;
   quantity_change = Number(quantity_change);
@@ -1570,25 +1572,45 @@ app.put('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
     // Ensure updated_by is set
     if (!updated_by && req.user && req.user.username) {
       updated_by = req.user.username;
+      console.log('Falling back to JWT username:', updated_by);
     }
     if (!updated_by) {
+      console.error('Error: updated_by is required but not provided.');
       return res.status(400).json({ error: 'updated_by is required' });
     }
-    // Fetch the original transaction to know the old quantity_change
+
+    // Fetch user_id from users table
+    console.log('Looking up user for username:', updated_by);
+    const userResult = await pool.query(
+      'SELECT user_id FROM users WHERE username = $1',
+      [updated_by]
+    );
+    console.log('User lookup result:', userResult.rows);
+    if (userResult.rows.length === 0) {
+      console.error('Error: Username not found in users table for:', updated_by);
+      return res.status(400).json({ error: 'Username not found in users table' });
+    }
+    const user_id = userResult.rows[0].user_id;
+    console.log('Found user_id:', user_id);
+
+    // Fetch the original transaction to get the old quantity_change
     const origResult = await pool.query(
       'SELECT * FROM inventory_transactions WHERE transaction_id = $1',
       [id]
     );
+    console.log('Original transaction lookup result:', origResult.rows);
     if (origResult.rows.length === 0) {
+      console.error('Error: Original transaction not found for id:', id);
       return res.status(404).json({ error: 'Original transaction not found' });
     }
     const originalLog = origResult.rows[0];
     const oldChange = Number(originalLog.quantity_change);
+    console.log('Old quantity_change:', oldChange);
 
-    // Now update the transaction record
+    // Update the transaction record using the retrieved user_id
     query = `
       UPDATE inventory_transactions
-      SET user_id = (SELECT user_id FROM users WHERE username = $1),
+      SET user_id = $1,
           quantity_change = $2,
           site_name = $3,
           remarks = $4,
@@ -1596,21 +1618,30 @@ app.put('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
       WHERE transaction_id = $6
       RETURNING *;
     `;
-    values = [updated_by, quantity_change, site_name, remarks, key_in_date, id];
+    values = [user_id, quantity_change, site_name, remarks, key_in_date, id];
+    console.log('Executing transaction update with values:', values);
     const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      console.error('Error: No rows returned after update for id:', id);
+      return res.status(500).json({ error: 'Failed to update transaction' });
+    }
     const updatedLog = rows[0];
     const newChange = Number(updatedLog.quantity_change);
+    console.log('Updated transaction record:', updatedLog, 'New quantity_change:', newChange);
 
-    // Now update the items table using the differential change.
+    // Update the items table using the differential change.
+    const diff = newChange - oldChange;
+    console.log('Updating items table with differential change:', diff, 'for item_id:', originalLog.item_id);
     await pool.query(
       'UPDATE items SET quantity = quantity + $1 WHERE item_id = $2',
-      [newChange - oldChange, originalLog.item_id]
+      [diff, originalLog.item_id]
     );
 
-    // Set id field and return updated log.
+    // Set id field and attach metadata for client
     updatedLog.id = updatedLog.transaction_id.toString();
     updatedLog.updated_by = updated_by;
     updatedLog.source = source;
+    console.log('Final updated log:', updatedLog);
     return res.json({ log: updatedLog });
   } else if (source === 'site_history') {
     query = `
@@ -1629,19 +1660,24 @@ app.put('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
     `;
     values = [remarks, id];
   } else {
+    console.error('Error: Invalid source type:', source);
     return res.status(400).json({ error: 'Invalid source type' });
   }
 
   // For non-transaction sources, simply update and return.
   const { rows } = await pool.query(query, values);
+  if (rows.length === 0) {
+    console.error('Error: No rows returned for non-transaction update for id:', id);
+    return res.status(500).json({ error: 'Failed to update record' });
+  }
   const updatedLog = rows[0];
   if (source !== 'transaction') {
     updatedLog.id = updatedLog.id.toString();
     updatedLog.source = source;
   }
+  console.log('Final updated log for non-transaction source:', updatedLog);
   res.json({ log: updatedLog });
 }));
-
 
 app.delete('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) => {
   const { source, id } = req.params;
