@@ -346,6 +346,7 @@ button.refresh-btn:hover {
 @media (max-width: 480px) {
   .form-container {
     padding: 15px;
+
     margin: 5px auto;
   }
   .form-title {
@@ -359,7 +360,8 @@ button.refresh-btn:hover {
   select,
   textarea,
   button {
-    font-size: 13px;
+    font-size: 1rem;
+    margin: 0;
   }
   .file-history-table th,
   .file-history-table td {

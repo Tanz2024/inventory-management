@@ -31,41 +31,46 @@ const DeleteItems = ({ items, onDelete, onClose }) => {
     }
   };
 
-  return (
-    <dialog open className="delete-dialog">
-      <h2>Select items to delete</h2>
-      <div className="delete-items-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Select</th>
-              <th>Item Name</th>
-              <th>Item ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.item_id}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(item.item_id)}
-                    onChange={() => handleCheckboxChange(item.item_id)}
-                  />
-                </td>
-                <td>{item.item_name}</td>
-                <td>{item.item_id}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="delete-dialog-buttons">
-        <button onClick={handleDelete}>Confirm Deletion</button>
-        <button onClick={onClose}>Cancel</button>
-      </div>
-    </dialog>
-  );
-};
 
-export default DeleteItems;
+  
+    return (
+      <div className="dialog-overlay">
+        <dialog open className="delete-dialog">
+          <h2>Select items to delete</h2>
+          <div className="delete-items-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th>Item Name</th>
+                  <th>Item ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.item_id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.item_id)}
+                        onChange={() => handleCheckboxChange(item.item_id)}
+                      />
+                    </td>
+                    <td>{item.item_name}</td>
+                    <td>{item.item_id}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="delete-dialog-buttons">
+            <button onClick={handleDelete}>Confirm Deletion</button>
+            <button onClick={onClose}>Cancel</button>
+          </div>
+        </dialog>
+      </div>
+    );
+  };
+  
+  export default DeleteItems;
+  

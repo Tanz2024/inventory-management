@@ -8,14 +8,21 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   const [renameValue, setRenameValue] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [newRemark, setNewRemark] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Helper: Common headers for fetch calls
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '1'
+  };
 
   // Fetch remarks from the backend
   const refreshRemarks = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        headers: commonHeaders
       });
       if (response.ok) {
         const data = await response.json();
@@ -30,7 +37,12 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   };
 
   useEffect(() => {
-    refreshRemarks();
+    const fetchData = async () => {
+      setLoading(true);
+      await refreshRemarks();
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   const filteredRemarks = useMemo(() => {
@@ -43,20 +55,17 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   const handleAddRemark = async () => {
     const trimmed = newRemark.trim();
     if (!trimmed) return;
-
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/remarks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ option: trimmed }),
+        headers: commonHeaders,
+        body: JSON.stringify({ option: trimmed })
       });
       const data = await resp.json();
       if (!resp.ok) {
         if (data.existingOptions) {
-          alert(
-            `Cannot add: "${trimmed}" already exists as: ${data.existingOptions.join(', ')}.`
-          );
+          alert(`Cannot add: "${trimmed}" already exists as: ${data.existingOptions.join(', ')}`);
         } else {
           alert(`Failed to add remark: ${data.message}`);
         }
@@ -71,14 +80,18 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
     }
   };
 
+  // Delete a remark option
   const handleDeleteRemark = async (remarkName) => {
     if (!window.confirm(`Are you sure you want to delete "${remarkName}"?`)) return;
     try {
-      const resp = await fetch(`https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks/${encodeURIComponent(remarkName)}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
+      const resp = await fetch(
+        `http://localhost:5000/dropdown-options/remarks/${encodeURIComponent(remarkName)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: commonHeaders
+        }
+      );
       const data = await resp.json();
       if (!resp.ok) {
         alert(`Failed to delete remark: ${data.message}`);
@@ -100,11 +113,11 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks/rename', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/remarks/rename', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ oldOption: oldName, newOption: newName }),
+        headers: commonHeaders,
+        body: JSON.stringify({ oldOption: oldName, newOption: newName })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -144,78 +157,68 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   };
 
   return (
-    <div className="manage-sites-dialog">
-      <div className="dialog-content">
-        <header className="dialog-header">
-          <h2 className="dialog-title">Manage Remark Options</h2>
-          <div className="total-sites-label">
-            <strong>Total Remarks: {remarks.length}</strong>
+    <div className="MR-overlay">
+      <div className="MR-popup-dialog">
+        <h2 className="MR-dialog-title">Manage Remarks</h2>
+  
+        <div className="MR-dialog-content">
+  
+          <div className="add-remark-container">
+            <input
+              type="text"
+              placeholder="Enter new remark"
+              value={newRemark}
+              onChange={(e) => setNewRemark(e.target.value)}
+            />
+            <button className="btn-primary" onClick={handleAddRemark}>Add Remark</button>
           </div>
-        </header>
-
-        <div className="add-site-container">
+  
           <input
             type="text"
-            className="new-site-input"
-            placeholder="Add new remark option"
-            value={newRemark}
-            onChange={(e) => setNewRemark(e.target.value)}
-          />
-          <button className="primary add-button" onClick={handleAddRemark}>Add</button>
-        </div>
-
-        <div className="sites-list-container">
-          <h3>Remarks</h3>
-          <input
-            type="text"
-            placeholder="Search remark options..."
+            placeholder="Search remarks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
           />
-
+            <div className="total-remarks-label">
+            <strong>Total Remarks: {remarks.length}</strong>
+          </div>
           {filteredRemarks.length > 0 ? (
-            <ul className="sites-list">
+            <ul className="remarks-list">
               {filteredRemarks.map((remark) => (
-                <li key={remark} className="site-item">
+                <li key={remark} className="remark-item">
                   {!editMode[remark] ? (
-                    <div className="site-name">{remark}</div>
+                    <div className="remark-name">{remark}</div>
                   ) : (
-                    <div className="rename-row">
+                    <div className="remark-edit-row">
                       <input
                         type="text"
-                        className="rename-input"
                         value={renameValue[remark] || remark}
                         onChange={(e) => handleRenameChange(remark, e.target.value)}
                       />
-                      <button className="rename-save-btn" onClick={() => handleConfirmRename(remark)}>Save</button>
-                      <button className="rename-cancel-btn" onClick={() => handleCancelRename(remark)}>Cancel</button>
+                      <button className="btn-primary" onClick={() => handleConfirmRename(remark)}>Save</button>
+                      <button className="btn-secondary" onClick={() => handleCancelRename(remark)}>Cancel</button>
                     </div>
                   )}
                   {!editMode[remark] && (
-                    <div className="actions-row">
-                      <button className="rename-icon" onClick={() => toggleRenameMode(remark)} title="Rename">
-                        ✎
-                      </button>
-                      <button className="delete-icon" onClick={() => handleDeleteRemark(remark)} title="Delete">
-                        &#x2715;
-                      </button>
+                    <div className="remark-actions">
+                      <button className="btn-primary" onClick={() => toggleRenameMode(remark)}>Rename</button>
+                      <button className="btn-secondary" onClick={() => handleDeleteRemark(remark)}>Delete</button>
                     </div>
                   )}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="no-match">No matching remark options.</p>
+            <p>No matching remarks found.</p>
           )}
         </div>
-
-        <div className="buttons-row">
-          <button className="primary" onClick={handleClose}>Close</button>
+  
+        <div className="dialog-actions">
+          <button className="btn-primary" onClick={handleClose}>Close</button>
         </div>
       </div>
     </div>
-  );
+  );  
 };
 
 ManageRemarks.propTypes = {

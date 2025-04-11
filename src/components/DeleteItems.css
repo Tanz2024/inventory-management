@@ -1,33 +1,35 @@
-/* ==========================================================================
-   Delete Dialog Styles with Blue Color Pattern
-   ========================================================================== */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-/* Dialog Container: fluid & centered */
+/* Dialog Container */
 .delete-dialog {
   position: fixed;
-  top: 50%;                  /* Center vertically */
-  left: 50%;                 /* Center horizontally */
-  transform: translate(-50%, -50%); /* Perfect center */
-
-  /* Fluid width: clamp between 300px and 600px, or 80% of viewport width */
-  width: clamp(300px, 80vw, 600px);
-
-  /* Limit height to 80% of viewport, allow scrolling if exceeded */
-  max-height: 80vh;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* width: clamp(300px, 90vw, 600px); */
+  max-height: 90vh;
   overflow-y: auto;
-
   background-color: #fff;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000; /* On top of other elements */
+  z-index: 1000;
   box-sizing: border-box;
-
-  /* Optional: smooth fade-in animation */
+  border-color: #fff;
   animation: fadeInDialog 0.3s ease;
 }
 
-/* Fade-in keyframes */
 @keyframes fadeInDialog {
   from {
     opacity: 0;
@@ -39,24 +41,21 @@
   }
 }
 
-/* Dialog Title */
 .delete-dialog h2 {
   font-size: 1.5em;
   margin-bottom: 2vh;
   color: #455883;
-  margin-top: 0; /* Remove default h2 top margin */
+  margin-top: 0;
 }
 
-/* Scrollable Table Container */
 .delete-items-table {
   width: 100%;
   margin-bottom: 20px;
-  max-height: 300px; /* Fixed max height for the table area */
-  overflow-y: auto;  /* Enable vertical scrolling */
+  max-height: 60vh;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
-/* Table Styles */
 .delete-items-table table {
   width: 100%;
   border-collapse: collapse;
@@ -67,64 +66,51 @@
   padding: 10px;
   text-align: left;
   border: 1px solid #ddd;
-  color: #333; /* Ensure text is legible */
+  color: #333;
 }
 
 .delete-items-table th {
-  background-color: #43abc1; /* Blue header background */
+  background-color: #43abc1;
   color: #fff;
 }
 
-/* Button Container */
 .delete-dialog-buttons {
   display: flex;
-  gap: 1rem; /* Slight gap between buttons if needed */
+  gap: 1rem;
   margin-top: 10px;
 }
 
-/* Base Button Styles */
 .delete-dialog button {
-  flex: 1;                 /* Make all buttons equal width */
+  flex: 1;
   padding: 10px 20px;
   cursor: pointer;
   border: none;
   border-radius: 5px;
   font-size: 1em;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  background-color: #43abc1; /* Restored original blue */
-  color: #fff;
-  box-sizing: border-box;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* Subtle depth */
-}
-
-
-/* Confirm Button (Blue) */
-.delete-dialog button.confirm-button {
   background-color: #43abc1;
-}
-.delete-dialog button.confirm-button:hover {
-  background-color: #455883; /* Darker blue on hover */
-  transform: scale(1.05);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }
 
-/* Cancel Button (Red) */
+.delete-dialog button:hover {
+  background-color: #2a6f97;
+}
+
 .delete-dialog button.cancel-button {
   background-color: #dc3545;
 }
 .delete-dialog button.cancel-button:hover {
-  background-color: #c82333; /* Darker red on hover */
+  background-color: #c82333;
   transform: scale(1.05);
 }
 
-/* Checkboxes in table rows */
 .delete-dialog input[type="checkbox"] {
   margin-right: 10px;
 }
 
-/* ==========================================================================
-   Mobile Optimization: Adjust styles for smaller screens (~576px and below)
-   ========================================================================== */
 @media (max-width: 576px) {
   .delete-dialog {
     width: 90vw;      /* More fluid on very small screens */
@@ -138,7 +124,7 @@
 
   /* Reduce table's max height if needed */
   .delete-items-table {
-    max-height: 200px;
+    max-height: 300px;
   }
 
   /* Stack buttons vertically for easier tapping */

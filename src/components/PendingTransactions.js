@@ -45,68 +45,28 @@ const highlightMatch = (text, query) => {
 const PendingTransactions = () => {
   // State: pending transactions from the server
   const [pendingTransactions, setPendingTransactions] = useState([]);
-
   // Auto-approve interval from the server
-  // Start empty so we can fetch the real setting on mount
   const [expiryInterval, setExpiryInterval] = useState('');
   const [expiryIntervalSeconds, setExpiryIntervalSeconds] = useState(null);
-
   // Filters
   const [filterThreshold, setFilterThreshold] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
   // For the live countdown
   const [currentTime, setCurrentTime] = useState(Date.now());
 
-  // On mount: fetch the current auto-approve interval + pending transactions
-  useEffect(() => {
-    (async () => {
-      try {
-        // Fetch the server's current auto-approve interval
-        const intervalRes = await fetch('https://1a11-211-25-11-204.ngrok-free.app/get-transaction-expiry', {
-          credentials: 'include',
-        });
-        if (!intervalRes.ok) {
-          throw new Error(`Error fetching interval: ${intervalRes.status}`);
-        }
-        const intervalData = await intervalRes.json();
-        // e.g. intervalData.expiry might be 'none', '24 hour', etc.
-        setExpiryInterval(intervalData.expiry);
-        setExpiryIntervalSeconds(parseExpiryInterval(intervalData.expiry));
-      } catch (err) {
-        console.error('Error retrieving auto-approve interval:', err);
-      }
+  // Common headers for fetch calls
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '1'
+  };
 
-      // Fetch pending transactions once
-      fetchPendingTransactions();
-
-      // Then auto-refresh every 5 seconds
-      const refreshTimer = setInterval(() => {
-        fetchPendingTransactions();
-      }, 5000);
-
-      return () => clearInterval(refreshTimer);
-    })();
-  }, []);
-
-  // Keep a 1-second timer to update 'currentTime' for real-time countdown
-  useEffect(() => {
-    const countdownTimer = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-    return () => clearInterval(countdownTimer);
-  }, []);
-
-  // Fetch all pending transactions
+  // Fetch pending transactions
   const fetchPendingTransactions = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/pending-transactions', {
+      const response = await fetch('http://localhost:5000/pending-transactions', {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
+        headers: commonHeaders,
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -118,82 +78,48 @@ const PendingTransactions = () => {
     }
   };
 
-  // Approve a transaction manually
-  const handleApprove = async (transactionId) => {
-    if (!window.confirm('Approve this transaction?')) return;
-    try {
-      const response = await fetch(`https://1a11-211-25-11-204.ngrok-free.app/approve-transaction/${transactionId}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  // Update currentTime every second for the live countdown
+  useEffect(() => {
+    const countdownTimer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(countdownTimer);
+  }, []);
+
+  // On mount: fetch auto-approve interval and pending transactions, and set up auto-refresh
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Fetch the server's current auto-approve interval
+        const intervalRes = await fetch('http://localhost:5000/get-transaction-expiry', {
+          credentials: 'include',
+          headers: commonHeaders,
+        });
+        if (!intervalRes.ok) {
+          throw new Error(`Error fetching interval: ${intervalRes.status}`);
+        }
+        const intervalData = await intervalRes.json();
+        // e.g. intervalData.expiry might be 'none', '24 hour', etc.
+        setExpiryInterval(intervalData.expiry);
+        setExpiryIntervalSeconds(parseExpiryInterval(intervalData.expiry));
+      } catch (err) {
+        console.error('Error retrieving auto-approve interval:', err);
       }
-      alert('Transaction approved successfully.');
-      // Refresh immediately after
+      // Fetch pending transactions once after initializing
       fetchPendingTransactions();
-    } catch (error) {
-      console.error('Error approving transaction:', error);
-      alert('Failed to approve transaction.');
-    }
-  };
+    };
 
-  // Cancel a transaction
-  const handleCancel = async (transactionId) => {
-    if (!window.confirm('Cancel this transaction?')) return;
-    try {
-      const response = await fetch(`https://1a11-211-25-11-204.ngrok-free.app/cancel-transaction/${transactionId}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      alert('Transaction canceled successfully.');
-      // Refresh immediately after
+    initializeData();
+
+    // Then auto-refresh pending transactions every 5 seconds
+    const refreshTimer = setInterval(() => {
       fetchPendingTransactions();
-    } catch (error) {
-      console.error('Error canceling transaction:', error);
-      alert('Failed to cancel transaction.');
-    }
-  };
+    }, 5000);
 
-  // Set auto-approve interval on the server
-  const handleSetExpiryInterval = async (newInterval) => {
-    const parsedSeconds = parseExpiryInterval(newInterval);
-    try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/set-transaction-expiry', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expiry: newInterval }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
+    return () => clearInterval(refreshTimer);
+  }, []);
 
-      alert(data.message);
-      setExpiryInterval(newInterval);
-      setExpiryIntervalSeconds(parsedSeconds);
-
-      // Immediately re-fetch in case older items got auto-approved
-      fetchPendingTransactions();
-    } catch (error) {
-      console.error('Error setting auto-approve interval:', error);
-      alert('Failed to set auto-approve interval.');
-    }
-  };
-
-  // Calculate how many seconds remain until auto-approval
+  // Calculate how many seconds remain until auto-approval for a given transaction timestamp
   const getTimeRemaining = (timestamp) => {
     if (expiryIntervalSeconds === null) {
       // "No Auto-Approve"
@@ -204,7 +130,7 @@ const PendingTransactions = () => {
     return Math.floor((cutoff - currentTime) / 1000);
   };
 
-  // Format seconds -> HH:MM:SS (or "Expired"/"No Limit")
+  // Format seconds into HH:MM:SS, or display "Expired"/"No Limit"
   const formatTime = (sec) => {
     if (sec === Infinity) return 'No Limit';
     if (sec < 0) return 'Expired';
@@ -216,7 +142,7 @@ const PendingTransactions = () => {
       .padStart(2, '0')}`;
   };
 
-  // Predefined intervals for auto-approve
+  // Predefined expiry options for auto-approve
   const expiryOptions = [
     { label: 'No Auto-Approve', value: 'none' },
     { label: '24 Hours', value: '24 hour' },
@@ -225,7 +151,7 @@ const PendingTransactions = () => {
     { label: '1 Week', value: '1 week' },
   ];
 
-  // Filter by time left
+  // Filter pending transactions by time threshold
   const filterByThreshold = (tx) => {
     const remainingSeconds = getTimeRemaining(tx.timestamp);
     if (filterThreshold === 'all') return true;
@@ -235,7 +161,7 @@ const PendingTransactions = () => {
     return true;
   };
 
-  // Filter by search
+  // Filter transactions by search query (matches item name or category)
   const filterBySearch = (tx) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
@@ -245,15 +171,80 @@ const PendingTransactions = () => {
     );
   };
 
-  // Combine filters
+  // Combined filters for pending transactions
   const filteredTransactions = pendingTransactions
     .filter(filterByThreshold)
     .filter(filterBySearch);
 
-  // For highlighting matched text in the table
+  // For highlighting matched text in the table, returns an object for dangerouslySetInnerHTML
   const createHighlightedHTML = (text) => {
     const safeText = text || '';
     return { __html: highlightMatch(safeText, searchQuery) };
+  };
+
+  // Approve a transaction manually
+  const handleApprove = async (transactionId) => {
+    if (!window.confirm('Approve this transaction?')) return;
+    try {
+      const response = await fetch(`http://localhost:5000/approve-transaction/${transactionId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: commonHeaders,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      alert('Transaction approved successfully.');
+      fetchPendingTransactions();
+    } catch (error) {
+      console.error('Error approving transaction:', error);
+      alert('Failed to approve transaction.');
+    }
+  };
+
+  // Cancel a transaction
+  const handleCancel = async (transactionId) => {
+    if (!window.confirm('Cancel this transaction?')) return;
+    try {
+      const response = await fetch(`http://localhost:5000/cancel-transaction/${transactionId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: commonHeaders,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      alert('Transaction canceled successfully.');
+      fetchPendingTransactions();
+    } catch (error) {
+      console.error('Error canceling transaction:', error);
+      alert('Failed to cancel transaction.');
+    }
+  };
+
+  // Set auto-approve interval on the server
+  const handleSetExpiryInterval = async (newInterval) => {
+    const parsedSeconds = parseExpiryInterval(newInterval);
+    try {
+      const response = await fetch('http://localhost:5000/set-transaction-expiry', {
+        method: 'POST',
+        credentials: 'include',
+        headers: commonHeaders,
+        body: JSON.stringify({ expiry: newInterval }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message);
+      }
+      alert(data.message);
+      setExpiryInterval(newInterval);
+      setExpiryIntervalSeconds(parsedSeconds);
+      // Immediately re-fetch in case older items got auto-approved
+      fetchPendingTransactions();
+    } catch (error) {
+      console.error('Error setting auto-approve interval:', error);
+      alert('Failed to set auto-approve interval.');
+    }
   };
 
   return (
@@ -267,7 +258,7 @@ const PendingTransactions = () => {
           <label htmlFor="expiry-select">Auto-Approve Interval:</label>
           <select
             id="expiry-select"
-            value={expiryInterval} // Use the server's setting
+            value={expiryInterval}
             onChange={(e) => handleSetExpiryInterval(e.target.value)}
           >
             {expiryOptions.map((opt) => (
@@ -334,21 +325,20 @@ const PendingTransactions = () => {
           ) : (
             filteredTransactions.map((tx) => {
               const remainingSeconds = getTimeRemaining(tx.timestamp);
-              // If < 60s left (and not auto-approved yet), highlight in red
+              // Highlight if less than 60 seconds left (and not already auto-approved)
               const isExpiring = remainingSeconds < 60 && remainingSeconds >= 0;
-
               return (
                 <tr key={tx.transaction_id}>
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(String(tx.item_id))} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.category)} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.item_name)} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.model)} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.item_unique_id)} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.transaction_type)} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(String(tx.item_id), searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.category, searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.item_name, searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.model, searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.item_unique_id, searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.transaction_type, searchQuery) }} />
                   <td>{tx.quantity_change}</td>
                   <td>{new Date(tx.timestamp).toLocaleString()}</td>
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.remarks)} />
-                  <td dangerouslySetInnerHTML={createHighlightedHTML(tx.status)} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.remarks, searchQuery) }} />
+                  <td dangerouslySetInnerHTML={{ __html: highlightMatch(tx.status, searchQuery) }} />
                   <td className={isExpiring ? 'time-expiring' : ''}>
                     {formatTime(remainingSeconds)}
                   </td>

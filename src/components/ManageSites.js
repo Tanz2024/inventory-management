@@ -11,19 +11,27 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const [editingSite, setEditingSite] = useState(null);
   const [renameInput, setRenameInput] = useState('');
 
+  // Common headers for all fetch calls
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '1'
+  };
+
   // Fetch sites from backend
   const fetchSites = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const response = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: commonHeaders,
+        credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
         setOriginalSites(data.sites);
         setLocalSites(data.sites);
         if (typeof onUpdate === 'function') onUpdate(data.sites);
+      } else {
+        console.error('Failed to fetch site options');
       }
     } catch (error) {
       console.error('Error fetching site options:', error);
@@ -48,13 +56,12 @@ const ManageSites = ({ onClose, onUpdate }) => {
       alert('Site name cannot be empty.');
       return;
     }
-
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ option: trimmed }),
+        body: JSON.stringify({ option: trimmed })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -78,11 +85,11 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const handleDeleteSiteLocal = async (siteName) => {
     if (!window.confirm(`Are you sure you want to delete "${siteName}"?`)) return;
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ option: siteName }),
+        body: JSON.stringify({ option: siteName })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -117,11 +124,11 @@ const ManageSites = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites/rename', {
+      const resp = await fetch('http://localhost:5000/dropdown-options/sites/rename', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: commonHeaders,
         credentials: 'include',
-        body: JSON.stringify({ oldOption: oldName, newOption: newName }),
+        body: JSON.stringify({ oldOption: oldName, newOption: newName })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -147,95 +154,113 @@ const ManageSites = ({ onClose, onUpdate }) => {
   };
 
   return (
-    <div className="manage-sites-dialog">
-      <div className="dialog-content">
-        <header className="dialog-header">
-          <h2 className="dialog-title">Manage Site Options</h2>
-          <div className="total-sites-label">
-            <strong>Total Sites: {localSites.length}</strong>
-          </div>
-        </header>
+    <div className="MS-overlay">
+      <div className="MS-popup-dialog">
+        <header className="MS-dialog-header">
+          <h2 className="MS-dialog-title">Manage Site Options</h2>
 
-        <div className="add-site-container">
+        </header>
+  
+        {/* <div className="MS-add-container">
           <input
             type="text"
-            className="new-site-input"
+            className="MS-new-input"
             placeholder="Add new site option"
             value={newSite}
             onChange={(e) => setNewSite(e.target.value)}
           />
-          <button className="primary add-button" onClick={handleAddSite}>Add</button>
-        </div>
+          <button className="MS-btn-primary" onClick={handleAddSite}>Add New Site</button>
+        </div> */}
+  
+        <div className="MS-dialog-content">
+  {/* <h3>Sites</h3> */}
+  <input
+    type="text"
+    placeholder="Search site name..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="MS-search-input"
+  />
 
-        <div className="sites-list-container">
-          <h3>Sites</h3>
-          <input
-            type="text"
-            placeholder="Search site options..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-          {filteredSites.length > 0 ? (
-            <ul className="sites-list">
-              {filteredSites.map((site) => (
-                <li key={site} className="site-item">
-                  {editingSite === site ? (
-                    <div className="rename-container">
-                      <input
-                        type="text"
-                        value={renameInput}
-                        onChange={(e) => setRenameInput(e.target.value)}
-                        className="rename-input"
-                      />
-                      <button
-                        className="primary confirm-rename-button"
-                        onClick={() => handleRenameSiteLocal(site)}
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        className="secondary cancel-rename-button"
-                        onClick={cancelEditing}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="site-name">{site}</div>
-                      <div className="actions-row">
-                        <button
-                          className="rename-icon"
-                          onClick={() => startEditing(site)}
-                          title="Rename"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="delete-icon"
-                          onClick={() => handleDeleteSiteLocal(site)}
-                          title="Delete"
-                        >
-                          &#x2715;
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
+  {/* Adding new site */}
+  <div className="MS-add-site-container">
+    
+    <input
+      type="text"
+      placeholder="Add new site"
+      value={newSite}
+      onChange={(e) => setNewSite(e.target.value)}
+      className="MS-new-site-input"
+    />
+    <button className="MS-btn-primary" onClick={handleAddSite}>Add Site</button>
+  </div>
+
+  {/* Site list rendering */}
+  <div className="MS-total-label">
+            <strong>Total Sites: {localSites.length}</strong>
+          </div>
+  {filteredSites.length > 0 ? (
+    <div className="MS-sites-list">
+      {filteredSites.map((site) => (
+        <div key={site} className="MS-row">
+          {/* If editing a site */}
+          {editingSite === site ? (
+            <div className="MS-edit-row">
+              <input
+                type="text"
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                className="MS-rename-input"
+              />
+              <button
+                className="MS-btn-primary"
+                onClick={() => handleRenameSiteLocal(site)}
+              >
+                Save
+              </button>
+              <button
+                className="MS-btn-secondary"
+                onClick={cancelEditing}
+              >
+                Cancel
+              </button>
+            </div>
           ) : (
-            <p className="no-match">No matching site options.</p>
+            <div className="MS-row-content">
+              <div className="MS-item-name">{site}</div>
+              <div className="MS-actions">
+                <button
+                  className="MS-btn-primary"
+                  onClick={() => startEditing(site)}
+                  title="Rename"
+                >
+                  Rename
+                </button>
+                <button
+                  className="MS-btn-secondary"
+                  onClick={() => handleDeleteSiteLocal(site)}
+                  title="Delete"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           )}
         </div>
+      ))}
+    </div>
+  ) : (
+    <p className="MS-no-results">No matching site options.</p>
+  )}
 
-        <div className="buttons-row">
-          <button className="primary" onClick={handleClose}>Close</button>
-        </div>
+  <div className="MS-dialog-actions">
+    <button className="MS-btn-primary" onClick={handleClose}>Close</button>
+  </div>
+</div>
       </div>
     </div>
   );
+  
 };
 
 ManageSites.propTypes = {

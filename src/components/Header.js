@@ -23,7 +23,7 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/logs', {
+      const response = await fetch('http://localhost:5000/logs', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -49,7 +49,7 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/logout', {
+      const response = await fetch('http://localhost:5000/logout', {
         method: 'POST',
         credentials: 'include',
         headers: {

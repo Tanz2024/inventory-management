@@ -65,7 +65,7 @@ function AppContent() {
       }
 
       try {
-        const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/authenticate', {
+        const response = await fetch('http://localhost:5000/authenticate', {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -164,10 +164,12 @@ function AppContent() {
   if (loading) {
     return <div className="loading-screen">Loading...</div>;
   }
-
+  const hideHeaderRoutes = ['/login'];
+  const shouldShowHeader = !hideHeaderRoutes.includes(location.pathname.toLowerCase());
   return (
     <div>
-      {/* Header with the same toggle function */}
+      {/* Conditionally render Header */}
+    {shouldShowHeader && (
       <Header
         isLoggedIn={isLoggedIn}
         username={username}
@@ -175,24 +177,29 @@ function AppContent() {
         onToggleSidebar={handleToggleSidebar}
         isSidebarOpen={isSidebarOpen}
       />
+    )}
 
-      {/* Wrap main container with swipe handlers for open/close */}
-      <div {...swipeHandlers} className={`app-container ${isLoggedIn ? '' : 'login-page'}`}>
-        <div className="main-section">
-          {/* Only show sidebar if logged in and isSidebarOpen */}
-          {isLoggedIn && isSidebarOpen && (
+<div
+      className={`app-container ${isLoggedIn ? '' : 'login-page'}`}
+      {...(isLoggedIn ? swipeHandlers : {})}
+    >
+      <div className="main-section">
+        {isLoggedIn && isSidebarOpen && (
+          <>
+            <div className="sidebar-overlay" onClick={handleToggleSidebar} />
             <SideNav
               userId={userId}
               isSidebarOpen={isSidebarOpen}
               onToggleSidebar={handleToggleSidebar}
             />
-          )}
+          </>
+        )}
 
-          <div
-            className={`content-area ${isLoggedIn ? '' : 'login-view'} ${
-              isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
-            }`}
-          >
+        <div
+          className={`content-area ${isLoggedIn ? '' : 'login-view'} ${
+            isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
+          }`}
+        >
             <Routes>
               <Route
                 path="/login"

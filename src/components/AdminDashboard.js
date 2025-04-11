@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FaChevronDown, FaChevronUp, FaStar } from 'react-icons/fa';
 import AddItems from './AddItems';
@@ -10,69 +9,53 @@ import './AdminDashboard.css';
 const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // ------------------------------ Columns Config ------------------------------
   const columns = [
-    { key: "item_id", label: "Item ID", sortable: true },
+    { key: "display_order", label: "No.", sortable: true },
+    { key: "item_unique_id", label: "Unique ID", sortable: true },
     { key: "category", label: "Category", sortable: true },
     { key: "item_name", label: "Item Name", sortable: true },
     { key: "model", label: "Model", sortable: true },
-    { key: "item_unique_id", label: "Unique ID", sortable: true },
-    { key: "quantity", label: "Quantity", sortable: true },
-    { key: "reserved_quantity", label: "Reservation", sortable: true },
-    { key: "location", label: "Location", sortable: true },
     { key: "site_name", label: "Site Name", sortable: true },
     { key: "unit", label: "Unit", sortable: true },
+    { key: "location", label: "Location", sortable: true },
+    { key: "quantity", label: "Quantity", sortable: true },
     { key: "price", label: "Price", sortable: true },
+    { key: "reserved_quantity", label: "Reserved", sortable: true },
     { key: "remarks", label: "Remarks", sortable: true },
-    { key: "audit_date", label: "Key-in Date", sortable: true, adminOnly: true },
-    { key: "quantity_changed", label: "Quantity Changed", sortable: false },
-    { key: "confirmation", label: "Confirmation", sortable: false }
+    { key: "audit_date", label: "Key‑in Date", sortable: true, adminOnly: true },
   ];
 
-  // Set initial visibility: non-admin users do not see adminOnly columns by default.
+  // Set default visible columns (hide adminOnly for non-admin users)
   const initialVisible = {};
   columns.forEach(col => {
-    if (col.adminOnly && userId !== 2) {
-      initialVisible[col.key] = false;
-    } else {
-      initialVisible[col.key] = true;
-    }
+    initialVisible[col.key] = col.adminOnly && userId !== 2 ? false : true;
   });
   const [visibleColumns, setVisibleColumns] = useState(initialVisible);
+  const handleResetColumns = () => setVisibleColumns(initialVisible);
 
-  const handleResetColumns = () => {
-    setVisibleColumns(initialVisible);
-  };
-
-  // ------------------------------ Dropdown State ------------------------------
+  // ------------------------------ State Declarations ------------------------------
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const toggleColumnDropdown = () => setShowColumnDropdown(prev => !prev);
 
-  // Close the dropdown if clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowColumnDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  // fullEditMode: when true, the row is in edit mode.
+  const [fullEditMode, setFullEditMode] = useState({});
 
-  // ------------------------------ Other States ------------------------------
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
 
-  // Searching & Debouncing
+  // Search and filter
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  const [modelFilter, setModelFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
-  // Dialog states
+  // Dialog controls
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openManageRemarks, setOpenManageRemarks] = useState(false);
   const [openManageSites, setOpenManageSites] = useState(false);
 
-  // Editable field states
+  // Other fields
   const [inputValue, setInputValue] = useState({});
   const [remarks, setRemarks] = useState({});
   const [prices, setPrices] = useState({});
@@ -80,18 +63,40 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [units, setUnits] = useState({});
   const [uniqueIds, setUniqueIds] = useState({});
   const [quantityValue, setQuantityValue] = useState({});
-
-  // Audit Date (Key-in Date) - only for admin
   const [auditDates, setAuditDates] = useState({});
 
-  const [confirmed, setConfirmed] = useState({});
-  const [editMode, setEditMode] = useState({});
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
-  const [starred, setStarred] = useState({});
+  // Editable fields for admin
+  const [editableItemNames, setEditableItemNames] = useState({});
+  const [editableCategories, setEditableCategories] = useState({});
+  const [editableModels, setEditableModels] = useState({});
+  const [editableLocations, setEditableLocations] = useState({});
 
-  // Options for remarks and site names
+  const [editAll, setEditAll] = useState(false);
+  const [rowStatus, setRowStatus] = useState({});
+
   const [remarksOptions, setRemarksOptions] = useState([]);
   const [siteNamesOptions, setSiteNamesOptions] = useState([]);
+
+  // ------------------------------ Notification ------------------------------
+  const [notification, setNotification] = useState(null);
+  const showNotification = (message, type) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  // ------------------------------ useEffect for Mobile Dropdown ------------------------------
+  useEffect(() => {
+    if ("ontouchstart" in window) {
+      const handleTouchOutside = (event) => {
+        if (Object.values(fullEditMode).includes(true)) return;
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setShowColumnDropdown(false);
+        }
+      };
+      document.addEventListener("touchstart", handleTouchOutside);
+      return () => document.removeEventListener("touchstart", handleTouchOutside);
+    }
+  }, [fullEditMode]);
 
   // ------------------------------ Helper Functions ------------------------------
   const convertToMYTDisplay = (dateString) => {
@@ -102,29 +107,73 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   const formatForInput = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const options = {
-      timeZone: 'Asia/Kuala_Lumpur',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    };
-    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(date);
-    const day = parts.find((p) => p.type === 'day').value;
-    const month = parts.find((p) => p.type === 'month').value;
-    const year = parts.find((p) => p.type === 'year').value;
-    const hour = parts.find((p) => p.type === 'hour').value;
-    const minute = parts.find((p) => p.type === 'minute').value;
-    return `${year}-${month}-${day}T${hour}:${minute}`;
+    return new Date(dateString).toISOString().slice(0, 16);
   };
 
-  // ------------------------------ Fetch & Initialize Data ------------------------------
+  // ------------------------------ Fetch Dropdown Options ------------------------------
+  useEffect(() => {
+    fetchRemarksOptions();
+    fetchSiteOptions();
+  
+    const handleDropdownUpdate = (e) => {
+      const { type } = e.detail;
+      if (type === 'site') {
+        fetchSiteOptions();
+      } else if (type === 'remark') {
+        fetchRemarksOptions();
+      }
+    };
+  
+    window.addEventListener('dropdownOptionsUpdated', handleDropdownUpdate);
+    return () => window.removeEventListener('dropdownOptionsUpdated', handleDropdownUpdate);
+  }, []);
+  
+  const fetchRemarksOptions = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.remarks)) {
+          setRemarksOptions(data.remarks);
+          localStorage.setItem('remarksOptions', JSON.stringify(data.remarks));
+        }
+      } else {
+        console.error('Failed to fetch remarks options');
+      }
+    } catch (error) {
+      console.error('Error fetching remarks options:', error);
+    }
+  };
+  
+  const fetchSiteOptions = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/dropdown-options/sites', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.sites)) {
+          setSiteNamesOptions(data.sites);
+          localStorage.setItem('siteNames', JSON.stringify(data.sites));
+        }
+      } else {
+        console.error('Failed to fetch site options');
+      }
+    } catch (error) {
+      console.error('Error fetching site options:', error);
+    }
+  };
+  
+  // ------------------------------ Data Fetching & Initialization ------------------------------
   const fetchItems = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -156,91 +205,65 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   }, [searchQuery]);
 
   const initializeStates = (fetchedItems) => {
-    setInputValues(fetchedItems);
-    setRemarksValues(fetchedItems);
-    setPricesValues(fetchedItems);
-    setSiteNamesValues(fetchedItems);
-    setUnitsValues(fetchedItems);
-    setQuantityValues(fetchedItems);
-    setUniqueIdsValues(fetchedItems);
-    setAuditDatesValues(fetchedItems);
-    const initStarred = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.starred || false;
-      return acc;
-    }, {});
-    setStarred(initStarred);
+    const initInput = {};
+    const initRemarks = {};
+    const initPrices = {};
+    const initSiteNames = {};
+    const initUnits = {};
+    const initQuantity = {};
+    const initUniqueIds = {};
+    const initAuditDates = {};
+    const initItemNames = {};
+    const initCategories = {};
+    const initModels = {};
+    const initLocations = {};
+    const initRowStatus = {};
+    const initFullEditMode = {};
+
+    const storedQuantities = JSON.parse(localStorage.getItem("userQuantities") || "{}");
+
+    fetchedItems.forEach(item => {
+      initInput[item.item_id] = "";
+      initRemarks[item.item_id] = item.remarks || '';
+      initPrices[item.item_id] = item.price ?? 0;
+      initSiteNames[item.item_id] = item.site_name || '';
+      initUnits[item.item_id] = item.unit || '';
+      initQuantity[item.item_id] = item.quantity;
+
+      initUniqueIds[item.item_id] = item.item_unique_id || '';
+      initAuditDates[item.item_id] = item.audit_date || '';
+      initItemNames[item.item_id] = item.item_name || '';
+      initCategories[item.item_id] = item.category || '';
+      initModels[item.item_id] = item.model || '';
+      initLocations[item.item_id] = item.location || '';
+      initRowStatus[item.item_id] = 'default';
+      initFullEditMode[item.item_id] = false;
+    });
+    setInputValue(initInput);
+    setRemarks(initRemarks);
+    setPrices(initPrices);
+    setSiteNames(initSiteNames);
+    setUnits(initUnits);
+    setQuantityValue(initQuantity);
+    setUniqueIds(initUniqueIds);
+    setAuditDates(initAuditDates);
+    setEditableItemNames(initItemNames);
+    setEditableCategories(initCategories);
+    setEditableModels(initModels);
+    setEditableLocations(initLocations);
+    setRowStatus(initRowStatus);
+    setFullEditMode(initFullEditMode);
+    setEditAll(false);
   };
 
-  const setInputValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = 0;
-      return acc;
-    }, {});
-    setInputValue(initial);
-  };
+  // ------------------------------ Dropdown Options for Filtering ------------------------------
+  const uniqueModels = Array.from(new Set(items.map(item => item.model).filter(Boolean)));
+  const uniqueCategories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
+  const uniqueLocations = Array.from(new Set(items.map(item => item.location).filter(Boolean)));
 
-  const setRemarksValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.remarks || '';
-      return acc;
-    }, {});
-    setRemarks(initial);
-  };
-
-  const setPricesValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.price ?? 0;
-      return acc;
-    }, {});
-    setPrices(initial);
-  };
-
-  const setSiteNamesValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.site_name || '';
-      return acc;
-    }, {});
-    setSiteNames(initial);
-  };
-
-  const setUnitsValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.unit || '';
-      return acc;
-    }, {});
-    setUnits(initial);
-  };
-
-  const setQuantityValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.quantity;
-      return acc;
-    }, {});
-    setQuantityValue(initial);
-  };
-
-  const setUniqueIdsValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.item_unique_id || '';
-      return acc;
-    }, {});
-    setUniqueIds(initial);
-  };
-
-  const setAuditDatesValues = (fetchedItems) => {
-    const initial = fetchedItems.reduce((acc, item) => {
-      acc[item.item_id] = item.audit_date || '';
-      return acc;
-    }, {});
-    setAuditDates(initial);
-  };
-
-  const persistConfirmed = (confirmedObj) => {
-    localStorage.setItem('confirmedPrices', JSON.stringify(confirmedObj));
-  };
-
-  // ------------------------------ Searching & Filtering ------------------------------
   const filteredItems = items.filter(item => {
+    if (modelFilter && item.model !== modelFilter) return false;
+    if (categoryFilter && item.category !== categoryFilter) return false;
     if (!debouncedSearchQuery) return true;
     const q = debouncedSearchQuery.toLowerCase();
     return (
@@ -251,62 +274,20 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     );
   });
 
-  // ------------------------------ Handle Star Toggle ------------------------------
-  const handleToggleStar = async itemId => {
-    const newStarred = !starred[itemId];
-    try {
-      const response = await fetch(
-        `https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ starred: newStarred })
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Failed to update star: ${errorData.message}`);
-        return;
-      }
-      fetchItems();
-    } catch (err) {
-      console.error('Error updating star:', err);
-      alert('An error occurred while updating the star.');
-    }
-  };
+  const sortedItems = [...filteredItems].sort((a, b) => a.display_order - b.display_order);
 
-  // ------------------------------ Sorting ------------------------------
-  const handleSort = key => {
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
+  const handleSort = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
     }
     setSortConfig({ key, direction });
     const sorted = [...items].sort((a, b) => {
-      const aStar = starred[a.item_id];
-      const bStar = starred[b.item_id];
-      if (aStar && !bStar) return -1;
-      if (!aStar && bStar) return 1;
-
-      const aVal = a[key];
-      const bVal = b[key];
-
-      if (key === 'location') {
-        const aMatchesDash = aVal === dashboardLocation;
-        const bMatchesDash = bVal === dashboardLocation;
-        if (aMatchesDash && !bMatchesDash) return direction === 'ascending' ? -1 : 1;
-        if (!aMatchesDash && bMatchesDash) return direction === 'ascending' ? 1 : -1;
-      }
-
-      const aNum = parseFloat(aVal);
-      const bNum = parseFloat(bVal);
-      const aIsNumber = !isNaN(aNum);
-      const bIsNumber = !isNaN(bNum);
-      if (aIsNumber && bIsNumber) {
-        if (aNum < bNum) return direction === 'ascending' ? -1 : 1;
-        if (aNum > bNum) return direction === 'ascending' ? 1 : -1;
-        return 0;
+      const aVal = a[key] || a.display_order;
+      const bVal = b[key] || b.display_order;
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'ascending' ? aVal - bVal : bVal - aVal;
       } else {
         const aStr = aVal?.toString().toLowerCase() || '';
         const bStr = bVal?.toString().toLowerCase() || '';
@@ -318,18 +299,39 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setItems(sorted);
   };
 
-  // ------------------------------ Stepper & Input Handlers ------------------------------
-  const handleQuantityDecrement = itemId => {
-    setInputValue(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) - 1 }));
+  // ------------------------------ Handle Star Toggle ------------------------------
+  const handleToggleStar = async (itemId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ starred: !items.find(it => it.item_id === itemId).starred })
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Failed to update star: ${errorData.message}`);
+        return;
+      }
+      showNotification("Star updated successfully.", "green");
+      fetchItems();
+    } catch (err) {
+      console.error('Error updating star:', err);
+      alert('An error occurred while updating the star.');
+    }
   };
 
-  const handleQuantityIncrement = itemId => {
-    setInputValue(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
+  // ------------------------------ Editable Functions for Dropdowns ------------------------------
+  const handleSiteNameChange = (itemId, newSiteName) => {
+    setSiteNames(prev => ({ ...prev, [itemId]: newSiteName }));
+    const updatedSites = Object.values(siteNames);
+    localStorage.setItem('siteNames', JSON.stringify(updatedSites));
   };
 
-  const handleInputChange = (itemId, newQuantity) => {
-    if (isNaN(newQuantity)) return;
-    setInputValue(prev => ({ ...prev, [itemId]: newQuantity }));
+  const handlePriceChange = (itemId, newPrice) => {
+    if (userId !== 2) return;
+    if (isNaN(newPrice)) return;
+    setPrices(prev => ({ ...prev, [itemId]: newPrice }));
   };
 
   const handleRemarksChange = (itemId, newRemarks) => {
@@ -340,16 +342,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     });
   };
 
-  const handlePriceChange = (itemId, newPrice) => {
+  const handleAuditDateChange = (itemId, newDate) => {
     if (userId !== 2) return;
-    if (isNaN(newPrice)) return;
-    setPrices(prev => ({ ...prev, [itemId]: newPrice }));
-  };
-
-  const handleSiteNameChange = (itemId, newSiteName) => {
-    setSiteNames(prev => ({ ...prev, [itemId]: newSiteName }));
-    const updatedSites = Object.values(siteNames);
-    localStorage.setItem('siteNames', JSON.stringify(updatedSites));
+    if (!newDate) return;
+    setAuditDates(prev => ({ ...prev, [itemId]: new Date(newDate).toISOString() }));
   };
 
   const handleUnitChange = (itemId, newUnit) => {
@@ -357,162 +353,87 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     setUnits(prev => ({ ...prev, [itemId]: newUnit }));
   };
 
-  const handleUniqueIdChange = (itemId, newUniqueId) => {
-    setUniqueIds(prev => ({ ...prev, [itemId]: newUniqueId }));
-  };
-
-  const handleAuditDateChange = (itemId, newDate) => {
-    if (userId !== 2) return;
-    if (!newDate) return;
-    const localDate = new Date(newDate);
-    const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
-    setAuditDates(prev => ({ ...prev, [itemId]: utcDate.toISOString() }));
-  };
-
-  // ------------------------------ Toggle & Save Edits ------------------------------
-  const toggleEditMode = (itemId, field) => {
-    setEditMode(prev => {
-      const current = prev[itemId] || {};
-      return { ...prev, [itemId]: { ...current, [field]: !current[field] } };
+  // ------------------------------ Unified Quantity Management ------------------------------
+  const quanitty = (itemId, delta) => {
+    setQuantityValue(prev => {
+      const current = parseInt(prev[itemId]) || 0;
+      const newQuantity = current + delta;
+      if (newQuantity < 0) return prev;
+      if (userId !== 2) {
+        const storedQuantities = JSON.parse(localStorage.getItem("userQuantities") || "{}");
+        storedQuantities[itemId] = newQuantity;
+        localStorage.setItem("userQuantities", JSON.stringify(storedQuantities));
+      }
+      return { ...prev, [itemId]: newQuantity };
     });
   };
 
-  const handleSaveField = async (itemId, field, value) => {
-    if (field === 'item_unique_id') {
-      const duplicate = items.find(it => it.item_id !== itemId && it.item_unique_id === value);
-      if (duplicate) {
-        alert('Error: Duplicate Unique ID detected. Please use a different Unique ID.');
-        return;
-      }
-    }
-    const payload = { [field]: value };
-    try {
-      const response = await fetch(
-        `https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
-        {
-          method: 'PATCH',
-          headers: {
-            'ngrok-skip-browser-warning': '1',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Failed to update ${field}: ${errorData.message}`);
-        return;
-      }
-      const result = await response.json();
-      setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
-      if (field === 'remarks') {
-        setRemarks(prev => ({ ...prev, [itemId]: result.item.remarks }));
-      } else if (field === 'price') {
-        setPrices(prev => ({ ...prev, [itemId]: result.item.price }));
-      } else if (field === 'site_name') {
-        setSiteNames(prev => ({ ...prev, [itemId]: result.item.site_name }));
-      } else if (field === 'unit') {
-        setUnits(prev => ({ ...prev, [itemId]: result.item.unit }));
-      } else if (field === 'item_unique_id') {
-        setUniqueIds(prev => ({ ...prev, [itemId]: result.item.item_unique_id }));
-      } else if (field === 'audit_date') {
-        setAuditDates(prev => ({ ...prev, [itemId]: result.item.audit_date }));
-      }
-      toggleEditMode(
-        itemId,
-        field === 'site_name'
-          ? 'siteName'
-          : field === 'item_unique_id'
-          ? 'uniqueId'
-          : field === 'audit_date'
-          ? 'auditDate'
-          : field
-      );
-      alert(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully.`);
-    } catch (err) {
-      console.error(`Error updating ${field}:`, err);
-      alert(`An error occurred while updating ${field}.`);
-    }
+  // ------------------------------ Editable Field Handlers ------------------------------
+  const handleCategoryChange = (itemId, newCategory) => {
+    setEditableCategories(prev => ({ ...prev, [itemId]: newCategory }));
   };
 
-  const handleSaveQuantity = async (itemId) => {
-    if (userId !== 2) return;
-    const newQty = parseInt(quantityValue[itemId], 10);
-    if (isNaN(newQty)) {
-      alert('Invalid quantity value.');
-      return;
-    }
-    const payload = { newQuantity: newQty };
-    try {
-      const response = await fetch(
-        `https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
-        {
-          method: 'PATCH',
-          headers: {
-            'ngrok-skip-browser-warning': '1',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(`Failed to update quantity: ${errorData.message}`);
-        return;
-      }
-      const result = await response.json();
-      setItems(prev => prev.map(item => (item.item_id === itemId ? { ...item, quantity: result.item.quantity } : item)));
-      setQuantityValue(prev => ({ ...prev, [itemId]: result.item.quantity }));
-      toggleEditMode(itemId, 'quantity');
-      alert('Quantity updated successfully.');
-    } catch (err) {
-      console.error('Error updating quantity:', err);
-      alert('An error occurred while updating the quantity.');
-    }
+  const handleItemNameChange = (itemId, newName) => {
+    setEditableItemNames(prev => ({ ...prev, [itemId]: newName }));
   };
 
-  // ------------------------------ Confirm Updates ------------------------------
+  const handleModelChange = (itemId, newModel) => {
+    setEditableModels(prev => ({ ...prev, [itemId]: newModel }));
+  };
+
+  const handleLocationChange = (itemId, newLocation) => {
+    setEditableLocations(prev => ({ ...prev, [itemId]: newLocation }));
+  };
+
+  // ------------------------------ Action Buttons ------------------------------
+  // Enable full edit mode for admin
+  const enableFullEditMode = (itemId) => {
+    setFullEditMode(prev => ({ ...prev, [itemId]: true }));
+    setRowStatus(prev => ({ ...prev, [itemId]: "editing" }));
+  };
+
+  // For non-admin quantity update
   const handleConfirm = async (itemId) => {
-    const quantityChangeRaw = inputValue[itemId] || 0;
-    const quantityChange = parseInt(quantityChangeRaw, 10);
-    if (isNaN(quantityChange)) {
-      alert('Quantity change must be an integer.');
-      return;
+    const item = items.find(it => it.item_id === itemId);
+    if (!item) return;
+    const oldQuantity = item.quantity;
+    const newQuantity = quantityValue[itemId];
+    if (oldQuantity === newQuantity)
+      return showNotification('No change', 'info');
+  
+    const diff = newQuantity - oldQuantity;
+    const diffValue = Math.abs(diff);
+    const changeText = diff > 0 ? `${diffValue} added` : `${diffValue} removed`;
+    const notifType = diff > 0 ? 'green' : 'red';
+  
+    const payload = { newQuantity };
+    if (userId === 2) {
+      Object.assign(payload, {
+        item_unique_id: uniqueIds[itemId],
+        category: editableCategories[itemId],
+        item_name: editableItemNames[itemId],
+        model: editableModels[itemId],
+        site_name: siteNames[itemId],
+        unit: units[itemId],
+        location: editableLocations[itemId],
+        price: prices[itemId],
+        remarks: remarks[itemId],
+        audit_date: auditDates[itemId]
+      });
+    } else {
+      Object.assign(payload, {
+        site_name: siteNames[itemId],
+        remarks: remarks[itemId]
+      });
     }
-    const updatedRemarks = remarks[itemId] || '';
-    if (!updatedRemarks) {
-      alert('No remarks provided. Update skipped.');
-      return;
-    }
-    const submittedPrice = prices[itemId] ? parseFloat(prices[itemId]) : null;
-    const updatedSiteName = siteNames[itemId] || '';
-    const updatedUnit = units[itemId] !== undefined ? units[itemId] : '';
-
-    const payload = {
-      remarks: updatedRemarks,
-      quantityChange,
-      site_name: updatedSiteName,
-      unit: updatedUnit
-    };
-    if (userId === 2 && submittedPrice !== null) {
-      payload.price = submittedPrice;
-    }
-
+  
     try {
-      const response = await fetch(
-        `https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
-        {
-          method: 'PATCH',
-          headers: {
-            'ngrok-skip-browser-warning': '1',
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        }
-      );
+      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
+        method: 'PATCH',
+        headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
       if (!response.ok) {
         const errorData = await response.json();
         alert(`Failed to update item: ${errorData.message}`);
@@ -520,123 +441,124 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       }
       const result = await response.json();
       setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
-      setRemarks(prev => ({ ...prev, [itemId]: result.item.remarks }));
-      setPrices(prev => ({ ...prev, [itemId]: result.item.price }));
-      setSiteNames(prev => ({ ...prev, [itemId]: result.item.site_name }));
-      setUnits(prev => ({ ...prev, [itemId]: result.item.unit }));
-      setUniqueIds(prev => ({ ...prev, [itemId]: result.item.item_unique_id }));
-      setQuantityValue(prev => ({ ...prev, [itemId]: result.item.quantity }));
-      setInputValue(prev => ({ ...prev, [itemId]: 0 }));
-      setConfirmed(prev => {
-        const newConfirmed = { ...prev, [itemId]: true };
-        persistConfirmed(newConfirmed);
-        return newConfirmed;
-      });
-      alert(`Item ${itemId} updated successfully.`);
+      const message = `${userId === 2 ? "Admin" : "User"} updated "${result.item.item_name}" (Site: ${siteNames[itemId]}, Remarks: ${remarks[itemId]}): quantity changed from ${oldQuantity} to ${newQuantity} (${changeText})`;
+      showNotification(message, notifType);
     } catch (err) {
-      console.error('Error updating item:', err);
+      console.error(err);
+      showNotification('Error updating quantity — please try again', 'red');
+    }
+  };
+  const handleSaveFullEdit = async (itemId) => {
+    const oldItem = items.find(it => it.item_id === itemId);
+    const payload = {
+      item_unique_id: uniqueIds[itemId],
+      unit: units[itemId],
+      price: prices[itemId],
+      audit_date: auditDates[itemId] || null,
+      remarks: remarks[itemId],
+      site_name: siteNames[itemId],
+      item_name: editableItemNames[itemId],
+      category: editableCategories[itemId],
+      model: editableModels[itemId],
+      location: editableLocations[itemId],
+      newQuantity: quantityValue[itemId]
+    };
+  
+    if (payload.item_unique_id) {
+      const duplicate = items.find(it => it.item_id !== itemId && it.item_unique_id === payload.item_unique_id);
+      if (duplicate) {
+        alert('Error: Duplicate Unique ID detected. Please use a different Unique ID.');
+        return;
+      }
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
+        method: 'PATCH',
+        headers: {
+          'ngrok-skip-browser-warning': '1',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Failed to update item: ${errorData.message}`);
+        return;
+      }
+      const result = await response.json();
+      setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
+      // Update the quantity state for admin to reflect the exact new value
+      setQuantityValue(prev => ({ ...prev, [itemId]: result.item.quantity }));
+      setUniqueIds(prev => ({ ...prev, [itemId]: result.item.item_unique_id }));
+      setUnits(prev => ({ ...prev, [itemId]: result.item.unit }));
+      setPrices(prev => ({ ...prev, [itemId]: result.item.price }));
+      setAuditDates(prev => ({ ...prev, [itemId]: result.item.audit_date }));
+      setRemarks(prev => ({ ...prev, [itemId]: result.item.remarks }));
+      setSiteNames(prev => ({ ...prev, [itemId]: result.item.site_name }));
+      setEditableItemNames(prev => ({ ...prev, [itemId]: result.item.item_name }));
+      setEditableCategories(prev => ({ ...prev, [itemId]: result.item.category }));
+      setEditableModels(prev => ({ ...prev, [itemId]: result.item.model }));
+      setEditableLocations(prev => ({ ...prev, [itemId]: result.item.location }));
+      setFullEditMode(prev => ({ ...prev, [itemId]: false }));
+      setRowStatus(prev => ({ ...prev, [itemId]: "saved" }));
+  
+      const oldQuantity = oldItem.quantity;
+      const newQuantity = result.item.quantity;
+      const diff = newQuantity - oldQuantity;
+      const diffValue = Math.abs(diff);
+      const changeText = diff > 0 ? `${diffValue} added` : `${diffValue} removed`;
+      const notifType = diff > 0 ? 'green' : (diff < 0 ? 'red' : 'info');
+      const message = `Admin updated "${result.item.item_name}" (Site: ${result.item.site_name}, Remarks: ${result.item.remarks}): quantity changed from ${oldQuantity} to ${newQuantity} (${changeText})`;
+      showNotification(message, notifType);
+    } catch (err) {
+      console.error('Error updating item in full edit mode:', err);
       alert('An error occurred while updating the item.');
     }
   };
-
-  const handleConfirmAll = async () => {
-    const updates = items.map(async item => {
-      const itemId = item.item_id;
-      const quantityChangeRaw = inputValue[itemId] || 0;
-      const quantityChange = parseInt(quantityChangeRaw, 10);
-      const updatedRemarks = remarks[itemId] || '';
-      const submittedPrice = prices[item.item_id] ? parseFloat(prices[item.item_id]) : null;
-      const updatedSiteName = siteNames[itemId] || '';
-      const updatedUnit = units[itemId] !== undefined ? units[itemId] : '';
-
-      if (
-        quantityChange === 0 &&
-        !updatedRemarks &&
-        !updatedSiteName &&
-        (updatedUnit === '' || updatedUnit === item.unit) &&
-        submittedPrice === null
-      ) {
-        return null;
-      }
-
-      const payload = {
-        remarks: updatedRemarks,
-        quantityChange,
-        site_name: updatedSiteName,
-        unit: updatedUnit
-      };
-      if (userId === 2 && submittedPrice !== null) {
-        payload.price = submittedPrice;
-      }
-
-      try {
-        const response = await fetch(
-          `https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`,
-          {
-            method: 'PATCH',
-            headers: {
-              'ngrok-skip-browser-warning': '1',
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(payload)
-          }
-        );
-        if (!response.ok) {
-          const errorData = await response.json();
-          return { itemId, error: errorData.message };
-        }
-        const result = await response.json();
-        setItems(prev => prev.map(it => (it.item_id === itemId ? result.item : it)));
-        setInputValue(prev => ({ ...prev, [itemId]: 0 }));
-        setRemarks(prev => ({ ...prev, [itemId]: result.item.remarks }));
-        setPrices(prev => ({ ...prev, [itemId]: result.item.price }));
-        setSiteNames(prev => ({ ...prev, [itemId]: result.item.site_name }));
-        setUnits(prev => ({ ...prev, [itemId]: result.item.unit }));
-        setUniqueIds(prev => ({ ...prev, [itemId]: result.item.item_unique_id }));
-        setQuantityValue(prev => ({ ...prev, [itemId]: result.item.quantity }));
-        setConfirmed(prev => {
-          const newConfirmed = { ...prev, [itemId]: true };
-          persistConfirmed(newConfirmed);
-          return newConfirmed;
-        });
-        return { itemId, success: true };
-      } catch (err) {
-        return { itemId, error: err.message };
-      }
-    });
-
-    const results = await Promise.all(updates);
-    const errors = results.filter(res => res && res.error);
-    if (errors.length > 0) {
-      alert('Some items failed to update: ' + errors.map(e => `Item ${e.itemId}: ${e.error}`).join('; '));
-    } else {
-      alert('All applicable items updated successfully.');
+  
+  const cancelFullEditMode = (itemId) => {
+    setFullEditMode(prev => ({ ...prev, [itemId]: false }));
+    const item = items.find(it => it.item_id === itemId);
+    if (item) {
+      setUniqueIds(prev => ({ ...prev, [itemId]: item.item_unique_id || '' }));
+      setUnits(prev => ({ ...prev, [itemId]: item.unit || '' }));
+      setPrices(prev => ({ ...prev, [itemId]: item.price ?? 0 }));
+      setAuditDates(prev => ({ ...prev, [itemId]: item.audit_date || '' }));
+      setRemarks(prev => ({ ...prev, [itemId]: item.remarks || '' }));
+      setSiteNames(prev => ({ ...prev, [itemId]: item.site_name || '' }));
+      setEditableItemNames(prev => ({ ...prev, [itemId]: item.item_name || '' }));
+      setEditableCategories(prev => ({ ...prev, [itemId]: item.category || '' }));
+      setEditableModels(prev => ({ ...prev, [itemId]: item.model || '' }));
+      setEditableLocations(prev => ({ ...prev, [itemId]: item.location || '' }));
+      setRowStatus(prev => ({ ...prev, [itemId]: "default" }));
+      setQuantityValue(prev => ({ ...prev, [item.item_id]: item.quantity }));
     }
   };
 
-  // ------------------------------ Fix Item IDs ------------------------------
-  const handleFixItemIds = async () => {
-    try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/fix-item-ids', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert(data.message);
-        fetchItems();
-      } else {
-        alert(`Failed to fix item IDs: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error fixing item IDs:', error);
-      alert('An error occurred while fixing the item IDs.');
-    }
+  const handleEditAll = () => {
+    const newFullEditMode = {};
+    const newRowStatus = {};
+    items.forEach(item => {
+      newFullEditMode[item.item_id] = true;
+      newRowStatus[item.item_id] = "editing";
+    });
+    setFullEditMode(newFullEditMode);
+    setRowStatus(newRowStatus);
+    setEditAll(true);
+  };
+
+  const handleCancelEditAll = () => {
+    const newFullEditMode = {};
+    const newRowStatus = {};
+    items.forEach(item => {
+      newFullEditMode[item.item_id] = false;
+      newRowStatus[item.item_id] = "default";
+    });
+    setFullEditMode(newFullEditMode);
+    setRowStatus(newRowStatus);
+    setEditAll(false);
   };
 
   // ------------------------------ Highlight Search Text ------------------------------
@@ -657,23 +579,29 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const handleOpenAddDialog = () => setOpenAddDialog(true);
   const handleCloseAddDialog = () => setOpenAddDialog(false);
 
-  const handleAddItem = newItem => {
+  const handleAddItem = (newItem) => {
     setItems(prev => [...prev, newItem]);
     setRemarks(prev => ({ ...prev, [newItem.item_id]: newItem.remarks || '' }));
     setQuantityValue(prev => ({ ...prev, [newItem.item_id]: newItem.quantity }));
     setUniqueIds(prev => ({ ...prev, [newItem.item_id]: newItem.item_unique_id || '' }));
     setAuditDates(prev => ({ ...prev, [newItem.item_id]: newItem.audit_date || '' }));
-    setStarred(prev => ({ ...prev, [newItem.item_id]: newItem.starred || false }));
+    setPrices(prev => ({ ...prev, [newItem.item_id]: newItem.price }));
+    setUnits(prev => ({ ...prev, [newItem.item_id]: newItem.unit || '' }));
+    setSiteNames(prev => ({ ...prev, [newItem.item_id]: newItem.site_name || '' }));
+    setEditableItemNames(prev => ({ ...prev, [newItem.item_id]: newItem.item_name || '' }));
+    setEditableCategories(prev => ({ ...prev, [newItem.item_id]: newItem.category || '' }));
+    setEditableModels(prev => ({ ...prev, [newItem.item_id]: newItem.model || '' }));
+    setEditableLocations(prev => ({ ...prev, [newItem.item_id]: newItem.location || '' }));
   };
 
-  const handleDeleteItems = async selectedItemIds => {
+  const handleDeleteItems = async (selectedItemIds) => {
     if (!selectedItemIds || !Array.isArray(selectedItemIds) || selectedItemIds.length === 0) {
       alert('No items selected for deletion.');
       return;
     }
     const numericIds = selectedItemIds.map(id => Number(id));
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/admin-dashboard/items/archive', {
+      const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
         method: 'PATCH',
         headers: {
           'ngrok-skip-browser-warning': '1',
@@ -697,78 +625,73 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
   };
 
-  // ------------------------------ Fetch Dropdown Options ------------------------------
-  useEffect(() => {
-    fetchRemarksOptions();
-    fetchSiteOptions();
-  }, []);
-
-  const fetchRemarksOptions = async () => {
+  const handleConfirmAll = async () => {
     try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data.remarks)) {
-          setRemarksOptions(data.remarks);
-          localStorage.setItem('remarksOptions', JSON.stringify(data.remarks));
+      const updatePromises = items.map(item => {
+        const payload = { newQuantity: quantityValue[item.item_id] };
+        if (userId === 2) {
+          Object.assign(payload, {
+            item_unique_id: uniqueIds[item.item_id],
+            category: editableCategories[item.item_id],
+            item_name: editableItemNames[item.item_id],
+            model: editableModels[item.item_id],
+            site_name: siteNames[item.item_id],
+            unit: units[item.item_id],
+            location: editableLocations[item.item_id],
+            price: prices[item.item_id],
+            remarks: remarks[item.item_id],
+            audit_date: auditDates[item.item_id] || null
+          });
         }
-      } else {
-        console.error('Failed to fetch remarks options');
-      }
-    } catch (error) {
-      console.error('Error fetching remarks options:', error);
+        return fetch(`http://localhost:5000/admin-dashboard/items/${item.item_id}/update`, {
+          method: 'PATCH',
+          headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        })
+          .then(async res => {
+            if (!res.ok) {
+              const err = await res.json();
+              throw new Error(`Item ${item.item_id} failed: ${err.message}`);
+            }
+            return res.json();
+          });
+      });
+
+      const results = await Promise.all(updatePromises);
+      setItems(results.map(r => r.item));
+      showNotification("All items confirmed successfully.", "green");
+    } catch (err) {
+      console.error("Error confirming all items:", err);
+      alert(err.message || "An error occurred while confirming all items.");
     }
   };
 
-  const fetchSiteOptions = async () => {
-    try {
-      const response = await fetch('https://1a11-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data.sites)) {
-          setSiteNamesOptions(data.sites);
-          localStorage.setItem('siteNames', JSON.stringify(data.sites));
-        }
-      } else {
-        console.error('Failed to fetch site options');
-      }
-    } catch (error) {
-      console.error('Error fetching site options:', error);
-    }
+  const columnWidths = {
+    display_order: '4%',
+    item_unique_id: '5%',
+    category: '25%',
+    item_name: '15%',
+    model: '8%',
+    location: '8%',
+    site_name: '8%',
+    quantity: '7%',
+    price: '7%',
+    unit: '5%',
+    reserved_quantity: '7%',
+    remarks: '7%',
+    audit_date: '10%',
+    actions: '5%',
   };
 
   // ------------------------------ Render Component ------------------------------
   return (
     <div className="admin-dashboard-container">
-      <div className="header-container">
-        <h2 className="header-admin-dashboard">Dashboard</h2>
-        {userId === 2 && (
-          <div className="action-buttons">
-            <button className="add-item-button" onClick={handleOpenAddDialog}>+</button>
-            <button className="delete-item-button" onClick={() => setOpenDeleteDialog(true)}>-</button>
-            <button className="generate-report-button" onClick={handleOpenReportTab}>
-              <FaChevronDown /> Generate Report
-            </button>
-            <button className="manage-remarks-button" onClick={() => setOpenManageRemarks(true)}>
-              Manage Remarks
-            </button>
-            <button className="manage-sites-button" onClick={() => setOpenManageSites(true)}>
-              Manage Sites
-            </button>
-            <button className="fix-itemids-button" onClick={handleFixItemIds}>
-              Fix Item IDs
-            </button>
-          </div>
-        )}
-      </div>
+      {notification && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
 
       {openAddDialog && (
         <AddItems open={openAddDialog} onClose={handleCloseAddDialog} onAddItem={handleAddItem} />
@@ -798,7 +721,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
           onUpdate={newOptions => setSiteNamesOptions(newOptions)}
         />
       )}
-
+<div className="search-and-buttons">
       <div className="search-container">
         <input
           type="text"
@@ -807,38 +730,41 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
-      </div>
+        </div>
 
-      {/* Dropdown for Column Filter */}
-      <div className="dropdown-container" ref={dropdownRef}>
-        <button className="dropdown-toggle" onClick={toggleColumnDropdown}>
-          Filter Columns {showColumnDropdown ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
-        {showColumnDropdown && (
-          <div className="dropdown-menu">
-            {columns.map(col => {
-              if (col.adminOnly && userId !== 2) return null;
-              return (
-                <div key={col.key} className="dropdown-item">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns[col.key]}
-                      onChange={() =>
-                        setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))
-                      }
-                    />
-                    {col.label}
-                  </label>
-                </div>
-              );
-            })}
-            <button className="reset-columns-button" onClick={handleResetColumns}>
-              Reset to Default
-            </button>
+        {userId === 2 && (
+          <div className="top-buttons">
+            <button className="btn" onClick={handleOpenAddDialog}>Add Item</button>
+            <button className="btn" onClick={() => setOpenDeleteDialog(true)}>Delete Item</button>
+            <button className="btn" onClick={() => setOpenManageRemarks(true)}>Manage Remarks</button>
+            <button className="btn" onClick={() => setOpenManageSites(true)}>Manage Sites</button>
+            <button className="btn" onClick={handleOpenReportTab}>Generate Report</button>
           </div>
         )}
+      
+
+      <div className="dropdown-toggle">
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+          <option value="">Table Filter With Categories</option>
+          {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+          <option value="">Table Filter With Models</option>
+          {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
       </div>
+      </div>
+
+      <datalist id="categoryOptions">
+        {uniqueCategories.map((cat, index) => (
+          <option key={index} value={cat} />
+        ))}
+      </datalist>
+      <datalist id="locationOptions">
+        {uniqueLocations.map((loc, index) => (
+          <option key={index} value={loc} />
+        ))}
+      </datalist>
 
       {error && <p className="error-message">{error}</p>}
 
@@ -846,234 +772,282 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         <table className="admin-dashboard-table">
           <thead>
             <tr>
-              {columns.map(col => {
-                if (col.adminOnly && userId !== 2) return null;
-                if (!visibleColumns[col.key]) return null;
-                return (
+              {columns.map(col => (
+                (!col.adminOnly || userId === 2) && visibleColumns[col.key] && (
                   <th
                     key={col.key}
-                    style={{ cursor: col.sortable ? 'pointer' : 'default' }}
+                    style={{ width: columnWidths[col.key], cursor: col.sortable ? 'pointer' : 'default' }}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
-                    {col.label}{' '}
+                    {col.label}
                     {sortConfig.key === col.key &&
                       (sortConfig.direction === 'ascending' ? <FaChevronUp /> : <FaChevronDown />)}
                   </th>
-                );
-              })}
+                )
+              ))}
+              <th style={{ width: columnWidths.actions }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map(item => (
-              <tr key={item.item_id} className={starred[item.item_id] ? 'starred-row' : ''}>
-                {visibleColumns.item_id && (
-                  <td>
-                    {item.item_id}{' '}
-                    <button className="star-button" onClick={() => handleToggleStar(item.item_id)}>
-                      <FaStar className="star-icon" color={starred[item.item_id] ? '#f1c40f' : '#ccc'} />
-                    </button>
-                  </td>
-                )}
-                {visibleColumns.category && <td>{highlightSearchText(item.category, debouncedSearchQuery)}</td>}
-                {visibleColumns.item_name && <td>{highlightSearchText(item.item_name, debouncedSearchQuery)}</td>}
-                {visibleColumns.model && <td>{item.model ? highlightSearchText(item.model, debouncedSearchQuery) : ''}</td>}
-                {visibleColumns.item_unique_id && (
-                  <td>
-                    {userId === 2 ? (
-                      editMode[item.item_id]?.uniqueId ? (
-                        <>
-                          <input
-                            type="text"
-                            value={uniqueIds[item.item_id] || ''}
-                            onChange={e => handleUniqueIdChange(item.item_id, e.target.value)}
-                            placeholder="Unique ID"
-                            className="unique-id-input"
-                          />
-                          <button className="save-button" onClick={() => handleSaveField(item.item_id, 'item_unique_id', uniqueIds[item.item_id])}>
-                            Save
-                          </button>
-                        </>
+            {sortedItems.map(item => {
+              const rowClasses = [
+                item.starred ? 'starred-row' : '',
+                rowStatus[item.item_id] === "editing" ? "editing-row" : "",
+                rowStatus[item.item_id] === "saved" ? "saved-row" : ""
+              ].filter(Boolean).join(" ");
+              return (
+                <tr key={item.item_id} className={rowClasses}>
+                  {visibleColumns.display_order && (
+                    <td data-label="Display Order" style={{ width: columnWidths.display_order }}>
+                      {item.display_order}
+                      <button className="star-button" onClick={() => handleToggleStar(item.item_id)}>
+                        <FaStar color={item.starred ? '#f1c40f' : '#ccc'} />
+                      </button>
+                    </td>
+                  )}
+                  {visibleColumns.item_unique_id && (
+                    <td data-label="Item Unique ID" style={{ width: columnWidths.item_unique_id }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <input
+                          type="text"
+                          value={uniqueIds[item.item_id] || ''}
+                          onChange={e => setUniqueIds(prev => ({ ...prev, [item.item_id]: e.target.value }))}
+                        />
                       ) : (
+                        <span>{uniqueIds[item.item_id]}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.category && (
+                    <td data-label="Category" style={{ width: columnWidths.category }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <select
+                          value={editableCategories[item.item_id] || ''}
+                          onChange={e => handleCategoryChange(item.item_id, e.target.value)}
+                        >
+                          {uniqueCategories.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span>{editableCategories[item.item_id]}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.item_name && (
+                    <td data-label="Item Name" style={{ width: columnWidths.item_name }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <input
+                          type="text"
+                          value={editableItemNames[item.item_id] || ''}
+                          onChange={e => handleItemNameChange(item.item_id, e.target.value)}
+                        />
+                      ) : (
+                        highlightSearchText(item.item_name, debouncedSearchQuery)
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.model && (
+                    <td data-label="Item Model" style={{ width: columnWidths.model }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <input
+                          type="text"
+                          value={editableModels[item.item_id] || ''}
+                          onChange={e => handleModelChange(item.item_id, e.target.value)}
+                        />
+                      ) : (
+                        <span>{item.model}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.site_name && (
+                    <td data-label="Item Site Name"style={{ width: columnWidths.site_name }}>
+                     {((userId === 2 && fullEditMode[item.item_id]) || (userId !== 2 && rowStatus[item.item_id] === 'editing')) ? (
+                        <select
+                          value={siteNames[item.item_id] || ''}
+                          onChange={e => handleSiteNameChange(item.item_id, e.target.value)}
+                        >
+                          {siteNamesOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span>{siteNames[item.item_id]}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.unit && (
+                    <td data-label="Item Unit" style={{ width: columnWidths.unit }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <input
+                          type="text"
+                          value={units[item.item_id] || ''}
+                          onChange={e => handleUnitChange(item.item_id, e.target.value)}
+                          placeholder="Unit"
+                        />
+                      ) : (
+                        <span>{units[item.item_id]}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.location && (
+                    <td data-label="Item Location"style={{ width: columnWidths.location }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <select
+                          value={editableLocations[item.item_id] || ''}
+                          onChange={e => handleLocationChange(item.item_id, e.target.value)}
+                        >
+                          {uniqueLocations.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span>{editableLocations[item.item_id]}</span>
+                      )}
+                    </td>
+                  )}
+                  <td data-label="Item Quantity" style={{ width: columnWidths.quantity }}>
+                    <div className="quantity-edit">
+                      {(userId === 2 && fullEditMode[item.item_id]) || (userId !== 2 && rowStatus[item.item_id] === 'editing') ? (
                         <>
-                          <span>{uniqueIds[item.item_id] || ''}</span>
-                          <button onClick={() => toggleEditMode(item.item_id, 'uniqueId')}>Edit</button>
-                        </>
-                      )
-                    ) : (
-                      <span>{uniqueIds[item.item_id] || ''}</span>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.quantity && (
-                  <td>
-                    {userId === 2 ? (
-                      editMode[item.item_id]?.quantity ? (
-                        <>
+                          <button onClick={() => quanitty(item.item_id, -1)}>-</button>
                           <input
                             type="number"
-                            value={quantityValue[item.item_id] || 0}
-                            onChange={e => setQuantityValue(prev => ({ ...prev, [item.item_id]: e.target.value }))}
-                          />
-                          <button className="save-button" onClick={() => handleSaveQuantity(item.item_id)}>
-                            Save
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span>{quantityValue[item.item_id]}</span>
-                          <button onClick={() => toggleEditMode(item.item_id, 'quantity')}>Edit</button>
-                        </>
-                      )
-                    ) : (
-                      <span>{quantityValue[item.item_id]}</span>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.reserved_quantity && <td>{item.reserved_quantity}</td>}
-                {visibleColumns.location && <td>{item.location}</td>}
-                {visibleColumns.site_name && (
-                  <td>
-                    <select value={siteNames[item.item_id] || ''} onChange={e => handleSiteNameChange(item.item_id, e.target.value)}>
-                      {siteNamesOptions.length > 0 ? (
-                        siteNamesOptions.map(opt => (
-                          <option value={opt} key={opt}>{opt}</option>
-                        ))
-                      ) : (
-                        <option value="">No options</option>
-                      )}
-                    </select>
-                  </td>
-                )}
-                {visibleColumns.unit && (
-                  <td>
-                    {userId === 2 ? (
-                      editMode[item.item_id]?.unit ? (
-                        <>
-                          <input
-                            type="text"
-                            value={units[item.item_id] || ''}
-                            onChange={e => handleUnitChange(item.item_id, e.target.value)}
-                            placeholder="Unit"
-                            className="unit-input"
-                          />
-                          <button className="save-button" onClick={() => handleSaveField(item.item_id, 'unit', units[item.item_id])}>
-                            Save
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span>{units[item.item_id] || ''}</span>
-                          <button onClick={() => toggleEditMode(item.item_id, 'unit')}>Edit</button>
-                        </>
-                      )
-                    ) : (
-                      <span>{units[item.item_id] || ''}</span>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.price && (
-                  <td>
-                    {userId === 2 ? (
-                      editMode[item.item_id]?.price ? (
-                        <>
-                          <input
-                            type="text"
-                            value={prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                            className="stepper-input"
+                            value={quantityValue[item.item_id] || ''}
                             onChange={e => {
-                              let val = e.target.value;
-                              if (val.toUpperCase().startsWith('RM ')) {
-                                val = val.slice(3);
-                              }
-                              const newPrice = parseFloat(val) || 0;
-                              handlePriceChange(item.item_id, newPrice);
+                              const newValue = e.target.value === "" ? 0 : Number(e.target.value);
+                              setQuantityValue(prev => ({ ...prev, [item.item_id]: newValue }));
                             }}
-                            className="price-input"
                           />
-                          <button className="save-button" onClick={() => handleSaveField(item.item_id, 'price', prices[item.item_id])}>
-                            Save
-                          </button>
+                          <button onClick={() => quanitty(item.item_id, 1)}>+</button>
                         </>
                       ) : (
-                        <>
-                          <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
-                          <button onClick={() => toggleEditMode(item.item_id, 'price')}>Edit</button>
-                        </>
-                      )
-                    ) : (
-                      <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.remarks && (
-                  <td>
-                    <select value={remarks[item.item_id] || ''} onChange={e => handleRemarksChange(item.item_id, e.target.value)}>
-                      {remarksOptions.length > 0 ? (
-                        remarksOptions.map(opt => (
-                          <option value={opt} key={opt}>{opt}</option>
-                        ))
-                      ) : (
-                        <option value="">No options</option>
+                        <span>{quantityValue[item.item_id]}</span>
                       )}
-                    </select>
+                    </div>
                   </td>
-                )}
-                {userId === 2 && visibleColumns.audit_date && (
-                  <td>
-                    {editMode[item.item_id]?.auditDate ? (
-                      <>
+                  {visibleColumns.price && (
+                    <td data-label="Item Price" style={{ width: columnWidths.price }}>
+                      {userId === 2 && fullEditMode[item.item_id] ? (
+                        <input
+                          type="text"
+                          value={prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}
+                          onChange={e => {
+                            let val = e.target.value;
+                            if (val.toUpperCase().startsWith('RM ')) val = val.slice(3);
+                            handlePriceChange(item.item_id, parseFloat(val) || 0);
+                          }}
+                          className="price-input"
+                        />
+                      ) : (
+                        <span>{prices[item.item_id] !== undefined ? `RM ${prices[item.item_id]}` : ''}</span>
+                      )}
+                    </td>
+                  )}
+                  {visibleColumns.reserved_quantity && (
+                    <td data-label="Item Reserved Quantity" style={{ width: columnWidths.reserved_quantity }}>
+                      {item.reserved_quantity}
+                    </td>
+                  )}
+                  {visibleColumns.remarks && (
+                    <td data-label="Item Remarks"style={{ width: columnWidths.remarks }}>
+                   {((userId === 2 && fullEditMode[item.item_id]) || (userId !== 2 && rowStatus[item.item_id] === 'editing')) ? (
+                      <select
+                        value={remarks[item.item_id] || ''}
+                        onChange={e => handleRemarksChange(item.item_id, e.target.value)}
+                      >
+                        {remarksOptions.length > 0
+                          ? remarksOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                          : <option value="">No options</option>}
+                      </select>
+                    ) : (
+                      <span>{remarks[item.item_id]}</span>
+                    )}
+                    </td>
+                  )}
+                  {userId === 2 && visibleColumns.audit_date && (
+                    <td data-label="Item Audit Date" style={{ width: columnWidths.audit_date }}>
+                      {fullEditMode[item.item_id] ? (
                         <input
                           type="datetime-local"
                           value={formatForInput(auditDates[item.item_id])}
                           onChange={e => handleAuditDateChange(item.item_id, e.target.value)}
-                          placeholder="Key-in Date"
                         />
-                        <button className="save-button" onClick={() => handleSaveField(item.item_id, 'audit_date', auditDates[item.item_id])}>
-                          Save
-                        </button>
-                      </>
-                    ) : (
-                      <>
+                      ) : (
                         <span>{convertToMYTDisplay(auditDates[item.item_id])}</span>
-                        <button onClick={() => toggleEditMode(item.item_id, 'auditDate')}>Edit</button>
-                      </>
-                    )}
-                  </td>
-                )}
-                {visibleColumns.quantity_changed && (
-                  <td>
-                    <div className="stepper-container">
-                      <button type="button" className="stepper-btn decrement" onClick={() => handleQuantityDecrement(item.item_id)}>
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        className="stepper-input"
-                        value={inputValue[item.item_id] || 0}
-                        onChange={e => handleInputChange(item.item_id, parseInt(e.target.value) || 0)}
-                      />
-                      <button type="button" className="stepper-btn increment" onClick={() => handleQuantityIncrement(item.item_id)}>
-                        +
-                      </button>
+                      )}
+                    </td>
+                  )}
+            <td style={{ width: columnWidths.actions }}>
+                    <div className="action-buttons">
+                      {userId === 2 ? (
+                        fullEditMode[item.item_id] ? (
+                          <>
+                            <button
+                              onClick={() => handleSaveFullEdit(item.item_id)}
+                              className="action-button"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => cancelFullEditMode(item.item_id)}
+                              className="action-button"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => enableFullEditMode(item.item_id)}
+                            className="action-button"
+                          >
+                            Edit
+                          </button>
+                        )
+                      ) : rowStatus[item.item_id] === 'editing' ? (
+                        <>
+                          <button
+                            onClick={() => handleConfirm(item.item_id)}
+                            className="action-button"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() =>
+                              setRowStatus(prev => ({ ...prev, [item.item_id]: 'default' }))
+                            }
+                            className="action-button"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setRowStatus(prev => ({ ...prev, [item.item_id]: 'editing' }))
+                          }
+                          className="action-button"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                   </td>
-                )}
-                {visibleColumns.confirmation && (
-                  <td>
-                    <button className="confirmButton" onClick={() => handleConfirm(item.item_id)}>
-                      Confirm
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="bulk-actions">
-        <button className="confirm-all-button" onClick={handleConfirmAll}>
-          Confirm All Updates
-        </button>
+        <button className="bulk-btn" onClick={handleConfirmAll}>Confirm All Updates</button>
+        {editAll ? (
+          <button className="bulk-btn" onClick={handleCancelEditAll}>Cancel Edit All</button>
+        ) : (
+          <button className="bulk-btn" onClick={handleEditAll}>Edit All</button>
+        )}
       </div>
     </div>
   );
