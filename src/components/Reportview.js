@@ -109,41 +109,44 @@ function FilterForm({
       </div>
 
       {/* Report Type Selection */}
-      <div className="filters-row">
-        <div className="filter-group">
-          <label htmlFor="reportType">Filter by Items:</label>
-          <select id="reportType" value={reportType} onChange={handleReportTypeChange}>
-            <option value="all">All Items</option>
-            <option value="specific">Specific Items</option>
-          </select>
-        </div>
-      </div>
+<div className="filters-row">
+  <div className="filter-group">
+    <label htmlFor="reportType">Filter by Items:</label>
+    <select id="reportType" value={reportType} onChange={handleReportTypeChange}>
+      <option value="all">All Items</option>
+      <option value="specific">Specific Items</option>
+    </select>
+  </div>
+</div>
 
-      {/* When Specific Items is Selected, Show Item Selector */}
-      {reportType === 'specific' && (
-        <div className="filters-row">
-          <div className="filter-group">
-            <label>Select Items:</label>
-            <div className="items-list">
-              {items.map((it) => (
-                <span
-                  key={it.item_id}
-                  className={selectedItems.includes(it.item_id) ? 'item-tag selected' : 'item-tag'}
-                  onClick={() =>
-                    setSelectedItems((prev) =>
-                      prev.includes(it.item_id)
-                        ? prev.filter((id) => id !== it.item_id)
-                        : [...prev, it.item_id]
-                    )
-                  }
-                >
-                  {it.item_name}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+{/* When Specific Items is Selected, Show Item Selector */}
+{reportType === 'specific' && (
+  <div className="filters-row">
+    <div className="filter-group">
+      <label>Select Items:</label>
+      <div className="items-list">
+        {[...items]
+          .sort((a, b) => a.item_name.localeCompare(b.item_name))
+          .map((it) => (
+            <span
+              key={it.item_id}
+              className={selectedItems.includes(it.item_id) ? 'item-tag selected' : 'item-tag'}
+              onClick={() =>
+                setSelectedItems((prev) =>
+                  prev.includes(it.item_id)
+                    ? prev.filter((id) => id !== it.item_id)
+                    : [...prev, it.item_id]
+                )
+              }
+            >
+              {it.item_name}
+            </span>
+          ))}
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Additional Search Dropdowns */}
       <div className="filters-row">
@@ -373,7 +376,7 @@ function ItemLogs({
 
     try {
       const response = await fetch(
-        `http://localhost:5000/logs/${currentEdit.source}/${currentEdit.id}`,
+        `https://ac2f-211-25-11-204.ngrok-free.app/logs/${currentEdit.source}/${currentEdit.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -406,7 +409,7 @@ function ItemLogs({
     }
     if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
-      const response = await fetch(`http://localhost:5000/logs/${log.source}/${log.id}`, {
+      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/logs/${log.source}/${log.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -431,6 +434,7 @@ function ItemLogs({
         </button>
       </div>
       {!collapsed && (
+      <div className="item-logs-table-wrapper">
         <table className="item-logs-table">
           <thead>
             <tr>
@@ -576,6 +580,7 @@ function ItemLogs({
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
@@ -614,7 +619,7 @@ export default function ReportView() {
 
   const fetchRemarksOptions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/dropdown-options/remarks', {
+      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -630,7 +635,7 @@ export default function ReportView() {
 
   const fetchSiteOptions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/dropdown-options/sites', {
+      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -648,7 +653,7 @@ export default function ReportView() {
     try {
       setError(null);
       setLoadingItems(true);
-      const response = await fetch('http://localhost:5000/admin-dashboard/items', {
+      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
@@ -668,7 +673,7 @@ export default function ReportView() {
     try {
       setError(null);
       setLoadingLogs(true);
-      const response = await fetch('http://localhost:5000/logs', {
+      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/logs', {
         method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },

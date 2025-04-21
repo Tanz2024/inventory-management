@@ -27,7 +27,7 @@ app.use(express.json());
 // 2) CORS Setup
 // ---------------------------------------------------------------------
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: 'https://inventory-270225.web.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -44,7 +44,7 @@ app.use(cors(corsOptions));
 
 // 🚨 Force override headers Ngrok might mess with:
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', 'https://inventory-270225.web.app');
   res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });

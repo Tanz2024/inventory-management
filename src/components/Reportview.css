@@ -208,6 +208,17 @@ body {
 }
 
 /* Table Styling */
+.item-logs-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.item-logs-table {
+  width: 100%;
+  min-width: 900px; /* or however wide your table needs to be */
+  border-collapse: collapse;
+}
+
 .item-logs-table {
   width: 100%;
   border-collapse: collapse;
@@ -301,30 +312,6 @@ body {
   color: #555;
 }
 
-/* Responsive Adjustments for Mobile */
-@media (max-width: 768px) {
-  .report-container {
-    padding: var(--small-spacing);
-  }
-  .filters-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .filter-group {
-    min-width: 100%;
-  }
-  .item-logs-table {
-    font-size: 0.85rem;
-  }
-  .back-button,
-  .apply-button,
-  .clear-button,
-  .export-button,
-  .collapse-button {
-    font-size: 0.85rem;
-    padding: var(--small-spacing);
-  }
-}
 .recipient-export-wrapper {
   display: flex;
   align-items: center;
@@ -337,4 +324,78 @@ body {
 .export-button {
   margin-left: 10px; /* Adjust spacing as needed */
   padding: 0.5em 1em; /* Example styling */
+}
+@media (max-width: 768px) {
+  .report-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toggle-filters-button {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .filters-row {
+    display: inline;
+  }
+  .filters-row-rp {
+    flex-direction:row;
+  }
+ .filter-group label {
+  text-align: left;
+  margin-left: 0;
+  margin-top: 7px;
+ }
+  .filter-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .apply-button,
+  .clear-button,
+  .export-button {
+    width: 100%;
+  }
+
+  .Generate-Report-title,
+  .Generate-Logs-title {
+    text-align: center;
+  }
+
+  .report-form {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .recipient-export-wrapper {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .recipient-export-wrapper input {
+    width: 100%;
+  }
+
+  .export-button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .item-card h3 {
+    font-size: 1rem;
+  }
+
+  .item-logs-table th,
+  .item-logs-table td {
+    font-size: 0.75rem;
+    padding: 6px;
+  }
+
+  .item-logs-table th {
+    white-space: nowrap;
+  }
+
+  .collapse-button {
+    width: 100%;
+  }
 }
