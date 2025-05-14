@@ -12,9 +12,7 @@ const pdfParse = require('pdf-parse');  // For PDF parsing
 const { createWorker } = require('tesseract.js');  // For OCR
 const axios = require('axios');
 const moment = require('moment-timezone');
-// ---------------------------------------------------------------------
-// 1) App Initialization
-// ---------------------------------------------------------------------
+
 const app = express();
 const PORT = process.env.PORT;
 console.log("Hi");
@@ -23,11 +21,10 @@ console.log("Hi");
 app.use(cookieParser());
 app.use(express.json());
 
-// ---------------------------------------------------------------------
-// 2) CORS Setup
-// ---------------------------------------------------------------------
+
 const corsOptions = {
   origin: 'https://inventory-270225.web.app',
+  // origin: 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -42,7 +39,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// 🚨 Force override headers Ngrok might mess with:
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://inventory-270225.web.app');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -50,15 +47,10 @@ app.use((req, res, next) => {
 });
 
 
-// ---------------------------------------------------------------------
-// 3) Async Handler Wrapper
-// ---------------------------------------------------------------------
+
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-// ---------------------------------------------------------------------
-// 4) JWT Secret & Database Connection
-// ---------------------------------------------------------------------
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const pool = new Pool({
@@ -69,9 +61,6 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// ---------------------------------------------------------------------
-// 5) Authentication Middleware
-// ---------------------------------------------------------------------
 const authenticateJWT = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
@@ -92,9 +81,7 @@ const authenticateAdmin = (req, res, next) => {
   });
 };
 
-// ---------------------------------------------------------------------
-// 6) Multer Setup for File Upload
-// ---------------------------------------------------------------------
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -107,9 +94,7 @@ const upload = multer({
 });
 
 
-// ---------------------------------------------------------------------
-// 7) Authentication Routes
-// ---------------------------------------------------------------------
+
 app.get('/authenticate', (req, res) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: 'Not authenticated' });
@@ -143,11 +128,8 @@ app.post('/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-// ---------------------------------------------------------------------
-// 8) Admin Dashboard / Inventory Endpoints
-// ---------------------------------------------------------------------
 
-// Add a new remark option
+
 app.post('/dropdown-options/remarks', async (req, res) => {
   const { option } = req.body;
   if (!option) {
@@ -244,9 +226,7 @@ app.delete('/dropdown-options/remarks/:option', async (req, res) => {
 
     const deletedRemark = result.rows[0];
 
-    // Log the deletion in history:
-    // Set remark_id to null, store the deleted remark name in old_value,
-    // and record the action as "delete" in new_value.
+   
     await pool.query(
       'INSERT INTO remarks_history (action_type, remark_id, old_value, new_value) VALUES ($1, $2, $3, $4)',
       ['delete', null, deletedRemark.option, 'delete']
@@ -297,9 +277,6 @@ app.get('/dropdown-options/remarks/history', async (req, res) => {
 });
 
 
-// --- SITE ENDPOINTS ---
-
-// Add a new site option (with duplicate check)
 app.post('/dropdown-options/sites', async (req, res) => {
   const { option } = req.body;
   if (!option) return res.status(400).json({ message: 'Option is required.' });
@@ -766,18 +743,18 @@ app.patch(
       item_unique_id,
       audit_date,
       starred,
-      item_name,    // new field
-      model,       // new field
-      category,    // new field
-      location     // new field for location update
+      item_name,    
+      model,      
+      category,    
+      location     
     } = req.body;
 
-    // 1) Only admins can update the price
+    
     if (req.body.hasOwnProperty('price') && price !== undefined && req.user.role_id !== 1) {
       return res.status(400).json({ message: 'Non-admin users cannot update price.' });
     }
 
-    // 2) Fetch the current item
+ 
     const { rows: itemRows } = await pool.query('SELECT * FROM items WHERE item_id = $1', [itemId]);
     if (itemRows.length === 0) {
       return res.status(404).json({ message: 'Item not found.' });
@@ -837,7 +814,7 @@ app.patch(
       }
     }
 
-    // --- Quantity Updates (newQuantity or quantityChange) ---
+  
     const summaryDate = formatMYT(updatedAuditDate) || new Date().toLocaleString('en-MY');
 
     if (req.body.hasOwnProperty('newQuantity')) {
@@ -1119,8 +1096,7 @@ app.patch(
       }
       const currentItem = itemResult.rows[0];
 
-      // If quantityToReserve is positive, ensure there is enough stock.
-      // If negative, ensure there is enough reserved stock to reduce.
+  
       if (quantityToReserve > 0 && currentItem.quantity < quantityToReserve) {
         await pool.query('ROLLBACK');
         return res
@@ -1239,7 +1215,7 @@ app.patch(
     const status = userId === 2 ? "Approved" : "Pending";
 
     try {
-      console.log(`🔍 Processing reservation completion for ID: ${reservationId}`);
+      console.log(` Processing reservation completion for ID: ${reservationId}`);
 
       await pool.query('BEGIN');
 
@@ -1253,16 +1229,16 @@ app.patch(
       );
 
       if (resUpdate.rowCount === 0) {
-        console.error(`❌ ERROR: Reservation ID ${reservationId} not found.`);
+        console.error(` ERROR: Reservation ID ${reservationId} not found.`);
         await pool.query('ROLLBACK');
         return res.status(404).json({ message: 'Reservation not found' });
       }
 
       const updatedReservation = resUpdate.rows[0];
-      console.log(`✅ Reservation ${reservationId} marked as Completed.`);
+      console.log(` Reservation ${reservationId} marked as Completed.`);
 
       if (!updatedReservation.item_id) {
-        console.error(`❌ ERROR: Reservation ${reservationId} has no valid item_id.`);
+        console.error(` ERROR: Reservation ${reservationId} has no valid item_id.`);
         await pool.query('ROLLBACK');
         return res.status(500).json({ message: 'Invalid reservation data - missing item_id' });
       }
@@ -1276,7 +1252,7 @@ app.patch(
       );
 
       if (itemRes.rowCount === 0) {
-        console.error(`❌ ERROR: Item ID ${updatedReservation.item_id} not found.`);
+        console.error(`ERROR: Item ID ${updatedReservation.item_id} not found.`);
         await pool.query('ROLLBACK');
         return res.status(404).json({ message: 'Item not found' });
       }
@@ -1288,7 +1264,7 @@ app.patch(
       const reservationReserved = updatedReservation.reserved_quantity || 0;
       const newReservedQuantity = currentReserved - reservationReserved;
 
-      console.log(`📊 Adjusting reserved quantity: ${currentReserved} - ${reservationReserved} = ${newReservedQuantity}`);
+      console.log(` Adjusting reserved quantity: ${currentReserved} - ${reservationReserved} = ${newReservedQuantity}`);
 
       // Log transaction
       const transResult = await pool.query(
@@ -1310,7 +1286,7 @@ app.patch(
         ]
       );
 
-      console.log(`✅ Transaction logged for Item ID ${updatedReservation.item_id}`);
+      console.log(` Transaction logged for Item ID ${updatedReservation.item_id}`);
 
       // Update item's reserved quantity
       const itemUpdate = await pool.query(
@@ -1322,7 +1298,7 @@ app.patch(
       );
 
       if (itemUpdate.rowCount === 0) {
-        console.error(`❌ ERROR: Failed to update reserved quantity for Item ID ${updatedReservation.item_id}`);
+        console.error(` ERROR: Failed to update reserved quantity for Item ID ${updatedReservation.item_id}`);
         await pool.query('ROLLBACK');
         return res.status(404).json({ message: 'Failed to update item reserved quantity' });
       }
@@ -1336,10 +1312,10 @@ app.patch(
         updatedItem: itemUpdate.rows[0],
       });
 
-      console.log(`✅ Reservation ${reservationId} successfully completed.`);
+      console.log(` Reservation ${reservationId} successfully completed.`);
     } catch (error) {
       await pool.query('ROLLBACK');
-      console.error('🚨 ERROR Completing Reservation:', error);
+      console.error(' ERROR Completing Reservation:', error);
       res.status(500).json({ message: 'An error occurred while completing the reservation.' });
     }
   })
@@ -1462,9 +1438,7 @@ app.patch(
     res.status(200).json({ message: 'Display order updated successfully.' });
   })
 );
-// ---------------------------------------------------------------------
-// 10) Logs & Pending Transactions
-// ---------------------------------------------------------------------
+
 app.get(
   '/logs',
   authenticateJWT,
@@ -1530,7 +1504,7 @@ app.get(
 
         -- 3) Remarks History
         SELECT
-          rh.id AS id,  -- ✅ FIXED HERE TOO
+          rh.id AS id, 
           'remarks_history' AS source,
           NULL AS transaction_id,
           NULL AS item_id,
@@ -1694,10 +1668,10 @@ app.delete('/logs/:source/:id', authenticateJWT, asyncHandler(async (req, res) =
       query = 'DELETE FROM inventory_transactions WHERE transaction_id = $1';
       break;
     case 'site_history':
-      query = 'DELETE FROM site_history WHERE id = $1'; // ✅ fixed column name
+      query = 'DELETE FROM site_history WHERE id = $1'; 
       break;
     case 'remarks_history':
-      query = 'DELETE FROM remarks_history WHERE id = $1'; // ✅ fixed column name
+      query = 'DELETE FROM remarks_history WHERE id = $1'; 
       break;
     default:
       return res.status(400).json({ error: 'Invalid source type' });
@@ -1908,9 +1882,7 @@ app.patch(
     });
   })
 );
-// ---------------------------------------------------------------------
-// 11) File Upload & OCR Placeholder
-// ---------------------------------------------------------------------
+
 app.post(
   '/api/uploadFiles',
   upload.array('files'),
@@ -2036,9 +2008,7 @@ app.put(
   })
 );
 
-// ---------------------------------------------------------------------
-// 12) Inventory Update Endpoints (Delivery/GoodsReceived)
-// ---------------------------------------------------------------------
+
 app.post(
   '/delivery/update-inventory',
   authenticateJWT,
@@ -2146,7 +2116,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
         const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, // Ensure this is a valid API key
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 
             'Content-Type': 'application/json',
           },
           body: gptRequestBody,
@@ -2172,9 +2142,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     res.status(500).send('Error processing the files.');
   }
 });
-// ---------------------------------------------------------------------
-// 13) Start the Server
-// ---------------------------------------------------------------------
+
 app.listen(PORT, '0.0.0.0', () =>
   console.log(`Server running on port ${PORT}`)
 );

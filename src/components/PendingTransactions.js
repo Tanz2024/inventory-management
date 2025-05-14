@@ -63,7 +63,7 @@ const PendingTransactions = () => {
   // Fetch pending transactions
   const fetchPendingTransactions = async () => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/pending-transactions', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/pending-transactions', {
         method: 'GET',
         credentials: 'include',
         headers: commonHeaders,
@@ -91,7 +91,7 @@ const PendingTransactions = () => {
     const initializeData = async () => {
       try {
         // Fetch the server's current auto-approve interval
-        const intervalRes = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/get-transaction-expiry', {
+        const intervalRes = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/get-transaction-expiry', {
           credentials: 'include',
           headers: commonHeaders,
         });
@@ -186,7 +186,7 @@ const PendingTransactions = () => {
   const handleApprove = async (transactionId) => {
     if (!window.confirm('Approve this transaction?')) return;
     try {
-      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/approve-transaction/${transactionId}`, {
+      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/approve-transaction/${transactionId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: commonHeaders,
@@ -206,7 +206,7 @@ const PendingTransactions = () => {
   const handleCancel = async (transactionId) => {
     if (!window.confirm('Cancel this transaction?')) return;
     try {
-      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/cancel-transaction/${transactionId}`, {
+      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/cancel-transaction/${transactionId}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: commonHeaders,
@@ -226,7 +226,7 @@ const PendingTransactions = () => {
   const handleSetExpiryInterval = async (newInterval) => {
     const parsedSeconds = parseExpiryInterval(newInterval);
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/set-transaction-expiry', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/set-transaction-expiry', {
         method: 'POST',
         credentials: 'include',
         headers: commonHeaders,

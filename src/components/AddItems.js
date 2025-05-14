@@ -59,7 +59,7 @@ const AddItems = ({ onClose, onAddItem }) => {
   useEffect(() => {
     const fetchSiteOptions = async () => {
       try {
-        const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+        const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
@@ -79,7 +79,7 @@ const AddItems = ({ onClose, onAddItem }) => {
   useEffect(() => {
     const fetchRemarkOptions = async () => {
       try {
-        const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+        const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
@@ -98,7 +98,7 @@ const AddItems = ({ onClose, onAddItem }) => {
   // Check if the Unique ID already exists
   const checkDuplicateUniqueId = async (uniqueId) => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
         headers: {
           'ngrok-skip-browser-warning': '1',
@@ -159,7 +159,7 @@ const AddItems = ({ onClose, onAddItem }) => {
     // Only add to backend if it doesn't already exist
     if (!siteOptions.includes(newSite.trim())) {
       try {
-        const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+        const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -191,7 +191,7 @@ const AddItems = ({ onClose, onAddItem }) => {
     }
     if (!remarkOptions.includes(newRemark.trim())) {
       try {
-        const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+        const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -250,7 +250,7 @@ const AddItems = ({ onClose, onAddItem }) => {
     };
 
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': '1',

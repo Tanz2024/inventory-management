@@ -20,7 +20,7 @@ const ManageSites = ({ onClose, onUpdate }) => {
   // Fetch sites from backend
   const fetchSites = async () => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'GET',
         headers: commonHeaders,
         credentials: 'include'
@@ -57,7 +57,7 @@ const ManageSites = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'POST',
         headers: commonHeaders,
         credentials: 'include',
@@ -85,7 +85,7 @@ const ManageSites = ({ onClose, onUpdate }) => {
   const handleDeleteSiteLocal = async (siteName) => {
     if (!window.confirm(`Are you sure you want to delete "${siteName}"?`)) return;
     try {
-      const resp = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const resp = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'DELETE',
         headers: commonHeaders,
         credentials: 'include',
@@ -124,7 +124,7 @@ const ManageSites = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites/rename', {
+      const resp = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites/rename', {
         method: 'PATCH',
         headers: commonHeaders,
         credentials: 'include',

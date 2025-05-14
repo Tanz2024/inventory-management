@@ -8,7 +8,7 @@ import ManageRemarks from './ManageRemarks';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
-  // ------------------------------ Columns Config ------------------------------
+
   const columns = [
     { key: "display_order", label: "No.", sortable: true },
     { key: "item_unique_id", label: "Unique ID", sortable: true },
@@ -25,7 +25,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     { key: "audit_date", label: "Key‑in Date", sortable: true, adminOnly: true },
   ];
 
-  // Set default visible columns (hide adminOnly for non-admin users)
+ 
   const initialVisible = {};
   columns.forEach(col => {
     initialVisible[col.key] = col.adminOnly && userId !== 2 ? false : true;
@@ -33,12 +33,12 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   const [visibleColumns, setVisibleColumns] = useState(initialVisible);
   const handleResetColumns = () => setVisibleColumns(initialVisible);
 
-  // ------------------------------ State Declarations ------------------------------
+ 
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const toggleColumnDropdown = () => setShowColumnDropdown(prev => !prev);
 
-  // fullEditMode: when true, the row is in edit mode.
+
   const [fullEditMode, setFullEditMode] = useState({});
 
   const [items, setItems] = useState([]);
@@ -131,7 +131,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   
   const fetchRemarksOptions = async () => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -152,7 +152,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   
   const fetchSiteOptions = async () => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -174,7 +174,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // ------------------------------ Data Fetching & Initialization ------------------------------
   const fetchItems = async () => {
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -303,7 +303,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
   // ------------------------------ Handle Star Toggle ------------------------------
   const handleToggleStar = async (itemId) => {
     try {
-      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
+      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -429,7 +429,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
   
     try {
-      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
+      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
         headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -474,7 +474,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
   
     try {
-      const response = await fetch(`https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
+      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
         headers: {
           'ngrok-skip-browser-warning': '1',
@@ -603,7 +603,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     }
     const numericIds = selectedItemIds.map(id => Number(id));
     try {
-      const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items/archive', {
+      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items/archive', {
         method: 'PATCH',
         headers: {
           'ngrok-skip-browser-warning': '1',
@@ -645,7 +645,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
             audit_date: auditDates[item.item_id] || null
           });
         }
-        return fetch(`https://ac2f-211-25-11-204.ngrok-free.app/admin-dashboard/items/${item.item_id}/update`, {
+        return fetch(`https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items/${item.item_id}/update`, {
           method: 'PATCH',
           headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
           credentials: 'include',

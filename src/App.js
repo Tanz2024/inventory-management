@@ -65,7 +65,7 @@ function AppContent() {
       }
 
       try {
-        const response = await fetch('https://ac2f-211-25-11-204.ngrok-free.app/authenticate', {
+        const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/authenticate', {
           method: 'GET',
           credentials: 'include',
           headers: {
