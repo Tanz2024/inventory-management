@@ -376,7 +376,7 @@ function ItemLogs({
 
     try {
       const response = await fetch(
-        `https://3ed2-211-25-11-204.ngrok-free.app/logs/${currentEdit.source}/${currentEdit.id}`,
+        `https://e89d-211-25-11-204.ngrok-free.app/logs/${currentEdit.source}/${currentEdit.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -409,7 +409,7 @@ function ItemLogs({
     }
     if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
-      const response = await fetch(`https://3ed2-211-25-11-204.ngrok-free.app/logs/${log.source}/${log.id}`, {
+      const response = await fetch(`https://e89d-211-25-11-204.ngrok-free.app/logs/${log.source}/${log.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -619,7 +619,7 @@ export default function ReportView() {
 
   const fetchRemarksOptions = async () => {
     try {
-      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const response = await fetch('https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -635,7 +635,7 @@ export default function ReportView() {
 
   const fetchSiteOptions = async () => {
     try {
-      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
+      const response = await fetch('https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/sites', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -653,7 +653,7 @@ export default function ReportView() {
     try {
       setError(null);
       setLoadingItems(true);
-      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
+      const response = await fetch('https://e89d-211-25-11-204.ngrok-free.app/admin-dashboard/items', {
         method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
@@ -673,7 +673,7 @@ export default function ReportView() {
     try {
       setError(null);
       setLoadingLogs(true);
-      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/logs', {
+      const response = await fetch('https://e89d-211-25-11-204.ngrok-free.app/logs', {
         method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },

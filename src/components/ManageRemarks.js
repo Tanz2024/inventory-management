@@ -19,7 +19,7 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
   // Fetch remarks from the backend
   const refreshRemarks = async () => {
     try {
-      const response = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const response = await fetch('https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
         method: 'GET',
         credentials: 'include',
         headers: commonHeaders
@@ -56,7 +56,7 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
     const trimmed = newRemark.trim();
     if (!trimmed) return;
     try {
-      const resp = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
+      const resp = await fetch('https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/remarks', {
         method: 'POST',
         credentials: 'include',
         headers: commonHeaders,
@@ -85,7 +85,7 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
     if (!window.confirm(`Are you sure you want to delete "${remarkName}"?`)) return;
     try {
       const resp = await fetch(
-        `https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks/${encodeURIComponent(remarkName)}`,
+        `https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/remarks/${encodeURIComponent(remarkName)}`,
         {
           method: 'DELETE',
           credentials: 'include',
@@ -113,7 +113,7 @@ const ManageRemarks = ({ onClose, onUpdate }) => {
       return;
     }
     try {
-      const resp = await fetch('https://3ed2-211-25-11-204.ngrok-free.app/dropdown-options/remarks/rename', {
+      const resp = await fetch('https://e89d-211-25-11-204.ngrok-free.app/dropdown-options/remarks/rename', {
         method: 'PATCH',
         credentials: 'include',
         headers: commonHeaders,
