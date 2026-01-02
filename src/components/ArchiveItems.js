@@ -19,7 +19,7 @@ const ArchivedItems = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
 
@@ -46,7 +46,7 @@ const ArchivedItems = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
         body: JSON.stringify({ itemIds: [itemId] }),
       });
@@ -104,7 +104,7 @@ const ArchivedItems = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
         body: JSON.stringify({ itemIds: [itemId] }),
       });

@@ -1,271 +1,234 @@
-/* ==========================================================================
-   Overlay Background
-   ========================================================================== */
-   .dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    animation: fadeInOverlay 0.3s ease-in-out;
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeInOverlay 0.25s ease-in-out;
+  padding: 1.5rem;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dialog-content {
+  width: min(720px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--surface);
+  padding: 28px 28px 24px;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(20, 20, 20, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  color: var(--text-ink);
+  box-sizing: border-box;
+  animation: scaleUpDialog 0.25s ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes scaleUpDialog {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
   }
-  
-  @keyframes fadeInOverlay {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
-  
-  /* ==========================================================================
-     Dialog Container
-     ========================================================================== */
+}
+
+.dialog-content h2 {
+  font-size: 1.6rem;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-ink);
+}
+
+.dialog-content form {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-content label {
+  font-weight: 600;
+  margin: 6px 0 4px 0;
+  display: block;
+  color: var(--text-ink);
+}
+
+.dialog-content input,
+.dialog-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+  background-color: var(--surface-2);
+  color: var(--text-ink);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dialog-content input::placeholder {
+  color: var(--text-subtle);
+}
+
+.dialog-content input:focus,
+.dialog-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
+}
+
+.dialog-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg%20viewBox='0%200%204%205'%20xmlns='http://www.w3.org/2000/svg'%3E%3Cpath%20fill='%238A6A3A'%20d='M2%200%20L0%202%20h4%20L2%200zM2%205%20l2-2%20H0%20l2%202z'/%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px;
+}
+
+.dialog-select option {
+  font-size: 0.95rem;
+  color: var(--text-ink);
+}
+
+.custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-input {
+  flex: 1;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  color: var(--text-ink);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dialog-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.confirm-btn {
+  background: var(--accent);
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(138, 106, 58, 0.2);
+}
+
+.cancel-btn {
+  background: #E26D5C;
+  color: #fff;
+}
+
+.cancel-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(226, 109, 92, 0.2);
+}
+
+.dialog-content .buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  gap: 10px;
+}
+
+.dialog-content button {
+  flex: 1;
+  padding: 12px;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-weight: 600;
+}
+
+.dialog-content button.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.dialog-content button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(138, 106, 58, 0.2);
+}
+
+.dialog-content button.secondary {
+  background: #E26D5C;
+  color: #fff;
+}
+
+.dialog-content button.secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(226, 109, 92, 0.2);
+}
+
+@media only screen and (max-width: 768px) {
   .dialog-content {
-    width: clamp(300px, 90vw, 600px);
-    max-height: 90vh;
-    overflow-y: auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 5px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    color: #2a6f97;
-    box-sizing: border-box;
-    animation: scaleUpDialog 0.3s ease-in-out;
-    transform-origin: center;
+    width: 92vw;
+    padding: 22px;
+    max-height: 80vh;
   }
-  
-  @keyframes scaleUpDialog {
-    from {
-      opacity: 0;
-      transform: scale(0.9) translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-  
+
   .dialog-content h2 {
-    font-size: 1.5em;
-    margin-bottom: 20px;
-    text-align: center;
-    font-weight: bold;
+    font-size: 1.4rem;
+    margin-bottom: 12px;
   }
-  
-  /* ==========================================================================
-     Form Fields
-     ========================================================================== */
-  .dialog-content form {
-    margin-left: -10px;
-    margin-top: -10px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .dialog-content label {
-    font-weight: 600;
-    margin: 10px 0 5px 0;
-    display: block;
-    color: #000000;
-  }
-  
+
   .dialog-content input,
-  .dialog-select {
-    width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 10px;
-    border: 2px solid rgba(75, 75, 75, 0.7);
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 1rem;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #000000;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .dialog-content input::placeholder {
-    color:#000000;
-  }
-  
-  .dialog-content input:focus,
-  .dialog-select:focus {
-    border-color: #455883;
-    box-shadow: 0 0 8px #455883;
-    outline: none;
-  }
-  
-  .dialog-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg%20viewBox='0%200%204%205'%20xmlns='http://www.w3.org/2000/svg'%3E%3Cpath%20fill='%23ffffff'%20d='M2%200%20L0%202%20h4%20L2%200zM2%205%20l2-2%20H0%20l2%202z'/%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 10px;
-  }
-  
-  .dialog-select option {
-    font-size: 1.1rem;
-    color: #000000;
-  }
-  
-  /* ==========================================================================
-     Custom Input Wraps
-     ========================================================================== */
-  .custom-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  
+  .dialog-select,
   .dialog-input {
-    flex: 1;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    padding: 12px 14px;
-    font-size: 1rem;
-    color: #fff;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    padding: 9px 10px;
+    font-size: 0.92rem;
   }
-  
-  .dialog-input:focus {
-    border-color: #fff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-    outline: none;
-  }
-  
-  /* Confirm / Cancel Buttons inside input wrap */
-  .confirm-btn,
-  .cancel-btn {
-margin-top: -9px;
-    padding: 10px 14px;
-    font-size: 0.9rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .confirm-btn {
-    background: #43abc1;
-    color: #fff;
-  }
-  .confirm-btn:hover {
-    background: #2a6f97;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  .cancel-btn {
-    background: #dc3545;
-    color: #fff;
-  }
-  .cancel-btn:hover {
-    background: #c82333;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* ==========================================================================
-     Dialog Buttons
-     ========================================================================== */
-  .dialog-content .buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    gap: 10px;
-  }
-  
+
   .dialog-content button {
-    flex: 1;
-    padding: 12px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    font-weight: bold;
+    padding: 10px;
+    font-size: 0.9rem;
   }
-  
-  .dialog-content button.primary {
-    background: #43abc1;
-    color: #fff;
+}
+
+@media only screen and (max-width: 600px) {
+  .dialog-content {
+    padding: 18px;
+    max-height: 75vh;
   }
-  .dialog-content button.primary:hover {
-    background: #2a6f97;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  .dialog-content .buttons {
+    flex-direction: column;
+    gap: 8px;
   }
-  
-  .dialog-content button.secondary {
-    background: #dc3545;
-    color: #fff;
-  }
-  .dialog-content button.secondary:hover {
-    background: #c82333;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* ==========================================================================
-     Responsive Adjustments
-     ========================================================================== */
-  @media only screen and (max-width: 768px) {
-    .dialog-content {
-      width: 85vw;
-      padding: 25px;
-      max-height: 80vh;
-    }
-  
-    .dialog-content h2 {
-      font-size: 1.8rem;
-      margin-bottom: 15px;
-    }
-  
-    .dialog-content input,
-    .dialog-select,
-    .dialog-input {
-      padding: 10px 12px;
-      font-size: 0.95rem;
-    }
-  
-    .dialog-content button {
-      padding: 10px;
-      font-size: 0.95rem;
-    }
-  }
-  
-  @media only screen and (max-width: 600px) {
-    .dialog-content {
-      width: 90vw;
-      padding: 20px;
-      max-height: 75vh;
-    }
-  
-    .dialog-content h2 {
-      font-size: 1.5rem;
-      margin-bottom: 12px;
-    }
-  
-    .dialog-content input,
-    .dialog-select,
-    .dialog-input {
-      padding: 8px 10px;
-      font-size: 0.9rem;
-    }
-  
-    .dialog-content button {
-      padding: 10px;
-      font-size: 0.9rem;
-    }
-  
-    .dialog-content .buttons {
-      flex-direction: column;
-      gap: 8px;
-    }
-  }
-  
+}

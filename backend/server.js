@@ -16,7 +16,7 @@ const moment = require('moment-timezone');
 // 1) App Initialization
 // ---------------------------------------------------------------------
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 console.log("Hi");
 
 // Middleware
@@ -37,8 +37,7 @@ const corsOptions = {
     'Content-Type',
     'Accept',
     'Authorization',
-    'ngrok-skip-browser-warning'
-  ],
+    ],
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -127,13 +126,24 @@ app.post('/login', asyncHandler(async (req, res) => {
   if (!await bcrypt.compare(password, user.password_hash)) return res.status(400).json({ message: 'Invalid credentials' });
 
   const token = jwt.sign({ user_id: user.user_id, username: user.username, role_id: user.role_id }, JWT_SECRET, { expiresIn: '1h' });
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  res.cookie('token', token, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 3600000 });
+  res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: isProduction ? 'None' : 'Lax',
+    secure: isProduction,
+    maxAge: 3600000,
+  });
   res.json({ message: 'Login successful', role_id: user.role_id, user_id: user.user_id, redirect: user.role_id === 1 ? '/admin-dashboard' : '/user-dashboard' });
 }));
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('token', { httpOnly: true, sameSite: 'None', secure: true });
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: isProduction ? 'None' : 'Lax',
+    secure: isProduction,
+  });
   res.json({ message: 'Logged out successfully' });
 });
 
@@ -2172,3 +2182,4 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 app.listen(PORT, '0.0.0.0', () =>
   console.log(`Server running on port ${PORT}`)
 );
+

@@ -1,74 +1,47 @@
-
 .dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4); /* Dim background */
+  inset: 0;
+  background: rgba(20, 20, 20, 0.45);
   z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1.5rem;
 }
 
-/* Dialog Container: fluid & centered */
 .delete-dialog {
-  position: fixed;
-  top: 50%;                  /* Center vertically */
-  left: 50%;                 /* Center horizontally */
-  transform: translate(-60%, -50%); /* Perfect center */
-
-  /* Fluid width: clamp between 300px and 600px, or 80% of viewport width */
-  width: clamp(300px, 80vw, 600px);
-
-  /* Limit height to 80% of viewport, allow scrolling if exceeded */
-  max-height: 100vh;
+  position: relative;
+  width: min(700px, 92vw);
+  max-height: 85vh;
   overflow-y: auto;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000; /* On top of other elements */
+  background-color: var(--surface);
+  padding: 24px;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(20, 20, 20, 0.25);
   box-sizing: border-box;
-  border-color:#fff;
-  
-}
-.delete-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.4); /* Semi-transparent dark background */
 }
 
-
-/* Fade-in keyframes */
 @keyframes fadeInDialog {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -40%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Dialog Title */
 .delete-dialog h2 {
-  font-size: 1.5em;
-  margin-bottom: 2vh;
-  color: #455883;
-  margin-top: 0; /* Remove default h2 top margin */
+  font-size: 1.4em;
+  margin-bottom: 1rem;
+  color: var(--text-ink);
+  font-family: var(--font-display);
+  text-align: center;
 }
 
-/* Scrollable Table Container */
 .delete-items-table {
   width: 100%;
-  margin-bottom: 20px;
-  max-height: 500px; /* Fixed max height for the table area */
-  overflow-y: auto;  /* Enable vertical scrolling */
+  margin-bottom: 16px;
+  max-height: 360px;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
-/* Table Styles */
 .delete-items-table table {
   width: 100%;
   border-collapse: collapse;
@@ -78,85 +51,71 @@
 .delete-items-table td {
   padding: 10px;
   text-align: left;
-  border: 1px solid #ddd;
-  color: #333; /* Ensure text is legible */
+  border: none;
+  color: var(--text-ink);
+  font-size: 0.9rem;
 }
 
 .delete-items-table th {
-  background-color: #43abc1; /* Blue header background */
-  color: #fff;
+  background-color: var(--surface-2);
+  color: var(--text-ink);
+  font-weight: 600;
 }
 
-/* Button Container */
 .delete-dialog-buttons {
   display: flex;
-  gap: 1rem; /* Slight gap between buttons if needed */
-  margin-top: 10px;
+  gap: 0.75rem;
+  margin-top: 12px;
 }
 
-/* Base Button Styles */
 .delete-dialog button {
-  flex: 1;                 /* Make all buttons equal width */
-  padding: 10px 20px;
+  flex: 1;
+  padding: 10px 16px;
   cursor: pointer;
   border: none;
-  border-radius: 5px;
-  font-size: 1em;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  background-color: #43abc1; /* Restored original blue */
+  border-radius: 999px;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--accent);
   color: #fff;
   box-sizing: border-box;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* Subtle depth */
 }
-
 
 .delete-dialog button:hover {
-  background-color: #2a6f97; /* Darker blue on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(138, 106, 58, 0.2);
 }
 
-/* Cancel Button (Red) */
 .delete-dialog button.cancel-button {
-  background-color: #dc3545;
-}
-.delete-dialog button.cancel-button:hover {
-  background-color: #c82333; /* Darker red on hover */
-  transform: scale(1.05);
+  background-color: #E26D5C;
 }
 
-/* Checkboxes in table rows */
+.delete-dialog button.cancel-button:hover {
+  box-shadow: 0 8px 16px rgba(226, 109, 92, 0.2);
+}
+
 .delete-dialog input[type="checkbox"] {
   margin-right: 10px;
 }
 
-/* ==========================================================================
-   Mobile Optimization: Adjust styles for smaller screens (~576px and below)
-   ========================================================================== */
 @media (max-width: 576px) {
   .delete-dialog {
-    width: 90vw;      /* More fluid on very small screens */
-    padding: 16px;
+    width: 92vw;
+    padding: 18px;
   }
 
-  .delete-dialog h2 {
-    font-size: 1.2em; /* Slightly smaller heading on mobile */
-    margin-bottom: 1.5vh;
-  }
-
-  /* Reduce table's max height if needed */
   .delete-items-table {
-    max-height: 200px;
+    max-height: 240px;
   }
 
-  /* Stack buttons vertically for easier tapping */
   .delete-dialog-buttons {
     flex-direction: column;
-    gap: 0.75rem;
   }
 
   .delete-dialog button {
     width: 100%;
-    font-size: 1rem;  /* Keep text readable */
+    font-size: 0.95rem;
     padding: 12px;
   }
 }

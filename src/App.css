@@ -1,10 +1,6 @@
 :root {
-  --primary-color: #0077A1;
-  --primary-hover: #005F80;
-  --background-color: #ffffff;
-  --text-color: #333;
   --transition-duration: 0.3s;
-  --sidebar-width: 12vw;
+  --sidebar-width: 280px;
 }
 
 /* App Root */
@@ -13,25 +9,26 @@
 }
 
 /* Main App Container */
-/* .app-container {
+.app-container {
   display: flex;
   min-height: 100vh;
-  width: auto;
-  background-color: var(--background-color);
-} */
+  width: 100%;
+  background-color: transparent;
+}
 
 /* Main Section (Sidebar + Content) */
-/* .main-section {
+.main-section {
   display: flex;
   flex-grow: 1;
   padding: 0;
-} */
+}
 
 /* Content Area */
 .content-area {
   flex-grow: 1;
-  /* padding: 20px; */
+  padding: 20px;
   transition: all var(--transition-duration) ease;
+  animation: contentFade 0.4s ease;
 }
 
 /* When sidebar is visible */
@@ -41,11 +38,11 @@
 }
 .sidebar-overlay {
   position: fixed;
-  top: 65px;                   /* match your header height */
-  left: var(--sidebar-width);  /* start just after the sidebar */
+  top: 0;
+  left: 0;
   right: 0;
   bottom: 0;
-  /* background: rgba(0,0,0,0.1);  */
+  background: rgba(20, 20, 20, 0.12);
   z-index: 800;                /* below sidebar (9000) but above content */
 }
 
@@ -63,16 +60,27 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: rgba(0, 119, 161, 0.1);
+  background-color: rgba(138, 106, 58, 0.08);
   font-size: 1.5rem;
   font-weight: bold;
-  color: var(--primary-color);
+  color: var(--accent);
   animation: fadeIn 0.5s ease-in-out;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes contentFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* FORCE login view to ignore sidebar offsets */

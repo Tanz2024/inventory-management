@@ -1,64 +1,47 @@
-:root {
-  --sidebar-width: 170px;
-  --sidebar-bg-start: #2c3035;
-  --sidebar-bg-end: #282c34;
-  --sidebar-text: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-accent: #61dafb;
-  --sidebar-hover: #3a3f44;
-  --transition-duration: 0.3s;
-  --padding: 1.25rem;
-  --font-family-sans: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* 1) MAIN SIDEBAR CONTAINER */
 .side-nav {
   position: fixed;
   top: 0;
   left: 0;
   width: var(--sidebar-width);
-  margin-top: 65px;
-  height: 100vh;
-  background: linear-gradient(135deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
-  color: var(--sidebar-text);
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
+  margin-top: 72px;
+  height: calc(100vh - 72px);
+  background: var(--surface);
+  color: var(--text-ink);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow-tight);
   display: flex;
   flex-direction: column;
-  padding: var(--padding);
+  padding: 1.5rem 1.25rem;
   box-sizing: border-box;
   z-index: 9000;
-  font-family: var(--font-family-sans);
-  transform: translateX(-100%); /* Hidden by default */
-  transition: transform var(--transition-duration) ease;
+  font-family: var(--font-body);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
 }
 
-/* 2) SIDEBAR "OPEN" STATE */
 .side-nav.open {
   transform: translateX(0);
 }
 
-/* 3) TOP BAR: HAMBURGER + LOGO */
-.top-bar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 2rem; /* Space below top bar */
-  border-bottom: 1px solid var(--sidebar-border);
-  padding-bottom: 1rem;
-}
 
 .hamburger-icon {
-  background: none;
-  border: none;
-  color: var(--sidebar-text);
-  font-size: 1.5rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 1.25rem;
   cursor: pointer;
-  margin-right: 1rem;
-  outline: none; /* Custom focus style can be added if needed */
-  transition: color 0.2s ease, transform 0.2s ease;
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .hamburger-icon:hover {
-  color: var(--sidebar-accent); /* Accent on hover */
-  transform: scale(1.1); /* Slight enlargement */
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-tight);
 }
 
 .logo-container {
@@ -67,43 +50,47 @@
   justify-content: center;
 }
 
-.logo-img {
-  max-width: 80%;
-  height: auto;
-  display: block;
-}
 
-/* 4) NAVIGATION LIST */
 .side-nav ul {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* 5) NAV ITEMS */
 .side-nav li {
-  margin-bottom: 0.75rem; /* Vertical spacing between items */
+  margin: 0;
 }
 
-/* 6) NAV LINKS */
 .side-nav ul li a {
-  color: var(--sidebar-text);
+  color: var(--text-ink);
   text-decoration: none;
-  font-size: 1rem;
-  display: block;          /* Full clickable area */
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  font-size: 0.95rem;
+  display: block;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .side-nav ul li a:hover {
-  background-color: var(--sidebar-hover); /* Lighter background on hover */
+  background-color: var(--surface-2);
+  color: var(--accent);
 }
 
-/* 7) ACTIVE LINK STATE */
 .side-nav ul li a.active {
-  background-color: var(--sidebar-hover);
+  background-color: #EAF3FF;
   font-weight: 600;
-  border-left: 4px solid var(--sidebar-accent);
-  padding-left: calc(0.75rem - 4px);
+  border-left: 3px solid var(--accent);
+  padding-left: calc(0.9rem - 3px);
+  color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .side-nav {
+    width: 82vw;
+    margin-top: 64px;
+    height: calc(100vh - 64px);
+  }
 }

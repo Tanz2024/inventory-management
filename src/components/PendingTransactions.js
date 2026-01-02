@@ -105,7 +105,7 @@ const PendingTransactions = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
       if (!response.ok) {
@@ -127,7 +127,7 @@ const PendingTransactions = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
       if (!response.ok) {
@@ -151,7 +151,7 @@ const PendingTransactions = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
       if (!response.ok) {
@@ -377,3 +377,4 @@ const PendingTransactions = () => {
 };
 
 export default PendingTransactions;
+

@@ -14,8 +14,7 @@ const Reservation_status = ({ onClose, fetchItems }) => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
       });
 
       if (!response.ok) throw new Error('Failed to load reservations');
@@ -72,7 +71,7 @@ const Reservation_status = ({ onClose, fetchItems }) => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
         credentials: 'include',
         body: JSON.stringify({ by: updatedBy }),

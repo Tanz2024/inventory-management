@@ -29,7 +29,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json', // Only needed if you're sending data
 
         },
@@ -109,7 +109,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     fetch('http://localhost:5000/delivery/update-inventory', {
       method: 'POST',
       headers: {
-        'ngrok-skip-browser-warning': '1',
+        
         'Content-Type': 'application/json', // Only needed if you're sending data
 
       },
@@ -156,7 +156,7 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     doc.setFontSize(12);
     const addressX = 10;
     let currentY = 15;
-    doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', addressX, currentY);
+    doc.text('Leopard Inventory', addressX, currentY);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -174,9 +174,9 @@ function DeliveryOrderForm({ onItemsUpdate }) {
     const logoHeight = 40;
     const logoX = pageWidth - logoWidth - 10;
     const logoY = 10;
-    const logoPath = '/Squarecloud_Logo1.png'; // Adjust if needed
+    const logoPath = '/leopard-logo.jpg';
     try {
-      doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight);
+      doc.addImage(logoPath, 'JPEG', logoX, logoY, logoWidth, logoHeight);
     } catch (e) {
       console.warn('Logo image error:', e);
     }

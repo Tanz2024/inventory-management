@@ -24,8 +24,7 @@ const Reservation = ({ onLogout,userId,username }) => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
       });
 
       if (response.ok) {
@@ -96,8 +95,7 @@ const Reservation = ({ onLogout,userId,username }) => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
         credentials: 'include',
         body: JSON.stringify({ quantityToReserve: newQuantity, remarks: updatedRemarks }), // Send the quantity to reserve
       });
@@ -188,8 +186,7 @@ const Reservation = ({ onLogout,userId,username }) => {
         credentials: 'include',
         headers: {
           
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
       });
   
       if (!response.ok) {

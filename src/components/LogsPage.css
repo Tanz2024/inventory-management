@@ -173,3 +173,438 @@
     padding: 10px;
   }
 }
+
+/* Admin dashboard table look for logs */
+.logs-page-container {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.logs-table-container {
+  border: none;
+}
+
+.logs-page-container .logs-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.logs-page-container .logs-table th,
+.logs-page-container .logs-table td {
+  padding: 9px 10px;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  border: 1px solid #5fb3f0;
+  text-align: left;
+  font-size: 0.95rem;
+  color: #0f2f4a;
+}
+
+.logs-page-container .logs-table th {
+  background-color: var(--surface-2);
+  color: var(--text-ink);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.logs-page-container .logs-table tbody tr td {
+  background: #F7FBFF;
+}
+
+.logs-page-container .logs-table tbody tr:nth-child(even) td {
+  background-color: #EEF6FF;
+}
+
+.logs-page-container .logs-table tbody tr:hover td {
+  background-color: #E4F1FF;
+}
+
+/* Excel-style gridlines + compact rows + hover highlights (skyblue theme) */
+.logs-page-container .logs-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.logs-page-container .logs-table th,
+.logs-page-container .logs-table td {
+  padding: 6px 8px;
+  line-height: 1.2;
+  border: 1px solid #3f5570;
+  background-color: #f8fcff;
+  color: #0c2b45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  z-index: 0;
+}
+
+.logs-page-container .logs-table th {
+  background-color: #e7f3ff;
+  color: #0b2a43;
+  font-weight: 600;
+}
+
+.logs-page-container .logs-table tbody tr:nth-child(even) td {
+  background-color: #f1f8ff;
+}
+
+.logs-page-container .logs-table tbody tr:hover td {
+  background-color: #d9efff;
+}
+
+/* Column hover highlight */
+.logs-page-container .logs-table td:hover::after,
+.logs-page-container .logs-table th:hover::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -9999px;
+  height: 19999px;
+  width: 100%;
+  background: rgba(91, 176, 240, 0.12);
+  z-index: -1;
+}
+
+.logs-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.export-logs-btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid #3f5570;
+  background: #e7f3ff;
+  color: #0b2a43;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.export-logs-btn:hover {
+  background: #d9efff;
+  box-shadow: 0 6px 14px rgba(63, 85, 112, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Logs Page V1 Layout + Excel-like Gridlines (Skyblue Theme)
+   ========================================================================== */
+.logs-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.logs-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.logs-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1b2f4a;
+  margin: 0;
+}
+
+.logs-subtitle {
+  font-size: 0.9rem;
+  color: #60738b;
+  margin: 0;
+}
+
+.logs-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Filter strip */
+.logs-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  align-items: start;
+}
+
+.logs-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.logs-filter-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6d7f96;
+}
+
+.logs-filter-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.logs-filter-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.logs-filter-separator {
+  color: #7c8ea5;
+  font-size: 0.75rem;
+}
+
+.logs-filter-range,
+.logs-filter-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.logs-filters select,
+.logs-filters input[type="search"],
+.logs-filters input[type="date"] {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #c7d6ee;
+  background: #ffffff;
+  color: #1b2f4a;
+  padding: 0 0.75rem;
+  font-size: 0.9rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.logs-filter-inline .filter-pill {
+  line-height: 1.1;
+}
+
+.logs-filter-custom input[type="date"] {
+  flex: 1 1 140px;
+}
+
+.filter-pill {
+  border: 1px solid #b9ccea;
+  background: #f3f7ff;
+  color: #284566;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.filter-pill.active {
+  background: #2f6fed;
+  border-color: #2f6fed;
+  color: #fff;
+}
+
+/* Soft card around table */
+.logs-table-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Table gridlines + compact rows */
+.logs-table-card .logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #fafdff;
+  border: 1px solid #4c6686;
+}
+
+.logs-table-card .logs-table th,
+.logs-table-card .logs-table td {
+  border: 1px solid #4c6686;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  color: #1b2f4a;
+  vertical-align: middle;
+}
+
+.logs-table-card .logs-table th {
+  background: #d7e6fb;
+  color: #1b2f4a;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.logs-table-card .logs-table tbody tr:nth-child(even) td {
+  background: #eef5ff;
+}
+
+.logs-table-card .logs-table tbody tr:hover td {
+  background: #e3efff;
+}
+
+/* Column hover highlight */
+.logs-table-card .logs-table tbody tr:hover td {
+  position: relative;
+}
+
+.logs-table-card .logs-table tbody tr:hover td::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 9999px rgba(47, 111, 237, 0.06);
+  pointer-events: none;
+}
+
+.logs-item-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logs-item-name {
+  font-weight: 600;
+  color: #1b2f4a;
+}
+
+.logs-subtext {
+  font-size: 0.78rem;
+  color: #6b7d92;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.pill-add {
+  background: #e5f4e8;
+  color: #2e7d32;
+  border-color: #b9e0c2;
+}
+
+.pill-remove {
+  background: #fdeaea;
+  color: #b23b3b;
+  border-color: #f2b4b4;
+}
+
+.pill-reserve {
+  background: #fff6dd;
+  color: #8a6a12;
+  border-color: #f2d79c;
+}
+
+.pill-release {
+  background: #e7f1ff;
+  color: #2f6fed;
+  border-color: #b7cff5;
+}
+
+.pill-edit {
+  background: #eef1f7;
+  color: #4a607a;
+  border-color: #ccd6e4;
+}
+
+.pill-approved {
+  background: #e5f4e8;
+  color: #2e7d32;
+  border-color: #b9e0c2;
+}
+
+.pill-pending {
+  background: #fff3d6;
+  color: #a06600;
+  border-color: #f0cd8d;
+}
+
+.pill-rejected {
+  background: #fdeaea;
+  color: #b23b3b;
+  border-color: #f2b4b4;
+}
+
+.pill-muted {
+  background: #eef1f7;
+  color: #5b6f88;
+  border-color: #d4dbe6;
+}
+
+.qty-change {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.qty-positive {
+  color: #2e7d32;
+}
+
+.qty-negative {
+  color: #b23b3b;
+}
+
+.logs-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #5f718a;
+  font-size: 0.95rem;
+}
+
+/* Skeleton rows */
+.logs-skeleton-row td {
+  padding: 8px 10px;
+}
+
+.logs-skeleton {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e6eef9 0%, #f5f9ff 50%, #e6eef9 100%);
+  background-size: 200% 100%;
+  animation: logsShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes logsShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (max-width: 900px) {
+  .logs-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logs-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

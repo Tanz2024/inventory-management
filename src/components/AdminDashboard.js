@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaChevronDown, FaChevronUp, FaStar } from 'react-icons/fa';
+import {
+  CaretDown,
+  CaretUp,
+  Star,
+  Columns,
+  Buildings,
+  NotePencil,
+  PlusCircle,
+  Trash,
+  FileText,
+} from '@phosphor-icons/react';
 import AddItems from './AddItems';
 import DeleteItems from './DeleteItems';
 import ManageSite from './ManageSites';
@@ -26,8 +36,11 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   // Set default visible columns (hide adminOnly for non-admin users)
   const initialVisible = {};
+  const defaultHidden = new Set(['model', 'location', 'audit_date']);
   columns.forEach(col => {
-    initialVisible[col.key] = col.adminOnly && userId !== 2 ? false : true;
+    const hideForRole = col.adminOnly && userId !== 2;
+    const hideByDefault = defaultHidden.has(col.key);
+    initialVisible[col.key] = hideForRole ? false : !hideByDefault;
   });
   const [visibleColumns, setVisibleColumns] = useState(initialVisible);
   const handleResetColumns = () => setVisibleColumns(initialVisible);
@@ -97,6 +110,17 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       return () => document.removeEventListener("touchstart", handleTouchOutside);
     }
   }, [fullEditMode]);
+
+  useEffect(() => {
+    if (!showColumnDropdown) return;
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowColumnDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColumnDropdown]);
 
   // ------------------------------ Helper Functions ------------------------------
   const convertToMYTDisplay = (dateString) => {
@@ -177,7 +201,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json'
         }
       });
@@ -276,6 +300,11 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   const sortedItems = [...filteredItems].sort((a, b) => a.display_order - b.display_order);
 
+  const totalItems = items.length;
+  const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const reservedTotal = items.reduce((sum, item) => sum + Number(item.reserved_quantity || 0), 0);
+  const lowStockCount = items.filter(item => Number(item.quantity || 0) <= 5).length;
+
   const [sortConfig, setSortConfig] = useState({ key: '', direction: '' });
   const handleSort = (key) => {
     let direction = 'ascending';
@@ -355,6 +384,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 
   // ------------------------------ Unified Quantity Management ------------------------------
   const quanitty = (itemId, delta) => {
+    if (userId === 2 && !fullEditMode[itemId]) {
+      setFullEditMode(prev => ({ ...prev, [itemId]: true }));
+      setRowStatus(prev => ({ ...prev, [itemId]: "editing" }));
+    }
     setQuantityValue(prev => {
       const current = parseInt(prev[itemId]) || 0;
       const newQuantity = current + delta;
@@ -430,7 +463,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
     try {
       const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
-        headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
+        headers: {  'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload)
       });
@@ -476,7 +509,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       const response = await fetch(`http://localhost:5000/admin-dashboard/items/${itemId}/update`, {
         method: 'PATCH',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json'
         },
         credentials: 'include',
@@ -604,7 +637,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
       const response = await fetch('http://localhost:5000/admin-dashboard/items/archive', {
         method: 'PATCH',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json'
         },
         credentials: 'include',
@@ -645,7 +678,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         }
         return fetch(`http://localhost:5000/admin-dashboard/items/${item.item_id}/update`, {
           method: 'PATCH',
-          headers: { 'ngrok-skip-browser-warning': '1', 'Content-Type': 'application/json' },
+          headers: {  'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(payload)
         })
@@ -722,34 +755,111 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
         />
       )}
 
-      <div className="search-container">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search items..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-        {userId === 2 && (
-          <div className="top-buttons">
-            <button className="btn" onClick={handleOpenAddDialog}>Add Item</button>
-            <button className="btn" onClick={() => setOpenDeleteDialog(true)}>Delete Item</button>
-            <button className="btn" onClick={handleOpenReportTab}>Generate Report</button>
-            <button className="btn" onClick={() => setOpenManageRemarks(true)}>Manage Remarks</button>
-            <button className="btn" onClick={() => setOpenManageSites(true)}>Manage Sites</button>
-          </div>
-        )}
+      <div className="summary-cards">
+        <div className="summary-card">
+          <span className="card-label">Total Items</span>
+          <strong>{totalItems}</strong>
+        </div>
+        <div className="summary-card">
+          <span className="card-label">Total Quantity</span>
+          <strong>{totalQuantity}</strong>
+        </div>
+        <div className="summary-card">
+          <span className="card-label">Reserved</span>
+          <strong>{reservedTotal}</strong>
+        </div>
+        <div className="summary-card highlight">
+          <span className="card-label">Low Stock</span>
+          <strong>{lowStockCount}</strong>
+        </div>
       </div>
 
-      <div className="dropdown-toggle">
-        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-          <option value="">Filter With Categories</option>
-          {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
-          <option value="">Filter With Models</option>
-          {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+      <div className="dashboard-toolbar">
+        <div className="toolbar-row">
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by name, category, or unique ID..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-row">
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+              <option value="">All Categories</option>
+              {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={modelFilter} onChange={e => setModelFilter(e.target.value)}>
+              <option value="">All Models</option>
+              {uniqueModels.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div className="button-group settings-group">
+            <div className="column-toggle" ref={dropdownRef}>
+              <button className="btn secondary ghost" onClick={toggleColumnDropdown}>
+                <Columns size={18} weight="bold" className="btn-icon" />
+                Columns
+              </button>
+              {showColumnDropdown && (
+                <div className="column-dropdown">
+                  <div className="column-actions">
+                    <button className="btn secondary ghost" onClick={handleResetColumns}>
+                      Reset
+                    </button>
+                  </div>
+                  {columns.map(col => (
+                    (!col.adminOnly || userId === 2) && (
+                      <label key={col.key} className="column-item">
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns[col.key]}
+                          onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
+                        />
+                        <span>{col.label}</span>
+                      </label>
+                    )
+                  ))}
+                </div>
+              )}
+            </div>
+            {userId === 2 && (
+              <div className="inline-group">
+                <button className="btn secondary ghost" onClick={() => setOpenManageSites(true)}>
+                  <Buildings size={18} weight="bold" className="btn-icon" />
+                  Manage Sites
+                </button>
+                <button className="btn secondary ghost" onClick={() => setOpenManageRemarks(true)}>
+                  <NotePencil size={18} weight="bold" className="btn-icon" />
+                  Manage Remarks
+                </button>
+              </div>
+            )}
+          </div>
+
+          {userId === 2 && (
+            <div className="action-groups">
+              <div className="button-group primary-group">
+                <button className="btn primary" onClick={handleOpenAddDialog}>
+                  <PlusCircle size={18} weight="bold" className="btn-icon" />
+                  Add Item
+                </button>
+                <button className="btn danger" onClick={() => setOpenDeleteDialog(true)}>
+                  <Trash size={18} weight="bold" className="btn-icon" />
+                  Delete Item
+                </button>
+              </div>
+              <div className="button-group report-group">
+                <button className="btn primary" onClick={handleOpenReportTab}>
+                  <FileText size={18} weight="bold" className="btn-icon" />
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <datalist id="categoryOptions">
@@ -778,11 +888,11 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                   >
                     {col.label}
                     {sortConfig.key === col.key &&
-                      (sortConfig.direction === 'ascending' ? <FaChevronUp /> : <FaChevronDown />)}
+                      (sortConfig.direction === 'ascending' ? <CaretUp size={16} /> : <CaretDown size={16} />)}
                   </th>
                 )
               ))}
-              <th style={{ width: columnWidths.actions }}>Actions</th>
+              <th style={{ width: columnWidths.actions }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -798,7 +908,12 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                     <td style={{ width: columnWidths.display_order }}>
                       {item.display_order}
                       <button className="star-button" onClick={() => handleToggleStar(item.item_id)}>
-                        <FaStar color={item.starred ? '#f1c40f' : '#ccc'} />
+                        <Star
+                          className="star-icon"
+                          size={18}
+                          weight={item.starred ? 'fill' : 'regular'}
+                          color={item.starred ? '#2F6FED' : '#9CB6D9'}
+                        />
                       </button>
                     </td>
                   )}
@@ -905,7 +1020,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                   )}
                   <td style={{ width: columnWidths.quantity }}>
                     <div className="quantity-edit">
-                      <button onClick={() => quanitty(item.item_id, -1)}>-</button>
+                      <button type="button" onClick={() => quanitty(item.item_id, -1)}>-</button>
                       <input
                         type="number"
                         value={quantityValue[item.item_id] || ''}
@@ -914,7 +1029,7 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                           setQuantityValue(prev => ({ ...prev, [item.item_id]: newValue }));
                         }}
                       />
-                      <button onClick={() => quanitty(item.item_id, 1)}>+</button>
+                      <button type="button" onClick={() => quanitty(item.item_id, 1)}>+</button>
                     </div>
                   </td>
                   {visibleColumns.price && (
@@ -978,7 +1093,10 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
                         </div>
                       ) : (
                         <div className="action-buttons">
-                          <button onClick={() => enableFullEditMode(item.item_id)} className="action-button">Edit</button>
+                          <button onClick={() => enableFullEditMode(item.item_id)} className="action-button">
+                            <NotePencil size={16} weight="bold" className="btn-icon" />
+                            Edit
+                          </button>
                         </div>
                       )
                     ) : (
@@ -1007,3 +1125,4 @@ const AdminDashboard = ({ onLogout, userId, username, dashboardLocation }) => {
 };
 
 export default AdminDashboard;
+

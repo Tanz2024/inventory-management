@@ -1,263 +1,241 @@
-/* ============================
-   1. Base Header & Desktop
-   ============================ */
-   .header {
-    display: flex;
-    position: fixed;
-    align-items: center;
-    background-color: #282c34;
-    color: #fff;
-    padding: 1rem 2rem;
-    position: relative;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1000;
-    height: 8.5%;
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&display=swap');
+
+.header {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface);
+  color: var(--text-ink);
+  padding: 0.75rem 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  height: 72px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-tight);
+}
+
+.header-desktop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.left-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toggle-sidebar-btn,
+.hamburger-menu-mobile {
+  background: transparent;
+  border: none;
+  color: var(--text-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.4rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.toggle-sidebar-btn:hover,
+.hamburger-menu-mobile:hover {
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-tight);
+}
+
+.center-title {
+  flex: 1;
+  text-align: center;
+}
+
+.company-name {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  background: linear-gradient(90deg, #5bc0ff 0%, #2f6fed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.notification-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 76px;
+  right: 2rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 360px;
+  max-height: 420px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+  color: var(--text-ink);
+  z-index: 9999;
+}
+
+.notification-dropdown h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  text-align: left;
+  font-family: var(--font-display);
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  background: var(--surface-2);
+}
+
+.notification-title {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.notification-details {
+  display: flex;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.notification-remarks {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.notification-date {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.user-info-desktop {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.logout-btn-desktop,
+.logout-btn-mobile {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.logout-btn-desktop:hover,
+.logout-btn-mobile:hover {
+  background-color: var(--accent);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.5rem 1rem;
+    height: 64px;
   }
 
-  
-  /* Desktop container */
-  .header-desktop {
+  .header-mobile {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Spreads out left, center, right */
+    justify-content: space-between;
     width: 100%;
   }
-  
-  /* Left side: hamburger + logo */
-  .left-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .toggle-sidebar-btn {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 1.5rem;
-    cursor: pointer;
-  }
-  .logo {
+
+  .logo-mobile {
     display: flex;
     align-items: center;
   }
-  .logo-img {
-    width: 180px;
-    height: auto;
-    filter: brightness(1.4);
+
+  .logo-img-mobile {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
   }
-  
-  /* Center: company name */
-  .center-title {
-    flex: 1;               /* Takes remaining space, ensuring center alignment */
+
+  .company-name-container-mobile {
+    flex: 1;
     text-align: center;
   }
-  .company-name {
-    font-size: 1.75rem;
-    font-weight: bold;
-    margin: 0;
-  }
-  
-  /* Right side: notifications, user info, logout */
-  .right-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  /* Notification icon & dropdown */
-  .notification-icon {
-    font-size: 1.5rem;
-    cursor: pointer;
-  }
-  
-  /* Notification dropdown (desktop & above) */
-  .notification-dropdown {
-    position: absolute;
-    top: 60px;
-    right: 2rem;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 350px;
-    max-height: 400px;
-    overflow-y: auto;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    color: #000;
-    z-index: 9999; /* Above most elements */
-  }
-  .notification-dropdown h4 {
-    margin: 0 0 10px 0;
-    font-size: 1.2rem;
-    text-align: center;
-    position: relative;
-  }
-  .notification-dropdown h4::after {
-    content: "";
-    display: block;
-    width: 80%;
-    height: 2px;
-    background-color: #ccc;
-    margin: 10px auto 0 auto;
-  }
-  .notification-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .notification-item {
-    border-bottom: 1px solid #ccc;
-    padding: 10px 5px;
-    font-size: 0.9rem;
-  }
-  .notification-item:last-child {
-    border-bottom: none;
-  }
-  .notification-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  .notification-details {
-    display: flex;
-    font-size: 0.85rem;
-    color: #555;
-    gap: 10px;
-  }
-  .notification-remarks {
-    margin-top: 5px;
-    font-size: 0.85rem;
-    color: #444;
-  }
-  .notification-date {
-    margin-top: 1px;
-    font-size: 0.75rem;
-    color: #888;
-  }
-  
-  /* User info on desktop */
-  .user-info-desktop {
-    font-size: 1rem;
-    white-space: nowrap;
+
+.company-name-mobile {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  background: linear-gradient(90deg, #5bc0ff 0%, #2f6fed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+  .header-actions-mobile {
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
-  
-  /* Logout button (desktop) */
-  .logout-btn-desktop {
-    background: transparent;
-    color: #fff;
-    border: 1px solid #fff;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+
+  .user-info-mobile {
+    font-size: 0.8rem;
+    color: var(--text-muted);
   }
-  .logout-btn-desktop:hover {
-    background-color: #fff;
-    color: #282c34;
-    border-color: #282c34;
+
+  .notification-dropdown {
+    top: 60px;
+    right: 1rem;
+    width: 90%;
+    max-width: 320px;
+    max-height: 60vh;
   }
-  
-  /* ============================
-     2. Mobile & Small Screens
-     ============================ */
-  @media (max-width: 768px) {
-    .header {
-      padding: 0.5rem 1rem;
-    }
-  
-    /* Mobile header container */
-    .header-mobile {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-    }
-  
-    /* Hamburger Menu (mobile) */
-    .hamburger-menu-mobile {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-  
-    /* Mobile Logo and Company Name */
-    .logo-mobile {
-      display: flex;
-      align-items: center;
-    }
-    .logo-img-mobile {
-      max-width: 120px;
-      height: auto;
-    }
-    .company-name-container-mobile {
-      flex: 1;
-      text-align: center;
-    }
-    .company-name-mobile {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin: 0;
-    }
-  
-    /* Mobile header actions */
-    .header-actions-mobile {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .user-info-mobile {
-      font-size: 0.9rem;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-    }
-    .logout-btn-mobile {
-      background: transparent;
-      color: #fff;
-      border: 1px solid #fff;
-      padding: 0.3rem 0.6rem;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 0.8rem;
-    }
-    .logout-btn-mobile:hover {
-      background-color: #fff;
-      color: #282c34;
-    }
-  
-    /* Adjust notification dropdown for mobile */
-    .notification-dropdown {
-      top: 50px;
-      right: 1rem;
-      width: 90%;
-      max-width: 300px;
-      font-size: 0.9rem;
-      max-height: 60vh;  /* Limit height so it doesn't fill screen */
-      overflow-y: auto;
-    }
-    .notification-dropdown h4 {
-      font-size: 1rem;
-    }
-    .notification-item {
-      font-size: 0.8rem;
-      padding: 8px 4px;
-    }
-  
-    /* Notification overlay to close on outside click */
-    .notification-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.3); /* Slightly dark overlay */
-      z-index: 9998;                 /* Below dropdown but above other content */
-    }
-  }
-  
+}

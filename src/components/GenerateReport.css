@@ -1,127 +1,151 @@
-/* GenerateReport.css */
 .generate-report-container {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    max-width: 95%;
-    margin: 20px auto;
-    font-family: Arial, sans-serif;
-  }
-  
-  .report-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
-  
-  .report-header h2 {
-    margin: 0;
-    font-size: 1.8em;
-  }
-  
-  .header-actions button {
-    margin-left: 10px;
-    padding: 5px 10px;
-    font-size: 0.9em;
-    cursor: pointer;
-  }
-  
-  .report-meta {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    margin: 10px 0;
-  }
-  
-  .report-meta input,
-  .report-meta select {
-    padding: 5px;
-    width: 200px;
-    margin-right: 10px;
-  }
-  
-  .report-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 15px;
-  }
-  
-  .report-table th,
-  .report-table td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-  }
-  
-  .report-table th {
-    background: #007BFF; /* Blue tone for header */
-    color: white;
-    cursor: pointer;
-  }
-  
-  .bulk-actions {
-    margin: 10px 0;
-  }
-  
-  .bulk-actions button {
-    padding: 5px 10px;
-    cursor: pointer;
-  }
-  
-  .export-actions {
-    margin-top: 15px;
-    text-align: right;
-  }
-  
-  .export-actions button {
-    margin-left: 10px;
-    padding: 5px 10px;
-    cursor: pointer;
-  }
-  
-  /* Additional styles for dynamic preview */
-  #report-container {
-    margin: 20px;
-  }
-  
-  #report-controls {
-    margin-bottom: 10px;
-  }
-  
-  #report-controls input,
-  #report-controls select {
-    padding: 5px;
-    font-size: 14px;
-    margin-right: 5px;
-  }
-  
-  #report-controls button {
-    padding: 5px 10px;
-    font-size: 14px;
-    margin-right: 5px;
-  }
-  
-  #reportTable {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-  
-  #reportTable th,
-  #reportTable td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
-  }
-  
-  #reportTable th {
-    background-color: #007BFF;
-    color: white;
-    cursor: pointer;
-  }
-  
-  .highlight {
-    background-color: #cce5ff;
-  }
-  
+  padding: 20px;
+  background: transparent;
+  max-width: 95%;
+  margin: 20px auto;
+  font-family: var(--font-body);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 1rem;
+}
+
+.report-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-family: var(--font-display);
+  color: var(--text-ink);
+}
+
+.header-actions button {
+  margin-left: 10px;
+  padding: 8px 14px;
+  font-size: 0.9em;
+  cursor: pointer;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.report-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 10px 0 20px;
+  gap: 0.75rem;
+}
+
+.report-meta input,
+.report-meta select {
+  padding: 8px 12px;
+  width: 200px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.report-table th,
+.report-table td {
+  border: none;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.report-table th {
+  background: var(--surface-2);
+  color: var(--text-ink);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.bulk-actions {
+  margin: 10px 0;
+}
+
+.bulk-actions button {
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.export-actions {
+  margin-top: 15px;
+  text-align: right;
+}
+
+.export-actions button {
+  margin-left: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+#report-container {
+  margin: 20px 0;
+}
+
+#report-controls {
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+#report-controls input,
+#report-controls select {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+#report-controls button {
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+#reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+#reportTable th,
+#reportTable td {
+  border: none;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+#reportTable th {
+  background-color: var(--surface-2);
+  color: var(--text-ink);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.highlight {
+  background-color: rgba(199, 163, 90, 0.18);
+}

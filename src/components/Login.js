@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css';
-import { FaUser, FaLock } from 'react-icons/fa';
+import { User, Lock, Eye, EyeSlash } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 
 const Login = ({ onLogin }) => {
@@ -9,6 +9,7 @@ const Login = ({ onLogin }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // On mount, load saved credentials if any
   useEffect(() => {
@@ -57,19 +58,20 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      <div className="login-left">
-        <div className="overlay">
-          <h1>SquareCloud Inventory System</h1>
-        </div>
+      <div
+        className="login-left"
+        style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/login_image.png)` }}
+      >
+        <div className="overlay" />
       </div>
       <div className="login-right">
-        <h2>Welcome to SquareCloud Inventory System</h2>
-        <p>Access your inventory dashboard — manage stock, track usage, and optimize operations.</p>
+        <h2>Welcome back</h2>
+        <p>Sign in to Leopard Inventory to manage stock, track usage, and optimize operations.</p>
         {error && <p className="error-message">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <FaUser className="icon" />
+            <User className="icon" size={20} weight="regular" />
             <input
               name="username"
               type="text"
@@ -80,15 +82,23 @@ const Login = ({ onLogin }) => {
             />
           </div>
           <div className="form-group">
-            <FaLock className="icon" />
+            <Lock className="icon" size={20} weight="regular" />
             <input
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Password"
               value={credentials.password}
               onChange={handleChange}
               required
             />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(prev => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+            </button>
           </div>
           <div className="remember">
             <label>
@@ -100,7 +110,7 @@ const Login = ({ onLogin }) => {
             </label>
           </div>
           <button className="login-button" type="submit" disabled={loading}>
-            {loading ? 'Logging In…' : 'Login'}
+            {loading ? 'Logging In...…' : 'Login'}
           </button>
         </form>
       </div>

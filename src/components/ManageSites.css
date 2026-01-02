@@ -1,49 +1,40 @@
-/* Overlay background */
 .MS-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  background: rgba(20, 20, 20, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1.5rem;
 }
 
-/* Popup dialog container */
 .MS-popup-dialog {
-  background: #ffffff;
-  width: 500px;
-  max-height: 90vh;
-  border-radius: 8px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  padding: 20px;
+  background: var(--surface);
+  width: min(620px, 92vw);
+  max-height: 85vh;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(20, 20, 20, 0.25);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
-  animation: fadeIn 0.15s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Popup title */
 .MS-dialog-title {
   margin-top: 0;
-  margin-bottom: 16px;
-  color: #2a6f97;
+  margin-bottom: 12px;
+  color: var(--text-ink);
   font-size: 1.5rem;
   text-align: center;
+  font-family: var(--font-display);
 }
-.MS-total-label {
-  align-items: center;
-}
-/* Dialog Content */
+
 .MS-dialog-content {
   flex: 1;
   display: flex;
@@ -52,65 +43,52 @@
   overflow: hidden;
 }
 
-/* Search Input */
-.MS-search-input {
+.MS-search-input,
+.MS-add-site-container input[type="text"],
+.MS-rename-input {
   padding: 8px 12px;
-  color: black;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  margin-bottom: 12px;
-  margin-left: 0;
+  color: var(--text-ink);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }
 
-/* Add Site Section */
 .MS-add-site-container {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-.MS-new-site-input {
-  margin-left: 0;
-}
 
-.MS-add-site-container input[type="text"] {
-  flex: 1;
-  color: black;
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  margin-right: 12px;
-}
-
-/* Add Site Button */
 .MS-btn-primary {
   padding: 8px 16px;
-  background-color: #43abc1;
-  color: white;
+  background-color: var(--accent);
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .MS-btn-primary:hover {
-  background-color: #2a6f97;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(138, 106, 58, 0.2);
 }
 
 .MS-btn-secondary {
   padding: 8px 16px;
-  background-color: #db5757;
-  color: white;
+  background-color: #E26D5C;
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .MS-btn-secondary:hover {
-  background-color: #b84a4a;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(226, 109, 92, 0.2);
 }
 
-/* Site Row Layout */
 .MS-sites-list {
   flex: 1;
   overflow-y: auto;
@@ -120,26 +98,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f7f9fc;
+  background-color: var(--surface-2);
   padding: 8px 10px;
-  border-radius: 4px;
+  border-radius: 10px;
   margin-bottom: 6px;
 }
 
-.MS-row-content {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
 .MS-item-name {
-  color: black;
+  color: var(--text-ink);
   flex: 1;
   font-size: 0.95rem;
   word-break: break-word;
 }
 
-/* Actions Buttons */
 .MS-actions {
   display: flex;
   gap: 6px;
@@ -152,42 +123,27 @@
   align-items: center;
 }
 
-.MS-rename-input {
-  flex: 1;
-  color: black;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.MS-row-content button {
-  margin-top: 0;
-}
-
-/* Dialog Close Button */
 .MS-dialog-actions {
   display: flex;
   justify-content: center;
   margin-top: 12px;
 }
 
-/* No Results Found */
 .MS-no-results {
   text-align: center;
-  color: #888;
+  color: var(--text-subtle);
 }
 
-/* Scrollbar */
 .MS-sites-list::-webkit-scrollbar {
   width: 6px;
 }
 
 .MS-sites-list::-webkit-scrollbar-thumb {
-  background-color: #c1c1c1;
+  background-color: rgba(138, 106, 58, 0.4);
   border-radius: 10px;
 }
 
 .MS-sites-list::-webkit-scrollbar-track {
-  background-color: #f0f0f0;
+  background-color: rgba(138, 106, 58, 0.1);
   border-radius: 10px;
 }

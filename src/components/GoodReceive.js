@@ -65,8 +65,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        }
+          }
       })
         .then(res => res.json())
         .then(data => {
@@ -94,8 +93,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
       credentials: 'include',
       headers: { 
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '1'
-      }
+        }
     })
       .then(res => res.json())
       .then(data => setFileHistory(data.files || []))
@@ -183,8 +181,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '1'
-      },
+        },
       credentials: 'include',
       body: JSON.stringify(payload)
     })
@@ -232,7 +229,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
       const response = await fetch('http://localhost:5000/api/uploadFiles', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'ngrok-skip-browser-warning': '1' },
+        headers: { },
         body: formData
       });
       if (!response.ok) throw new Error('File upload failed.');
@@ -255,8 +252,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        }
+          }
       });
       if (!res.ok) throw new Error('Failed to fetch file preview.');
       const blob = await res.blob();
@@ -278,8 +274,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        }
+          }
       });
       if (!res.ok) throw new Error('Failed to delete file.');
       alert('File deleted successfully.');
@@ -304,8 +299,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
         credentials: 'include',
         body: JSON.stringify({
           file_name: editedFileName,
@@ -352,7 +346,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
       let currentY = 15;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(HEADER_FONT_SIZE);
-      doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', MARGIN, currentY);
+      doc.text('Leopard Inventory', MARGIN, currentY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(NORMAL_FONT_SIZE);
       currentY += 6;
@@ -366,7 +360,7 @@ function GoodReceivedForm({ onItemsUpdate }) {
       const logoX = pageWidth - LOGO_DIMENSIONS.width - MARGIN;
       const logoY = 10;
       try {
-        doc.addImage('/Squarecloud_Logo1.png', 'PNG', logoX, logoY, LOGO_DIMENSIONS.width, LOGO_DIMENSIONS.height);
+        doc.addImage('/leopard-logo.jpg', 'JPEG', logoX, logoY, LOGO_DIMENSIONS.width, LOGO_DIMENSIONS.height);
       } catch (e) {
         console.warn('Logo image error:', e);
       }

@@ -1,8 +1,7 @@
 import './Header.css';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../images/SQLOGO3.png';
-import { FaBars, FaBell } from 'react-icons/fa';
+import { List, Bell } from '@phosphor-icons/react';
 
 const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen }) => {
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
       if (response.ok) {
@@ -54,7 +53,7 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1',
+          
         },
       });
 
@@ -77,16 +76,13 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
         <div className="header-mobile">
           {isLoggedIn && (
             <button className="hamburger-menu-mobile" onClick={onToggleSidebar}>
-              <FaBars />
+              <List size={22} weight="bold" />
             </button>
           )}
           {!isLoggedIn && (
             <>
-              <div className="logo-mobile">
-                <img src={Logo} alt="Logo" className="logo-img-mobile" />
-              </div>
               <div className="company-name-container-mobile">
-                <h1 className="company-name-mobile">SquareCloud Malaysia</h1>
+                <h1 className="company-name-mobile">Leopard Inventory</h1>
               </div>
             </>
           )}
@@ -108,24 +104,23 @@ const Header = ({ isLoggedIn, username, onLogout, onToggleSidebar, isSidebarOpen
           <div className="left-actions">
             {isLoggedIn && (
               <button className="toggle-sidebar-btn" onClick={onToggleSidebar}>
-                <FaBars />
-              </button>
-            )}
-            <div className="logo">
-              <img src={Logo} alt="Logo" className="logo-img" />
-            </div>
-          </div>
+              <List size={22} weight="bold" />
+            </button>
+          )}
+        </div>
 
-          {/* Center: Company Name */}
-          <div className="center-title">
-            <h1 className="company-name">SquareCloud Malaysia</h1>
-          </div>
+        {/* Center: Company Name */}
+        <div className="center-title">
+          <h1 className="company-name">Leopard Inventory</h1>
+        </div>
 
           {/* Right side: Notifications, User Info, Logout */}
           {isLoggedIn && (
             <div className="right-actions">
-              <FaBell
+              <Bell
                 className="notification-icon"
+                size={22}
+                weight="bold"
                 onClick={() => {
                   setShowDropdown((prev) => {
                     if (!prev) {

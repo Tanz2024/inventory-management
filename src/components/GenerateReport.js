@@ -52,7 +52,7 @@ export default function generateReportPDF(reportConfig) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     let headerY = marginTop;
-    doc.text('SQUARECLOUD (MALAYSIA) SDN BHD', marginLeft, headerY);
+    doc.text('Leopard Inventory', marginLeft, headerY);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -71,7 +71,7 @@ export default function generateReportPDF(reportConfig) {
     const logoX = pageWidth - logoWidth - marginRight;
     const logoY = 10;
     try {
-      doc.addImage('/Squarecloud_Logo1.png', 'PNG', logoX, logoY, logoWidth, logoHeight);
+      doc.addImage('/leopard-logo.jpg', 'JPEG', logoX, logoY, logoWidth, logoHeight);
     } catch (e) {
       console.warn('Logo image error:', e);
     }
@@ -275,3 +275,4 @@ export default function generateReportPDF(reportConfig) {
   // Save the PDF with a date-based filename.
   doc.save(`Inventory_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+

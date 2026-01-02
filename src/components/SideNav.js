@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './SideNav.css';
-import { FaBars } from 'react-icons/fa';
-import Logo from '../images/SQLOGO3.png';
+import { List, X } from '@phosphor-icons/react';
 
 function SideNav({ userId, onToggleSidebar, isSidebarOpen }) {
   const location = useLocation();
@@ -44,15 +43,7 @@ function SideNav({ userId, onToggleSidebar, isSidebarOpen }) {
 
   return (
     <div ref={sideNavRef} className={`side-nav ${isSidebarOpen ? 'open' : ''}`}>
-      {/* Top bar: hamburger + logo */}
-      <div className="top-bar">
-        <button className="hamburger-icon" onClick={onToggleSidebar}>
-          <FaBars />
-        </button>
-        <div className="logo-container">
-          <img src={Logo} alt="Logo" className="logo-img" />
-        </div>
-      </div>
+
 
       <ul>
         <li>

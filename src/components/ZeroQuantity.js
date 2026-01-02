@@ -19,8 +19,7 @@ const ZeroQuantityPage = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
         credentials: 'include' 
       });
       const data = await response.json();
@@ -40,8 +39,7 @@ const ZeroQuantityPage = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '1'
-        },
+          },
         credentials: 'include',
       });
       const data = await response.json();

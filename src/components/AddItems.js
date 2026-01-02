@@ -121,7 +121,7 @@ const AddItems = ({ onClose, onAddItem }) => {
       const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'GET',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json'
         },
         credentials: 'include'
@@ -300,7 +300,7 @@ const handleAddRemark = async () => {
       const response = await fetch('http://localhost:5000/admin-dashboard/items', {
         method: 'POST',
         headers: {
-          'ngrok-skip-browser-warning': '1',
+          
           'Content-Type': 'application/json'
         },
         credentials: 'include',
@@ -639,3 +639,4 @@ const handleAddRemark = async () => {
 };
 
 export default AddItems;
+
